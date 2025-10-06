@@ -145,8 +145,8 @@ ANALYZE profile_certifications;
 -- Display index sizes for monitoring
 SELECT
     schemaname,
-    tablename,
-    indexname,
+    relname as tablename,
+    indexrelname as indexname,
     pg_size_pretty(pg_relation_size(indexrelid)) as index_size
 FROM pg_stat_user_indexes
 WHERE schemaname = 'public'

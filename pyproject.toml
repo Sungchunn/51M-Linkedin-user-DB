@@ -43,6 +43,7 @@ mypy = "^1.11.0"
 # Type Stubs
 types-redis = "^4.6.0"
 pandas-stubs = "^2.2.0"
+httpx = "^0.28.1"
 
 [tool.poetry.extras]
 redis = ["redis"]
@@ -54,8 +55,9 @@ all = ["redis", "openai"]
 reset-db = "backend.data_pipeline.scripts.reset_db:main"
 load-parquet = "backend.data_pipeline.ingestion.load_parquet_to_staging:main"
 load-core = "backend.data_pipeline.ingestion.load_to_core:main"
+# Embeddings (Phase 3)
 generate-embeddings = "backend.data_pipeline.embeddings.generate:main"
-# API
+# API (Phase 4)
 serve = "backend.api.app:serve"
 
 [build-system]

@@ -1,0 +1,268 @@
+"""
+INSIGHT - FastAPI Search API
+Main application with endpoints for semantic talent search
+
+Negative Spaces Implementation:
+- Lifespan management for connection pool
+- Request validation via Pydantic
+- Error handling with proper status codes
+- CORS configuration
+"""
+
+from fastapi import FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from contextlib import asynccontextmanager
+import logging
+from datetime import datetime
+from typing import Optional
+import time
+
+from backend.api.models import (
+    SearchRequest,
+    SearchResponse,
+    HealthResponse,
+    ErrorResponse
+)
+from backend.api import database, search
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager.
+
+    NEGATIVE SPACE CONTRACT:
+    - Creates pool on startup
+    - Closes pool on shutdown
+    - Ensures no connection leaks
+    """
+    logger.info("🚀 Starting INSIGHT API...")
+
+    # Startup: Create connection pool
+    try:
+        await database.get_pool()
+        logger.info("✅ Database connection pool initialized")
+    except database.DatabaseError as e:
+        logger.error(f"❌ Failed to initialize database: {e}")
+        raise
+
+    yield
+
+    # Shutdown: Close connection pool
+    logger.info("🛑 Shutting down INSIGHT API...")
+    await database.close_pool()
+    logger.info("✅ Database connection pool closed")
+
+
+# Create FastAPI app
+app = FastAPI(
+    title="INSIGHT - Semantic Talent Finder",
+    description="Hybrid search API for LinkedIn profiles using vector embeddings and full-text search",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure for production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.get("/", tags=["Root"])
+async def root():
+    """Root endpoint"""
+    return {
+        "name": "INSIGHT - Semantic Talent Finder",
+        "version": "1.0.0",
+        "status": "running",
+        "docs": "/docs"
+    }
+
+
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Health check endpoint"
+)
+async def health_check():
+    """
+    Check API and database health.
+
+    NEGATIVE SPACE CONTRACT:
+    - Returns 200 if healthy
+    - Returns 503 if database unavailable
+    """
+    try:
+        pool = await database.get_pool()
+
+        async with pool.acquire() as conn:
+            # Test database connectivity
+            await conn.fetchval("SELECT 1")
+
+            # Get profile counts
+            total_profiles = await conn.fetchval(
+                "SELECT count(*) FROM profiles WHERE is_deleted = FALSE"
+            )
+
+            profiles_with_embeddings = await conn.fetchval(
+                "SELECT count(*) FROM profiles WHERE embedding IS NOT NULL AND is_deleted = FALSE"
+            )
+
+        return HealthResponse(
+            status="healthy",
+            timestamp=datetime.utcnow(),
+            database="connected",
+            profiles_total=total_profiles,
+            profiles_with_embeddings=profiles_with_embeddings
+        )
+
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database unavailable: {e}"
+        )
+
+
+@app.post(
+    "/search",
+    response_model=SearchResponse,
+    tags=["Search"],
+    summary="Semantic search for talent profiles"
+)
+async def search_profiles(request: SearchRequest):
+    """
+    Execute hybrid semantic search on talent profiles.
+
+    Combines:
+    - Vector similarity search (HNSW index)
+    - Full-text lexical search (ts_rank)
+    - Structured filters (location, skills, experience)
+
+    NEGATIVE SPACE CONTRACT:
+    - Returns SearchResponse with results
+    - Returns 400 for invalid requests
+    - Returns 500 for search failures
+
+    Args:
+        request: SearchRequest with query and filters
+
+    Returns:
+        SearchResponse with results and metadata
+    """
+    start_time = time.time()
+
+    try:
+        pool = await database.get_pool()
+
+        async with pool.acquire() as conn:
+            # Execute hybrid search
+            results, total_count = await search.hybrid_search(conn, request)
+
+        # Calculate query time
+        query_time_ms = (time.time() - start_time) * 1000
+
+        # Build filters dict for response
+        filters_applied = {}
+        if request.location_country:
+            filters_applied['location_country'] = request.location_country
+        if request.region:
+            filters_applied['region'] = request.region
+        if request.locality:
+            filters_applied['locality'] = request.locality
+        if request.min_years_experience is not None:
+            filters_applied['min_years_experience'] = request.min_years_experience
+        if request.max_years_experience is not None:
+            filters_applied['max_years_experience'] = request.max_years_experience
+        if request.skills:
+            filters_applied['skills'] = request.skills
+        if request.industry:
+            filters_applied['industry'] = request.industry
+        if request.min_quality_score is not None:
+            filters_applied['min_quality_score'] = request.min_quality_score
+
+        logger.info(
+            f"Search completed: query='{request.query}', "
+            f"results={len(results)}/{total_count}, "
+            f"time={query_time_ms:.1f}ms"
+        )
+
+        return SearchResponse(
+            results=results,
+            total_count=total_count,
+            returned_count=len(results),
+            offset=request.offset,
+            limit=request.limit,
+            query_time_ms=query_time_ms,
+            query=request.query,
+            filters_applied=filters_applied
+        )
+
+    except search.SearchError as e:
+        logger.error(f"Search error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Search failed: {e}"
+        )
+
+    except Exception as e:
+        logger.error(f"Unexpected error: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal server error: {e}"
+        )
+
+
+# Exception handlers
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request, exc: HTTPException):
+    """Handle HTTP exceptions with ErrorResponse format"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": exc.detail,
+            "detail": None,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request, exc: Exception):
+    """Handle unexpected exceptions"""
+    logger.error(f"Unhandled exception: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal server error",
+            "detail": str(exc),
+            "timestamp": datetime.utcnow().isoformat()
+        }
+    )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    # Run with: python -m backend.api.app
+    uvicorn.run(
+        "backend.api.app:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )
