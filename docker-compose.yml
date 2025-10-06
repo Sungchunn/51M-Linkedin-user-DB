@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: insight-postgres
+    environment:
+      POSTGRES_DB: semantic_talent
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - insight_pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d semantic_talent"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - insight-network
+
+  # Optional: Redis for caching (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: insight-redis
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - insight_redis:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
+  #   networks:
+  #     - insight-network
+
+volumes:
+  insight_pgdata:
+    driver: local
+  # insight_redis:
+  #   driver: local
+
+networks:
+  insight-network:
+    driver: bridge

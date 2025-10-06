@@ -72,7 +72,11 @@ htmlcov/
 *.json
 !requirements.json
 !package.json
-data/
+!pyproject.toml
+data/*.parquet
+data/batches/
+data/analysis_output/
+data/*.csv
 datasets/
 *.db
 *.sqlite
