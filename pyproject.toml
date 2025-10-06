@@ -126,7 +126,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = "-ra -q --strict-markers --cov=backend --cov-report=term-missing --cov-report=html"
-testpaths = ["tests"]
+testpaths = ["backend/tests"]
 asyncio_mode = "auto"
 pythonpath = ["."]
 markers = [
@@ -138,7 +138,7 @@ markers = [
 [tool.coverage.run]
 source = ["backend"]
 omit = [
-    "*/tests/*",
+    "backend/tests/*",
     "*/test_*.py",
     "*/__pycache__/*",
     "*/venv/*",
