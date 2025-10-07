@@ -31,9 +31,12 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Suppress verbose provider logs
+# Suppress verbose logs for clean progress bar
 logging.getLogger('backend.data_pipeline.embeddings.providers').setLevel(logging.WARNING)
 logging.getLogger('backend.data_pipeline.embeddings.retry').setLevel(logging.WARNING)
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('openai').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 
 class EmbeddingGenerationError(Exception):
