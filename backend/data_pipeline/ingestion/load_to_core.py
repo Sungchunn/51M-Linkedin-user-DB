@@ -152,11 +152,12 @@ def transform_staging_row(staging_row: Dict[str, Any]) -> Dict[str, Any]:
 
 def insert_profiles_bulk(conn: psycopg.Connection, rows: list[Dict[str, Any]]) -> tuple[int, int]:
     """
-    Bulk insert profiles using executemany for maximum performance.
+    Bulk insert profiles using executemany with fallback to individual inserts on error.
 
     NEGATIVE SPACE CONTRACT:
     - rows must not be empty
     - Uses ON CONFLICT to handle duplicates
+    - Falls back to individual inserts if bulk fails
     - Returns (success_count, failure_count)
 
     Args:
@@ -174,7 +175,7 @@ def insert_profiles_bulk(conn: psycopg.Connection, rows: list[Dict[str, Any]]) -
 
     try:
         with conn.cursor() as cur:
-            # Use executemany for bulk insert (much faster than individual inserts)
+            # Try bulk insert first (fastest path)
             cur.executemany("""
                 INSERT INTO profiles (
                     full_name, first_name, last_name, linkedin_url, linkedin_username,
@@ -209,8 +210,35 @@ def insert_profiles_bulk(conn: psycopg.Connection, rows: list[Dict[str, Any]]) -
         return success_count, failure_count
 
     except psycopg.Error as e:
-        logger.error(f"Bulk insert failed: {type(e).__name__}: {e}")
-        return 0, len(rows)
+        # Bulk insert failed - log first error and try individual inserts
+        if not hasattr(insert_profiles_bulk, '_bulk_error_logged'):
+            logger.warning(
+                f"Bulk insert failed ({type(e).__name__}: {e}), "
+                f"falling back to individual inserts with error handling"
+            )
+            insert_profiles_bulk._bulk_error_logged = True
+
+        # Fallback: Insert individually to identify problematic rows
+        conn.rollback()
+        for row in rows:
+            try:
+                if insert_profile(conn, row):
+                    conn.commit()
+                    success_count += 1
+                else:
+                    conn.rollback()
+                    failure_count += 1
+            except Exception as individual_error:
+                conn.rollback()
+                failure_count += 1
+                # Log first few individual errors
+                if failure_count <= 3:
+                    logger.error(
+                        f"Failed to insert {row.get('linkedin_username')}: "
+                        f"{type(individual_error).__name__}: {individual_error}"
+                    )
+
+        return success_count, failure_count
 
 
 def insert_profile(conn: psycopg.Connection, row: Dict[str, Any]) -> bool:

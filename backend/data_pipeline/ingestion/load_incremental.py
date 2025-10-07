@@ -108,8 +108,12 @@ def load_parquet_batch_to_profiles(
 
     # Process in batches using streaming reader
     rows_processed = 0
-    with tqdm(total=total_rows, desc="Loading profiles", unit=" rows",
-              bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
+    with tqdm(total=total_rows,
+              desc="📊 Loading",
+              unit=" rows",
+              bar_format='{desc}: {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
+              colour='green',
+              ncols=120) as pbar:
         # Iterate through Parquet file in batches
         for batch_table in parquet_file_obj.iter_batches(batch_size=batch_size):
             # Stop if we've hit the limit
@@ -181,21 +185,28 @@ def load_parquet_batch_to_profiles(
             stats['total_processed'] += len(staging_rows)
             rows_processed += len(staging_rows)
 
+            # Calculate success rate for progress bar
+            total_attempted = stats['total_processed'] - stats['duplicates']
+            success_rate = (stats['loaded'] / total_attempted * 100) if total_attempted > 0 else 0
+
             # Update progress bar with detailed stats
-            pbar.set_postfix({
-                'loaded': f"{stats['loaded']:,}",
-                'dups': f"{stats['duplicates']:,}",
-                'failed': f"{stats['failed_insert']:,}"
-            })
+            pbar.set_postfix_str(
+                f"✅ {stats['loaded']:,} | "
+                f"⏭️  {stats['duplicates']:,} | "
+                f"❌ {stats['failed_insert']:,} | "
+                f"📈 {success_rate:.1f}%",
+                refresh=True
+            )
             pbar.update(len(staging_rows))
 
-            # Log progress every 50K rows
+            # Log progress every 50K rows with enhanced formatting
             if stats['total_processed'] % 50000 == 0:
-                logger.info(
-                    f"Progress: {stats['total_processed']:,} processed, "
-                    f"{stats['loaded']:,} loaded, "
-                    f"{stats['duplicates']:,} duplicates, "
-                    f"{stats['failed_insert']:,} failed"
+                pbar.write(
+                    f"\n📊 Checkpoint @ {stats['total_processed']:,} rows: "
+                    f"✅ {stats['loaded']:,} loaded | "
+                    f"⏭️  {stats['duplicates']:,} dups | "
+                    f"❌ {stats['failed_insert']:,} failed | "
+                    f"📈 {success_rate:.1f}% success\n"
                 )
 
     return stats
@@ -268,6 +279,22 @@ def main():
             logger.info(f"  With embeddings:   {final_stats['with_embeddings']:,}")
             logger.info(f"  Avg quality:       {final_stats['avg_quality']}")
             logger.info(f"  High quality:      {final_stats['high_quality']:,} (≥0.7)")
+            logger.info("")
+
+            # Show success rate and warnings
+            total_attempted = stats['total_processed'] - stats['duplicates']
+            if total_attempted > 0:
+                success_rate = (stats['loaded'] / total_attempted) * 100
+                logger.info(f"Success rate: {success_rate:.1f}% ({stats['loaded']:,}/{total_attempted:,} non-duplicates)")
+
+                if success_rate < 50:
+                    logger.warning("")
+                    logger.warning("⚠️  Less than 50% success rate - check error causes:")
+                    logger.warning("  • Invalid LinkedIn usernames (special chars, non-ASCII)")
+                    logger.warning("  • Missing required fields (linkedin_username is NULL)")
+                    logger.warning("  • Quality score < 0.5 threshold")
+                    logger.warning("  • Database constraint violations")
+
             logger.info("")
 
             if stats['loaded'] > 0:
