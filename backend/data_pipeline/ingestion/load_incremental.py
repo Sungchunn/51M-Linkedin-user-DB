@@ -120,16 +120,15 @@ def load_parquet_batch_to_profiles(
             if rows_processed >= total_rows:
                 break
 
-            # Convert batch to pandas (only this batch, not whole file)
-            batch_df = batch_table.to_pandas()
-
             # Trim if this batch exceeds the limit
-            if limit and rows_processed + len(batch_df) > limit:
+            batch_length = len(batch_table)
+            if limit and rows_processed + batch_length > limit:
                 remaining = limit - rows_processed
-                batch_df = batch_df.iloc[:remaining]
+                batch_table = batch_table.slice(0, remaining)
+                batch_length = remaining
 
-            # Convert to list of dicts
-            staging_rows = batch_df.to_dict('records')
+            # Convert Arrow batch to list of dicts (faster than pandas intermediate)
+            staging_rows = batch_table.to_pylist()
 
             # Transform and filter in one pass
             profiles_to_insert = []
@@ -159,9 +158,13 @@ def load_parquet_batch_to_profiles(
                     profiles_to_insert.append(core_row)
 
                     # Update cache (for within-batch deduplication)
-                    if core_row.get('linkedin_username'):
-                        existing_usernames.add(core_row['linkedin_username'].lower())
-                    existing_hashes.add(dedup.generate_profile_hash(core_row))
+                    username = core_row.get('linkedin_username')
+                    if username:
+                        existing_usernames.add(username.lower())
+                        # Skip hash calculation if we have username (primary key)
+                    else:
+                        # Only calculate hash if no username (expensive operation)
+                        existing_hashes.add(dedup.generate_profile_hash(core_row))
 
                 except Exception as e:
                     logger.debug(f"Transform error: {e}")
@@ -185,19 +188,22 @@ def load_parquet_batch_to_profiles(
             stats['total_processed'] += len(staging_rows)
             rows_processed += len(staging_rows)
 
-            # Calculate success rate for progress bar
-            total_attempted = stats['total_processed'] - stats['duplicates']
-            success_rate = (stats['loaded'] / total_attempted * 100) if total_attempted > 0 else 0
-
-            # Update progress bar with detailed stats
-            pbar.set_postfix_str(
-                f"✅ {stats['loaded']:,} | "
-                f"⏭️  {stats['duplicates']:,} | "
-                f"❌ {stats['failed_insert']:,} | "
-                f"📈 {success_rate:.1f}%",
-                refresh=True
-            )
+            # Update progress bar (only update postfix every 5 batches for speed)
             pbar.update(len(staging_rows))
+
+            if stats['total_processed'] % (batch_size * 5) == 0 or rows_processed >= total_rows:
+                # Calculate success rate for progress bar
+                total_attempted = stats['total_processed'] - stats['duplicates']
+                success_rate = (stats['loaded'] / total_attempted * 100) if total_attempted > 0 else 0
+
+                # Update progress bar with detailed stats
+                pbar.set_postfix_str(
+                    f"✅ {stats['loaded']:,} | "
+                    f"⏭️  {stats['duplicates']:,} | "
+                    f"❌ {stats['failed_insert']:,} | "
+                    f"📈 {success_rate:.1f}%",
+                    refresh=True
+                )
 
             # Log progress every 50K rows with enhanced formatting
             if stats['total_processed'] % 50000 == 0:

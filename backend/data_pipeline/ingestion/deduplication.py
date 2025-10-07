@@ -25,29 +25,30 @@ class DeduplicationError(Exception):
 
 def generate_profile_hash(row: Dict[str, Any]) -> str:
     """
-    Generate deterministic hash for a profile.
+    Generate deterministic hash for a profile using MD5 (matches database-side hashing).
 
     Used for detecting duplicate imports even when linkedin_username is missing.
 
     NEGATIVE SPACE CONTRACT:
-    - Always returns 64-character hex string
+    - Always returns 32-character hex string (MD5)
     - Same profile data → same hash
     - Uses: full_name + job_title + company_name
+    - Matches PostgreSQL MD5() function output
 
     Args:
         row: Profile dict with full_name, job_title, company_name
 
     Returns:
-        SHA256 hex string
+        MD5 hex string
     """
-    # Normalize and combine key fields
+    # Normalize and combine key fields (must match database query)
     full_name = str(row.get('full_name', '')).lower().strip()
     job_title = str(row.get('job_title', '')).lower().strip()
     company_name = str(row.get('company_name', '')).lower().strip()
 
-    # Create deterministic hash
+    # Create deterministic hash (MD5 for speed, matches database)
     content = f"{full_name}|{job_title}|{company_name}"
-    hash_obj = hashlib.sha256(content.encode('utf-8'))
+    hash_obj = hashlib.md5(content.encode('utf-8'))
     return hash_obj.hexdigest()
 
 
@@ -83,13 +84,14 @@ def get_existing_linkedin_usernames(conn: psycopg.Connection) -> Set[str]:
 
 def get_existing_profile_hashes(conn: psycopg.Connection) -> Set[str]:
     """
-    Fetch all existing profile hashes from database.
+    Fetch all existing profile hashes from database using database-side hash generation.
 
     Used as secondary deduplication when linkedin_username is missing.
 
     NEGATIVE SPACE CONTRACT:
     - Returns set (O(1) lookup)
     - Only includes non-deleted profiles
+    - Uses PostgreSQL MD5 for faster hashing
 
     Args:
         conn: Database connection
@@ -98,25 +100,24 @@ def get_existing_profile_hashes(conn: psycopg.Connection) -> Set[str]:
         Set of profile hashes
     """
     with conn.cursor() as cur:
+        # Use database-side hash generation (much faster than Python loop)
         cur.execute("""
-            SELECT full_name, job_title, company_name
+            SELECT MD5(
+                LOWER(COALESCE(full_name, '')) || '|' ||
+                LOWER(COALESCE(job_title, '')) || '|' ||
+                LOWER(COALESCE(company_name, ''))
+            ) as profile_hash
             FROM profiles
             WHERE is_deleted = FALSE
+              AND linkedin_username IS NULL
         """)
 
         results = cur.fetchall()
 
-    # Generate hashes from existing data
-    hashes = set()
-    for row in results:
-        profile_dict = {
-            'full_name': row[0],
-            'job_title': row[1],
-            'company_name': row[2]
-        }
-        hashes.add(generate_profile_hash(profile_dict))
+    # Extract hashes from results (already computed in database)
+    hashes = {row[0] for row in results}
 
-    logger.info(f"Generated {len(hashes):,} profile hashes for deduplication")
+    logger.info(f"Loaded {len(hashes):,} profile hashes for deduplication")
     return hashes
 
 
