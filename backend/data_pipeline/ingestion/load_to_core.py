@@ -150,6 +150,69 @@ def transform_staging_row(staging_row: Dict[str, Any]) -> Dict[str, Any]:
         return None
 
 
+def insert_profiles_bulk(conn: psycopg.Connection, rows: list[Dict[str, Any]]) -> tuple[int, int]:
+    """
+    Bulk insert profiles using executemany for maximum performance.
+
+    NEGATIVE SPACE CONTRACT:
+    - rows must not be empty
+    - Uses ON CONFLICT to handle duplicates
+    - Returns (success_count, failure_count)
+
+    Args:
+        conn: Database connection
+        rows: List of transformed profile dicts
+
+    Returns:
+        Tuple of (successful_inserts, failed_inserts)
+    """
+    if not rows:
+        return 0, 0
+
+    success_count = 0
+    failure_count = 0
+
+    try:
+        with conn.cursor() as cur:
+            # Use executemany for bulk insert (much faster than individual inserts)
+            cur.executemany("""
+                INSERT INTO profiles (
+                    full_name, first_name, last_name, linkedin_url, linkedin_username,
+                    job_title, company_name, industry, years_experience,
+                    location, locality, region, location_country,
+                    skills, skills_normalized,
+                    headline, summary,
+                    email, phone, website,
+                    twitter, github,
+                    embedding,
+                    content_quality_score, profile_completeness,
+                    updated_at
+                )
+                VALUES (
+                    %(full_name)s, %(first_name)s, %(last_name)s, %(linkedin_url)s, %(linkedin_username)s,
+                    %(job_title)s, %(company_name)s, %(industry)s, %(years_experience)s,
+                    %(location)s, %(locality)s, %(region)s, %(location_country)s,
+                    %(skills)s, %(skills_normalized)s,
+                    %(headline)s, %(summary)s,
+                    %(email)s, %(phone)s, %(website)s,
+                    %(twitter)s, %(github)s,
+                    %(embedding)s,
+                    %(content_quality_score)s, %(profile_completeness)s,
+                    NOW()
+                )
+                ON CONFLICT (linkedin_username) DO NOTHING
+            """, rows)
+
+            success_count = cur.rowcount
+            failure_count = len(rows) - success_count
+
+        return success_count, failure_count
+
+    except psycopg.Error as e:
+        logger.error(f"Bulk insert failed: {type(e).__name__}: {e}")
+        return 0, len(rows)
+
+
 def insert_profile(conn: psycopg.Connection, row: Dict[str, Any]) -> bool:
     """
     Insert or update profile in core table using UPSERT.
@@ -224,9 +287,21 @@ def insert_profile(conn: psycopg.Connection, row: Dict[str, Any]) -> bool:
         return True
 
     except psycopg.Error as e:
-        logger.error(
-            f"NEGATIVE SPACE: Failed to insert profile {row.get('linkedin_username')}: {e}"
-        )
+        # Log first few errors with full details, then suppress repeated errors
+        error_msg = f"{type(e).__name__}: {e}"
+        if not hasattr(insert_profile, '_error_count'):
+            insert_profile._error_count = {}
+
+        error_key = type(e).__name__
+        insert_profile._error_count[error_key] = insert_profile._error_count.get(error_key, 0) + 1
+
+        # Only log first 5 occurrences of each error type
+        if insert_profile._error_count[error_key] <= 5:
+            logger.error(
+                f"NEGATIVE SPACE: Failed to insert profile {row.get('linkedin_username')}: "
+                f"{error_msg}\nRow data: {row}",
+                exc_info=True
+            )
         return False
 
 

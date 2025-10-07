@@ -29,15 +29,21 @@ from backend.data_pipeline.ingestion import validators as val
 from backend.data_pipeline.ingestion import deduplication as dedup
 from backend.data_pipeline.ingestion.load_to_core import (
     transform_staging_row,
-    insert_profile
+    insert_profile,
+    insert_profiles_bulk
 )
 
-# Configure logging
+# Configure logging - suppress warnings to show progress bar
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Suppress verbose warnings from transformers and deduplication
+logging.getLogger('backend.data_pipeline.ingestion.transformers').setLevel(logging.ERROR)
+logging.getLogger('backend.data_pipeline.ingestion.deduplication').setLevel(logging.WARNING)
+logging.getLogger('backend.data_pipeline.ingestion.load_to_core').setLevel(logging.WARNING)
 
 
 class IncrementalLoadError(Exception):
@@ -74,9 +80,9 @@ def load_parquet_batch_to_profiles(
 
     logger.info(f"Loading data from: {parquet_file}")
 
-    # Open Parquet file
-    parquet_table = pf.read_table(parquet_file)
-    total_rows = len(parquet_table)
+    # Open Parquet file with streaming reader (memory efficient)
+    parquet_file_obj = pf.ParquetFile(parquet_file)
+    total_rows = parquet_file_obj.metadata.num_rows
 
     if limit:
         total_rows = min(total_rows, limit)
@@ -94,73 +100,102 @@ def load_parquet_batch_to_profiles(
         'failed_insert': 0
     }
 
-    # Process in batches
-    with tqdm(total=total_rows, desc="Loading profiles", unit="profiles") as pbar:
-        for batch_start in range(0, total_rows, batch_size):
-            batch_end = min(batch_start + batch_size, total_rows)
+    # Cache existing usernames/hashes ONCE (huge performance boost)
+    logger.info("Loading existing profiles for deduplication...")
+    existing_usernames = dedup.get_existing_linkedin_usernames(conn)
+    existing_hashes = dedup.get_existing_profile_hashes(conn)
+    logger.info(f"Cached {len(existing_usernames):,} usernames and {len(existing_hashes):,} hashes")
 
-            # Read batch from Parquet
-            batch_table = parquet_table.slice(batch_start, batch_end - batch_start)
+    # Process in batches using streaming reader
+    rows_processed = 0
+    with tqdm(total=total_rows, desc="Loading profiles", unit=" rows",
+              bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}]') as pbar:
+        # Iterate through Parquet file in batches
+        for batch_table in parquet_file_obj.iter_batches(batch_size=batch_size):
+            # Stop if we've hit the limit
+            if rows_processed >= total_rows:
+                break
+
+            # Convert batch to pandas (only this batch, not whole file)
             batch_df = batch_table.to_pandas()
+
+            # Trim if this batch exceeds the limit
+            if limit and rows_processed + len(batch_df) > limit:
+                remaining = limit - rows_processed
+                batch_df = batch_df.iloc[:remaining]
 
             # Convert to list of dicts
             staging_rows = batch_df.to_dict('records')
 
-            # Transform rows
-            transformed_profiles = []
+            # Transform and filter in one pass
+            profiles_to_insert = []
             for staging_row in staging_rows:
                 try:
+                    # Transform
                     core_row = transform_staging_row(staging_row)
-                    if core_row:
-                        transformed_profiles.append(core_row)
-                    else:
+                    if not core_row:
                         stats['failed_transform'] += 1
-                except Exception as e:
-                    logger.debug(f"Transform error: {e}")
-                    stats['failed_transform'] += 1
+                        continue
 
-            # Deduplicate against database
-            unique_profiles, duplicate_profiles = dedup.filter_duplicate_profiles(
-                transformed_profiles,
-                conn
-            )
+                    # Check duplicate (using cached sets)
+                    is_dup, _ = dedup.is_duplicate_profile(core_row, existing_usernames, existing_hashes)
+                    if is_dup:
+                        stats['duplicates'] += 1
+                        continue
 
-            stats['duplicates'] += len(duplicate_profiles)
-
-            # Insert unique profiles
-            for profile in unique_profiles:
-                try:
-                    # Validate
-                    quality_score = val.calculate_quality_score(profile)
-                    profile['content_quality_score'] = quality_score
+                    # Validate quality
+                    quality_score = val.calculate_quality_score(core_row)
+                    core_row['content_quality_score'] = quality_score
 
                     if quality_score < 0.5:
                         stats['failed_validation'] += 1
                         continue
 
-                    # Insert
-                    success = insert_profile(conn, profile)
-                    if success:
-                        stats['loaded'] += 1
-                    else:
-                        stats['failed_insert'] += 1
+                    # Add to batch insert
+                    profiles_to_insert.append(core_row)
+
+                    # Update cache (for within-batch deduplication)
+                    if core_row.get('linkedin_username'):
+                        existing_usernames.add(core_row['linkedin_username'].lower())
+                    existing_hashes.add(dedup.generate_profile_hash(core_row))
 
                 except Exception as e:
-                    logger.debug(f"Insert error: {e}")
-                    stats['failed_insert'] += 1
+                    logger.debug(f"Transform error: {e}")
+                    stats['failed_transform'] += 1
 
-            # Commit batch
-            conn.commit()
+            # Bulk insert all profiles at once (MUCH faster)
+            if profiles_to_insert:
+                try:
+                    success_count, failure_count = insert_profiles_bulk(conn, profiles_to_insert)
+                    stats['loaded'] += success_count
+                    stats['failed_insert'] += failure_count
+
+                    # Commit batch at once
+                    conn.commit()
+
+                except Exception as e:
+                    logger.warning(f"Bulk insert failed: {e}")
+                    stats['failed_insert'] += len(profiles_to_insert)
+                    conn.rollback()
 
             stats['total_processed'] += len(staging_rows)
+            rows_processed += len(staging_rows)
+
+            # Update progress bar with detailed stats
+            pbar.set_postfix({
+                'loaded': f"{stats['loaded']:,}",
+                'dups': f"{stats['duplicates']:,}",
+                'failed': f"{stats['failed_insert']:,}"
+            })
             pbar.update(len(staging_rows))
 
-            # Log progress
-            if (batch_start + batch_size) % 50000 == 0:
+            # Log progress every 50K rows
+            if stats['total_processed'] % 50000 == 0:
                 logger.info(
                     f"Progress: {stats['total_processed']:,} processed, "
                     f"{stats['loaded']:,} loaded, "
-                    f"{stats['duplicates']:,} duplicates"
+                    f"{stats['duplicates']:,} duplicates, "
+                    f"{stats['failed_insert']:,} failed"
                 )
 
     return stats
