@@ -24,12 +24,16 @@ from tqdm import tqdm
 from backend.data_pipeline.ingestion import transformers as tf
 from backend.data_pipeline.embeddings import providers
 
-# Configure logging
+# Configure logging - suppress debug messages for cleaner output
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Suppress verbose provider logs
+logging.getLogger('backend.data_pipeline.embeddings.providers').setLevel(logging.WARNING)
+logging.getLogger('backend.data_pipeline.embeddings.retry').setLevel(logging.WARNING)
 
 
 class EmbeddingGenerationError(Exception):
@@ -99,48 +103,60 @@ def build_embedding_text(profile: dict) -> str:
     return tf.build_content_for_embedding(profile)
 
 
-def update_profile_embedding(
+def update_profiles_bulk(
     conn: psycopg.Connection,
-    profile_id: str,
-    embedding: List[float]
-) -> bool:
+    profile_ids: List[str],
+    embeddings: List[List[float]]
+) -> Tuple[int, int]:
     """
-    Update profile with generated embedding.
+    Bulk update profiles with embeddings (much faster than individual updates).
 
     NEGATIVE SPACE CONTRACT:
-    - embedding must be 1536 dimensions
-    - Updates updated_at timestamp
-    - Returns True on success
+    - embeddings must be 1536 dimensions each
+    - len(profile_ids) must equal len(embeddings)
+    - Returns (success_count, failure_count)
 
     Args:
         conn: Database connection
-        profile_id: Profile UUID
-        embedding: 1536-dim embedding vector
+        profile_ids: List of profile UUIDs
+        embeddings: List of 1536-dim embedding vectors
 
     Returns:
-        True if update succeeded, False otherwise
+        Tuple of (successful_updates, failed_updates)
     """
-    if len(embedding) != 1536:
+    if len(profile_ids) != len(embeddings):
         logger.error(
-            f"NEGATIVE SPACE: Cannot update profile {profile_id} with "
-            f"{len(embedding)}-dim embedding (expected 1536)"
+            f"NEGATIVE SPACE: Mismatch - {len(profile_ids)} IDs vs {len(embeddings)} embeddings"
         )
-        return False
+        return 0, len(profile_ids)
+
+    success_count = 0
+    failure_count = 0
 
     try:
+        # Use executemany for bulk update (much faster)
         with conn.cursor() as cur:
-            cur.execute("""
+            # Prepare data for bulk update
+            update_data = [
+                (embedding, profile_id)
+                for profile_id, embedding in zip(profile_ids, embeddings)
+            ]
+
+            cur.executemany("""
                 UPDATE profiles
                 SET embedding = %s::vector,
                     updated_at = NOW()
                 WHERE id = %s
-            """, (embedding, profile_id))
+            """, update_data)
 
-        return True
+            success_count = cur.rowcount
+            failure_count = len(profile_ids) - success_count
+
+        return success_count, failure_count
 
     except Exception as e:
-        logger.error(f"Failed to update profile {profile_id}: {e}")
-        return False
+        logger.error(f"Bulk update failed: {e}")
+        return 0, len(profile_ids)
 
 
 def generate_embeddings_batch(
@@ -149,10 +165,11 @@ def generate_embeddings_batch(
     provider: providers.OpenAIEmbeddingProvider
 ) -> Tuple[int, int]:
     """
-    Generate and store embeddings for a batch of profiles.
+    Generate and store embeddings for a batch of profiles with bulk updates.
 
     NEGATIVE SPACE CONTRACT:
     - Processes in sub-batches of 100 (OpenAI limit)
+    - Uses bulk update for speed
     - Commits after each sub-batch
     - Returns (success_count, failure_count)
 
@@ -182,27 +199,21 @@ def generate_embeddings_batch(
             texts.append(text)
             profile_ids.append(profile['id'])
 
-        # Generate embeddings
-        logger.debug(f"Generating embeddings for {len(texts)} texts")
-
+        # Generate embeddings via OpenAI
         embeddings = provider.embed_batch(texts)
 
         if embeddings is None:
-            logger.error(f"NEGATIVE SPACE: Failed to generate embeddings for sub-batch")
+            logger.error(f"Failed to generate embeddings for sub-batch of {len(texts)}")
             failure_count += len(texts)
             continue
 
-        # Update profiles
-        for profile_id, embedding in zip(profile_ids, embeddings):
-            if update_profile_embedding(conn, profile_id, embedding):
-                success_count += 1
-            else:
-                failure_count += 1
+        # Bulk update profiles (much faster than individual updates)
+        success, failed = update_profiles_bulk(conn, profile_ids, embeddings)
+        success_count += success
+        failure_count += failed
 
         # Commit sub-batch
         conn.commit()
-
-        logger.debug(f"✅ Committed {len(embeddings)} embeddings")
 
     return success_count, failure_count
 
@@ -275,9 +286,15 @@ def generate_all_embeddings(
             total_success = 0
             total_failed = 0
 
-            # Process in batches with progress bar
-            with tqdm(total=total_to_process, desc="Generating embeddings", unit="profiles") as pbar:
+            # Process in batches with enhanced progress bar
+            with tqdm(total=total_to_process,
+                     desc="🔮 Embedding",
+                     unit=" profiles",
+                     bar_format='{desc}: {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
+                     colour='cyan',
+                     ncols=120) as pbar:
                 offset = 0
+                batch_count = 0
 
                 while offset < total_to_process:
                     # Fetch batch
@@ -296,10 +313,26 @@ def generate_all_embeddings(
 
                     total_success += success
                     total_failed += failed
+                    batch_count += 1
 
                     pbar.update(len(profiles))
 
+                    # Update stats every 5 batches
+                    if batch_count % 5 == 0 or offset + len(profiles) >= total_to_process:
+                        success_rate = (total_success / (total_success + total_failed) * 100) if (total_success + total_failed) > 0 else 0
+                        pbar.set_postfix_str(
+                            f"✅ {total_success:,} | ❌ {total_failed:,} | 📈 {success_rate:.1f}%",
+                            refresh=True
+                        )
+
                     offset += len(profiles)
+
+                    # Checkpoint every 50K
+                    if total_success % 50000 < batch_size:
+                        pbar.write(
+                            f"\n📊 Checkpoint @ {total_success:,} embeddings: "
+                            f"✅ {total_success:,} success | ❌ {total_failed:,} failed\n"
+                        )
 
                     # Check limit
                     if limit and offset >= limit:
