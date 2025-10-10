@@ -113,11 +113,53 @@ def main():
     """
 
     print("Executing extraction query...")
-    print("(This will take 10-15 minutes - downloading from S3)")
+    print("(This will take 10-15 minutes - downloading 15GB from S3)")
     print()
+    print("Progress indicator (updates every 30 seconds):")
+    print()
+
+    import threading
+    import time as time_module
+
+    # Progress indicator
+    stop_indicator = threading.Event()
+    start_time = time_module.time()
+
+    def show_progress():
+        chars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        idx = 0
+        last_update = start_time
+
+        while not stop_indicator.is_set():
+            elapsed = int(time_module.time() - start_time)
+            mins = elapsed // 60
+            secs = elapsed % 60
+
+            # Update every 30 seconds
+            if time_module.time() - last_update >= 30:
+                percent = min((elapsed / (15 * 60)) * 100, 99)
+                print(f"\r{chars[idx % len(chars)]} Downloading... {mins:02d}:{secs:02d} elapsed ({percent:.0f}% est.)   ", end='', flush=True)
+                last_update = time_module.time()
+            else:
+                print(f"\r{chars[idx % len(chars)]} Downloading... {mins:02d}:{secs:02d} elapsed   ", end='', flush=True)
+
+            idx += 1
+            time_module.sleep(0.1)
+
+    # Start progress indicator
+    progress_thread = threading.Thread(target=show_progress, daemon=True)
+    progress_thread.start()
 
     try:
         conn.execute(query)
+        stop_indicator.set()
+        progress_thread.join(timeout=1)
+
+        elapsed = int(time_module.time() - start_time)
+        mins = elapsed // 60
+        secs = elapsed % 60
+        print(f"\r✅ Download complete! ({mins:02d}:{secs:02d})                    ")
+        print()
 
         print()
         print("=" * 70)
@@ -173,6 +215,10 @@ def main():
         print()
 
     except Exception as e:
+        stop_indicator.set()
+        progress_thread.join(timeout=1)
+
+        print()
         print()
         print("=" * 70)
         print("❌ EXTRACTION FAILED")
