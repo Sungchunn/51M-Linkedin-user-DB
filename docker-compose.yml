@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: profiles
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Use 5433 externally to avoid conflict
     volumes:
       # Named volume (avoids iCloud/Dropbox sync)
       - postgres_data:/var/lib/postgresql/data
@@ -47,7 +47,7 @@ services:
       - -c
       - log_min_duration_statement=1000     # Log slow queries (>1s)
       - -c
-      - log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h
+      - "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
