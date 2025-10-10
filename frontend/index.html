@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>INSIGHT - Talent Search</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🔍 INSIGHT</h1>
+            <p class="subtitle">Search 51M+ LinkedIn Profiles</p>
+        </header>
+
+        <!-- Search Form -->
+        <div class="search-card">
+            <form id="searchForm">
+                <!-- Keyword Search -->
+                <div class="form-group">
+                    <label for="keyword">🔎 Keyword Search</label>
+                    <input
+                        type="text"
+                        id="keyword"
+                        name="keyword"
+                        placeholder="e.g. Python developer, AI researcher, Product Manager..."
+                        class="form-control"
+                    >
+                    <small>Searches across name, title, company, skills, and summary</small>
+                </div>
+
+                <!-- Filters Row 1 -->
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label for="country">🌍 Country</label>
+                        <select id="country" name="country" class="form-control">
+                            <option value="">All Countries</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="industry">🏢 Industry</label>
+                        <select id="industry" name="industry" class="form-control">
+                            <option value="">All Industries</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Filters Row 2 -->
+                <div class="filters-row">
+                    <div class="form-group">
+                        <label for="min_experience">📊 Min Experience (years)</label>
+                        <input
+                            type="number"
+                            id="min_experience"
+                            name="min_experience"
+                            min="0"
+                            max="80"
+                            placeholder="0"
+                            class="form-control"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="max_experience">📊 Max Experience (years)</label>
+                        <input
+                            type="number"
+                            id="max_experience"
+                            name="max_experience"
+                            min="0"
+                            max="80"
+                            placeholder="80"
+                            class="form-control"
+                        >
+                    </div>
+                </div>
+
+                <!-- Skills Filter -->
+                <div class="form-group">
+                    <label for="skills">🛠️ Skills</label>
+                    <input
+                        type="text"
+                        id="skills"
+                        name="skills"
+                        placeholder="e.g. Python, JavaScript, React..."
+                        class="form-control"
+                    >
+                    <small>Partial match on skills field</small>
+                </div>
+
+                <!-- Search Button -->
+                <button type="submit" class="btn-primary" id="searchBtn">
+                    <span id="btnText">Search</span>
+                    <span id="btnLoading" class="loading" style="display: none;">Searching...</span>
+                </button>
+            </form>
+
+            <!-- Stats -->
+            <div id="statsSection" class="stats-section"></div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Powered by DuckDB + S3 • Zero local storage • 51M+ profiles</p>
+        </footer>
+    </div>
+
+    <script src="search.js"></script>
+</body>
+</html>
