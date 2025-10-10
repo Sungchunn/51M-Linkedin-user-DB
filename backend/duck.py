@@ -8,6 +8,10 @@ import asyncio
 from typing import List, Optional
 import duckdb
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
