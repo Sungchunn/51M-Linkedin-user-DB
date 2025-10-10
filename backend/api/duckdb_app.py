@@ -51,8 +51,7 @@ class ProfileResult(BaseModel):
     locality: Optional[str] = None
     years_experience: Optional[int] = None
     skills: Optional[str] = None
-    headline: Optional[str] = None
-    summary: Optional[str] = None
+    location: Optional[str] = None
 
 
 class SearchResponse(BaseModel):
@@ -111,13 +110,12 @@ def build_where_clause(
         # Search in multiple fields
         keyword_escaped = keyword.replace("'", "''")
         conditions.append(f"""(
-            "Full Name" ILIKE '%{keyword_escaped}%' OR
-            "Job Title" ILIKE '%{keyword_escaped}%' OR
+            "Full name" ILIKE '%{keyword_escaped}%' OR
+            "Job title" ILIKE '%{keyword_escaped}%' OR
             "Company Name" ILIKE '%{keyword_escaped}%' OR
             "Industry" ILIKE '%{keyword_escaped}%' OR
-            "Headline" ILIKE '%{keyword_escaped}%' OR
-            "Summary" ILIKE '%{keyword_escaped}%' OR
-            "Skills" ILIKE '%{keyword_escaped}%'
+            "Skills" ILIKE '%{keyword_escaped}%' OR
+            "Location" ILIKE '%{keyword_escaped}%'
         )""")
 
     if country:
@@ -222,9 +220,9 @@ async def search_profiles(
         # Data query
         data_query = f"""
             SELECT
-                "Full Name" as full_name,
-                "LinkedIn Username" as linkedin_username,
-                "Job Title" as job_title,
+                "Full name" as full_name,
+                "Linkedin Username" as linkedin_username,
+                "Job title" as job_title,
                 "Company Name" as company_name,
                 "Industry" as industry,
                 "Location Country" as location_country,
@@ -232,11 +230,10 @@ async def search_profiles(
                 "Locality" as locality,
                 "Years Experience" as years_experience,
                 "Skills" as skills,
-                "Headline" as headline,
-                "Summary" as summary
+                "Location" as location
             FROM read_parquet('{parquet_path}')
             WHERE {where_clause}
-            ORDER BY "Full Name"
+            ORDER BY "Full name"
             LIMIT {limit}
             OFFSET {offset}
         """
