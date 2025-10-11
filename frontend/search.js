@@ -176,7 +176,7 @@ function setupFormHandler() {
 
         // Add offset and limit
         params.offset = 0;
-        params.limit = 250;
+        params.limit = 100;  // API max is 100
 
         // Store search params in sessionStorage
         sessionStorage.setItem('searchParams', JSON.stringify(params));

@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:8000';
 
 let currentParams = {};
 let currentOffset = 0;
-let currentLimit = 250;
+let currentLimit = 100;  // API max is 100
 let totalCount = 0;
 
 // === Initialize Page ===
