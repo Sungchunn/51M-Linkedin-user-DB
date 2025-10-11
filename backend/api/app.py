@@ -138,6 +138,97 @@ async def health_check():
         )
 
 
+@app.get(
+    "/countries",
+    tags=["Filters"],
+    summary="Get list of countries"
+)
+async def get_countries():
+    """Get distinct countries from profiles"""
+    try:
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            countries = await conn.fetch("""
+                SELECT DISTINCT location_country
+                FROM profiles
+                WHERE location_country IS NOT NULL
+                  AND is_deleted = FALSE
+                ORDER BY location_country
+            """)
+            return {"countries": [row['location_country'] for row in countries]}
+    except Exception as e:
+        logger.error(f"Failed to fetch countries: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/industries",
+    tags=["Filters"],
+    summary="Get list of industries"
+)
+async def get_industries():
+    """Get distinct industries from profiles"""
+    try:
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            industries = await conn.fetch("""
+                SELECT DISTINCT industry
+                FROM profiles
+                WHERE industry IS NOT NULL
+                  AND is_deleted = FALSE
+                ORDER BY industry
+            """)
+            return {"industries": [row['industry'] for row in industries]}
+    except Exception as e:
+        logger.error(f"Failed to fetch industries: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/stats",
+    tags=["Statistics"],
+    summary="Get dataset statistics"
+)
+async def get_stats():
+    """Get dataset statistics"""
+    try:
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            # Total profiles
+            total = await conn.fetchval("""
+                SELECT COUNT(*) FROM profiles WHERE is_deleted = FALSE
+            """)
+
+            # Top countries
+            countries = await conn.fetch("""
+                SELECT location_country as country, COUNT(*) as count
+                FROM profiles
+                WHERE location_country IS NOT NULL AND is_deleted = FALSE
+                GROUP BY location_country
+                ORDER BY count DESC
+                LIMIT 20
+            """)
+
+            # Top industries
+            industries = await conn.fetch("""
+                SELECT industry, COUNT(*) as count
+                FROM profiles
+                WHERE industry IS NOT NULL AND is_deleted = FALSE
+                GROUP BY industry
+                ORDER BY count DESC
+                LIMIT 20
+            """)
+
+            return {
+                "total_profiles": total,
+                "countries": [{"country": row['country'], "count": row['count']} for row in countries],
+                "industries": [{"industry": row['industry'], "count": row['count']} for row in industries]
+            }
+    except Exception as e:
+        logger.error(f"Failed to fetch stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post(
     "/search",
     response_model=SearchResponse,

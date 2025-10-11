@@ -47,6 +47,16 @@ async def hybrid_search(
         SearchError: If search fails
     """
     try:
+        # Check if we have any embeddings in the database
+        has_embeddings = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM profiles WHERE embedding IS NOT NULL LIMIT 1)"
+        )
+
+        # If no embeddings, use keyword-only search
+        if not has_embeddings:
+            logger.info("No embeddings found, using keyword-only search")
+            return await keyword_search(conn, request)
+
         # Generate query embedding
         provider = providers.get_provider()
         query_embedding = provider.embed_single(request.query)
@@ -319,3 +329,171 @@ async def hybrid_search(
     except Exception as e:
         logger.error(f"Search error: {e}", exc_info=True)
         raise SearchError(f"Search failed: {e}") from e
+
+
+async def keyword_search(
+    conn: asyncpg.Connection,
+    request: SearchRequest
+) -> tuple[List[ProfileResult], int]:
+    """
+    Simple keyword search without embeddings (fallback when no embeddings exist).
+    Uses full-text search only.
+    """
+    try:
+        # Build WHERE clause for filters
+        where_conditions = ["is_deleted = FALSE"]
+        params = []
+        param_idx = 1
+
+        # Location filters
+        if request.location_country:
+            where_conditions.append(f"location_country = ${param_idx}")
+            params.append(request.location_country)
+            param_idx += 1
+
+        if request.region:
+            where_conditions.append(f"region = ${param_idx}")
+            params.append(request.region)
+            param_idx += 1
+
+        if request.locality:
+            where_conditions.append(f"locality = ${param_idx}")
+            params.append(request.locality)
+            param_idx += 1
+
+        # Experience filters
+        if request.min_years_experience is not None:
+            where_conditions.append(f"years_experience >= ${param_idx}")
+            params.append(request.min_years_experience)
+            param_idx += 1
+
+        if request.max_years_experience is not None:
+            where_conditions.append(f"years_experience <= ${param_idx}")
+            params.append(request.max_years_experience)
+            param_idx += 1
+
+        # Skills filter
+        if request.skills:
+            where_conditions.append(f"skills @> ${param_idx}")
+            params.append(request.skills)
+            param_idx += 1
+
+        # Industry filter
+        if request.industry:
+            where_conditions.append(f"industry = ${param_idx}")
+            params.append(request.industry)
+            param_idx += 1
+
+        # Quality score filter
+        if request.min_quality_score is not None:
+            where_conditions.append(f"content_quality_score >= ${param_idx}")
+            params.append(request.min_quality_score)
+            param_idx += 1
+
+        # Add keyword filter if query provided
+        if request.query and request.query.strip():
+            where_conditions.append(f"""
+                to_tsvector('english',
+                    coalesce(full_name, '') || ' ' ||
+                    coalesce(headline, '') || ' ' ||
+                    coalesce(summary, '') || ' ' ||
+                    coalesce(job_title, '') || ' ' ||
+                    coalesce(company_name, '')
+                ) @@ plainto_tsquery('english', ${param_idx})
+            """)
+            params.append(request.query)
+            param_idx += 1
+
+        where_clause = " AND ".join(where_conditions)
+
+        # Build search query
+        params.append(request.limit)
+        limit_idx = param_idx
+        param_idx += 1
+
+        params.append(request.offset)
+        offset_idx = param_idx
+
+        # If query provided, rank by relevance; otherwise just return recent profiles
+        if request.query and request.query.strip():
+            order_clause = f"""
+                ts_rank(
+                    to_tsvector('english',
+                        coalesce(full_name, '') || ' ' ||
+                        coalesce(headline, '') || ' ' ||
+                        coalesce(summary, '') || ' ' ||
+                        coalesce(job_title, '') || ' ' ||
+                        coalesce(company_name, '')
+                    ),
+                    plainto_tsquery('english', '{request.query}')
+                ) DESC
+            """
+        else:
+            order_clause = "created_at DESC"
+
+        query = f"""
+            SELECT
+                id,
+                full_name,
+                job_title,
+                company_name,
+                industry,
+                location,
+                location_country,
+                region,
+                locality,
+                years_experience,
+                skills,
+                headline,
+                summary,
+                content_quality_score
+            FROM profiles
+            WHERE {where_clause}
+            ORDER BY {order_clause}
+            LIMIT ${limit_idx} OFFSET ${offset_idx}
+        """
+
+        rows = await conn.fetch(query, *params)
+
+        # Convert to ProfileResult objects
+        results = []
+        for row in rows:
+            result = ProfileResult(
+                id=str(row['id']),
+                full_name=row['full_name'],
+                job_title=row['job_title'],
+                company_name=row['company_name'],
+                industry=row['industry'],
+                location=row['location'],
+                location_country=row['location_country'],
+                region=row['region'],
+                locality=row['locality'],
+                years_experience=row['years_experience'],
+                skills=row['skills'],
+                headline=row['headline'],
+                summary=row['summary'],
+                score=0.5,  # Placeholder score for keyword search
+                vector_similarity=0.0,
+                lexical_rank=0.5,
+                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None
+            )
+            results.append(result)
+
+        # Get total count
+        count_query = f"""
+            SELECT count(*) FROM profiles
+            WHERE {where_clause}
+        """
+        # Remove limit and offset params for count
+        count_params = params[:-2]
+        total_count = await conn.fetchval(count_query, *count_params)
+
+        logger.info(
+            f"Keyword search completed: {len(results)} results, {total_count} total matches"
+        )
+
+        return results, total_count
+
+    except Exception as e:
+        logger.error(f"Keyword search error: {e}", exc_info=True)
+        raise SearchError(f"Keyword search failed: {e}") from e

@@ -46,18 +46,31 @@ async function executeSearch() {
     resultsSummary.style.display = 'none';
 
     try {
-        // Build query string
-        const params = new URLSearchParams({
-            ...currentParams,
+        // Build request body for POST
+        const requestBody = {
+            query: currentParams.keyword || '',
             offset: currentOffset,
-            limit: currentLimit
+            limit: currentLimit,
+            location_country: currentParams.country || null,
+            industry: currentParams.industry || null,
+            min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
+            max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
+            skills: currentParams.skills ? currentParams.skills.split(',').map(s => s.trim()) : null,
+            min_quality_score: null
+        };
+
+        // Execute search with POST
+        const response = await fetch(`${API_BASE_URL}/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
         });
 
-        // Execute search
-        const response = await fetch(`${API_BASE_URL}/search?${params}`);
-
         if (!response.ok) {
-            throw new Error(`Search failed: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || response.statusText);
         }
 
         const data = await response.json();
