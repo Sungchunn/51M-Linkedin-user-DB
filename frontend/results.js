@@ -135,12 +135,12 @@ function displayResults(data) {
             <td>${escapeHtml(profile.industry || '—')}</td>
             <td>${escapeHtml(location)}</td>
             <td>${profile.years_experience !== null ? profile.years_experience + ' yrs' : '—'}</td>
-            <td>${makeLink(profile.linkedin_url, '🔗')}</td>
-            <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">📧</a>` : '—'}</td>
+            <td>${makeLink(profile.linkedin_url, 'View')}</td>
+            <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">${escapeHtml(profile.email)}</a>` : '—'}</td>
             <td>${profile.phone ? escapeHtml(profile.phone) : '—'}</td>
-            <td>${makeLink(profile.website, '🌐')}</td>
-            <td>${profile.twitter ? makeLink('https://twitter.com/' + profile.twitter, '🐦') : '—'}</td>
-            <td>${profile.github ? makeLink('https://github.com/' + profile.github, '💻') : '—'}</td>
+            <td>${makeLink(profile.website, 'Visit')}</td>
+            <td>${profile.twitter ? makeLink('https://twitter.com/' + profile.twitter, '@' + profile.twitter) : '—'}</td>
+            <td>${profile.github ? makeLink('https://github.com/' + profile.github, profile.github) : '—'}</td>
             <td title="${escapeHtml(skillsText)}">${escapeHtml(skills)}</td>
         `;
 
