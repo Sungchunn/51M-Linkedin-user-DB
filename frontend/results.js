@@ -238,6 +238,118 @@ function scrollToTop() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// === CSV Export ===
+async function exportToCSV() {
+    try {
+        // Fetch ALL results for export (up to API limit)
+        const requestBody = {
+            query: currentParams.keyword || '',
+            offset: 0,
+            limit: 10000,  // Export limit
+            location_country: currentParams.country || null,
+            industry: currentParams.industry || null,
+            min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
+            max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
+            skills: currentParams.skills ? currentParams.skills.split(',').map(s => s.trim()) : null,
+            min_quality_score: null
+        };
+
+        const response = await fetch(`${API_BASE_URL}/search`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch data for export');
+        }
+
+        const data = await response.json();
+
+        // Convert to CSV
+        const csvContent = convertToCSV(data.results);
+
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `insight_results_${new Date().toISOString().slice(0,10)}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        alert(`Exported ${data.results.length} profiles to CSV`);
+    } catch (error) {
+        console.error('Export error:', error);
+        alert('Failed to export CSV: ' + error.message);
+    }
+}
+
+function convertToCSV(results) {
+    if (results.length === 0) return '';
+
+    // Define CSV headers
+    const headers = [
+        'Full Name',
+        'Job Title',
+        'Company',
+        'Industry',
+        'Location',
+        'Country',
+        'Region',
+        'City',
+        'Years Experience',
+        'LinkedIn URL',
+        'Email',
+        'Phone',
+        'Website',
+        'Twitter',
+        'GitHub',
+        'Skills',
+        'Headline',
+        'Summary'
+    ];
+
+    // Escape CSV field (handle quotes and commas)
+    const escapeCSV = (field) => {
+        if (field === null || field === undefined) return '';
+        const str = String(field);
+        if (str.includes('"') || str.includes(',') || str.includes('\n')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    };
+
+    // Build CSV rows
+    const rows = results.map(profile => [
+        profile.full_name || '',
+        profile.job_title || '',
+        profile.company_name || '',
+        profile.industry || '',
+        profile.location || '',
+        profile.location_country || '',
+        profile.region || '',
+        profile.locality || '',
+        profile.years_experience !== null ? profile.years_experience : '',
+        profile.linkedin_url || '',
+        profile.email || '',
+        profile.phone || '',
+        profile.website || '',
+        profile.twitter || '',
+        profile.github || '',
+        Array.isArray(profile.skills) ? profile.skills.join('; ') : '',
+        profile.headline || '',
+        profile.summary || ''
+    ].map(escapeCSV).join(','));
+
+    // Combine headers and rows
+    return [headers.join(','), ...rows].join('\n');
+}
+
 // === Utility Functions ===
 function formatNumber(num) {
     return new Intl.NumberFormat('en-US').format(num);
