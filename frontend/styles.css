@@ -256,15 +256,18 @@ header h1 {
 .table-container {
     background: var(--surface);
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: auto;
     box-shadow: var(--shadow-lg);
     margin-bottom: 24px;
     min-height: 400px;
+    max-height: calc(100vh - 400px);
     position: relative;
 }
 
 table {
     width: 100%;
+    min-width: 1400px;
     border-collapse: collapse;
 }
 
@@ -304,11 +307,14 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Scrollable table body */
-.table-container {
-    max-height: calc(100vh - 400px);
-    overflow-y: auto;
-}
+/* Column widths for better data display */
+th:nth-child(1) { min-width: 180px; } /* Name */
+th:nth-child(2) { min-width: 200px; } /* Job Title */
+th:nth-child(3) { min-width: 180px; } /* Company */
+th:nth-child(4) { min-width: 150px; } /* Industry */
+th:nth-child(5) { min-width: 200px; } /* Location */
+th:nth-child(6) { min-width: 100px; } /* Experience */
+th:nth-child(7) { min-width: 300px; } /* Skills */
 
 /* === Loading/Empty/Error States === */
 .loading-state,
