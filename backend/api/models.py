@@ -89,6 +89,8 @@ class ProfileResult(BaseModel):
     """
     id: str
     full_name: str
+    first_name: Optional[str]
+    last_name: Optional[str]
     job_title: Optional[str]
     company_name: Optional[str]
     industry: Optional[str]

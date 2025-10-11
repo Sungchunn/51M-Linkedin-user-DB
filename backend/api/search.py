@@ -157,6 +157,8 @@ async def hybrid_search(
             SELECT
                 id,
                 full_name,
+                first_name,
+                last_name,
                 job_title,
                 company_name,
                 industry,
@@ -202,6 +204,8 @@ async def hybrid_search(
         SELECT
             v.id,
             v.full_name,
+            v.first_name,
+            v.last_name,
             v.job_title,
             v.company_name,
             v.industry,
@@ -234,6 +238,8 @@ async def hybrid_search(
             result = ProfileResult(
                 id=str(row['id']),
                 full_name=row['full_name'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
                 job_title=row['job_title'],
                 company_name=row['company_name'],
                 industry=row['industry'],
@@ -435,6 +441,8 @@ async def keyword_search(
             SELECT
                 id,
                 full_name,
+                first_name,
+                last_name,
                 job_title,
                 company_name,
                 industry,
@@ -468,6 +476,8 @@ async def keyword_search(
             result = ProfileResult(
                 id=str(row['id']),
                 full_name=row['full_name'],
+                first_name=row['first_name'],
+                last_name=row['last_name'],
                 job_title=row['job_title'],
                 company_name=row['company_name'],
                 industry=row['industry'],
