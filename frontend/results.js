@@ -128,6 +128,9 @@ function displayResults(data) {
             return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${text}</a>`;
         };
 
+        // Format LinkedIn URL (remove 'linkedin.com/in/' prefix for display)
+        const linkedinDisplay = profile.linkedin_url ? profile.linkedin_url.replace('linkedin.com/in/', '') : null;
+
         row.innerHTML = `
             <td><strong>${escapeHtml(profile.full_name || '—')}</strong></td>
             <td>${escapeHtml(profile.job_title || '—')}</td>
@@ -135,10 +138,10 @@ function displayResults(data) {
             <td>${escapeHtml(profile.industry || '—')}</td>
             <td>${escapeHtml(location)}</td>
             <td>${profile.years_experience !== null ? profile.years_experience + ' yrs' : '—'}</td>
-            <td>${makeLink(profile.linkedin_url, 'View')}</td>
+            <td>${profile.linkedin_url ? `<a href="https://${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${escapeHtml(linkedinDisplay)}</a>` : '—'}</td>
             <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">${escapeHtml(profile.email)}</a>` : '—'}</td>
             <td>${profile.phone ? escapeHtml(profile.phone) : '—'}</td>
-            <td>${makeLink(profile.website, 'Visit')}</td>
+            <td>${profile.website ? `<a href="https://${escapeHtml(profile.website)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${escapeHtml(profile.website)}</a>` : '—'}</td>
             <td>${profile.twitter ? makeLink('https://twitter.com/' + profile.twitter, '@' + profile.twitter) : '—'}</td>
             <td>${profile.github ? makeLink('https://github.com/' + profile.github, profile.github) : '—'}</td>
             <td title="${escapeHtml(skillsText)}">${escapeHtml(skills)}</td>
