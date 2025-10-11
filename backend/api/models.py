@@ -23,8 +23,8 @@ class SearchRequest(BaseModel):
     - offset must be >= 0
     - vector_weight + lexical_weight should = 1.0 (warning if not)
     """
-    # Query text
-    query: str = Field(..., min_length=1, description="Search query text")
+    # Query text (optional - if empty, returns recent profiles with filters)
+    query: str = Field("", description="Search query text (empty for browse mode)")
 
     # Pagination
     limit: int = Field(20, ge=1, le=100, description="Number of results to return")
