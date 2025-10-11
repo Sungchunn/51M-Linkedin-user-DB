@@ -138,7 +138,8 @@ function displayResults(data) {
         const linkedinDisplay = profile.linkedin_url ? profile.linkedin_url.replace('linkedin.com/in/', '') : null;
 
         row.innerHTML = `
-            <td><strong>${escapeHtml(profile.full_name || '—')}</strong></td>
+            <td>${escapeHtml(profile.first_name || '—')}</td>
+            <td>${escapeHtml(profile.last_name || '—')}</td>
             <td>${escapeHtml(profile.job_title || '—')}</td>
             <td>${escapeHtml(profile.company_name || '—')}</td>
             <td>${escapeHtml(profile.industry || '—')}</td>
