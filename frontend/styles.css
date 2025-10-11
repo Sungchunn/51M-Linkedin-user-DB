@@ -267,7 +267,7 @@ header h1 {
 
 table {
     width: 100%;
-    min-width: 1400px;
+    min-width: 2200px;
     border-collapse: collapse;
 }
 
@@ -307,14 +307,29 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-/* Column widths for better data display */
-th:nth-child(1) { min-width: 180px; } /* Name */
-th:nth-child(2) { min-width: 200px; } /* Job Title */
-th:nth-child(3) { min-width: 180px; } /* Company */
-th:nth-child(4) { min-width: 150px; } /* Industry */
-th:nth-child(5) { min-width: 200px; } /* Location */
-th:nth-child(6) { min-width: 100px; } /* Experience */
-th:nth-child(7) { min-width: 300px; } /* Skills */
+/* Compact column widths for more data visibility */
+th, td {
+    font-size: 0.85rem;
+    padding: 10px 12px;
+}
+
+th:nth-child(1) { min-width: 140px; } /* Name */
+th:nth-child(2) { min-width: 160px; } /* Job Title */
+th:nth-child(3) { min-width: 140px; } /* Company */
+th:nth-child(4) { min-width: 120px; } /* Industry */
+th:nth-child(5) { min-width: 160px; } /* Location */
+th:nth-child(6) { min-width: 80px; text-align: center; } /* Experience */
+th:nth-child(7) { min-width: 60px; text-align: center; } /* LinkedIn */
+th:nth-child(8) { min-width: 60px; text-align: center; } /* Email */
+th:nth-child(9) { min-width: 100px; } /* Phone */
+th:nth-child(10) { min-width: 60px; text-align: center; } /* Website */
+th:nth-child(11) { min-width: 60px; text-align: center; } /* Twitter */
+th:nth-child(12) { min-width: 60px; text-align: center; } /* GitHub */
+th:nth-child(13) { min-width: 250px; } /* Skills */
+
+td:nth-child(6), td:nth-child(7), td:nth-child(8), td:nth-child(10), td:nth-child(11), td:nth-child(12) {
+    text-align: center;
+}
 
 /* === Loading/Empty/Error States === */
 .loading-state,

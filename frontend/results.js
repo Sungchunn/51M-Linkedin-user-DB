@@ -5,7 +5,7 @@ const API_BASE_URL = 'http://localhost:8000';
 
 let currentParams = {};
 let currentOffset = 0;
-let currentLimit = 50;
+let currentLimit = 250;
 let totalCount = 0;
 
 // === Initialize Page ===
@@ -116,11 +116,17 @@ function displayResults(data) {
         ].filter(Boolean).join(', ') || '—';
 
         // Truncate skills if too long
-        const skills = profile.skills
-            ? (profile.skills.length > 100
-                ? profile.skills.substring(0, 100) + '...'
-                : profile.skills)
-            : '—';
+        const skillsArray = profile.skills || [];
+        const skillsText = Array.isArray(skillsArray) ? skillsArray.join(', ') : String(skillsArray);
+        const skills = skillsText.length > 100
+            ? skillsText.substring(0, 100) + '...'
+            : skillsText || '—';
+
+        // Helper function to create clickable link or dash
+        const makeLink = (url, text = 'View') => {
+            if (!url || url === '—') return '—';
+            return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${text}</a>`;
+        };
 
         row.innerHTML = `
             <td><strong>${escapeHtml(profile.full_name || '—')}</strong></td>
@@ -129,7 +135,13 @@ function displayResults(data) {
             <td>${escapeHtml(profile.industry || '—')}</td>
             <td>${escapeHtml(location)}</td>
             <td>${profile.years_experience !== null ? profile.years_experience + ' yrs' : '—'}</td>
-            <td title="${escapeHtml(profile.skills || '')}">${escapeHtml(skills)}</td>
+            <td>${makeLink(profile.linkedin_url, '🔗')}</td>
+            <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">📧</a>` : '—'}</td>
+            <td>${profile.phone ? escapeHtml(profile.phone) : '—'}</td>
+            <td>${makeLink(profile.website, '🌐')}</td>
+            <td>${profile.twitter ? makeLink('https://twitter.com/' + profile.twitter, '🐦') : '—'}</td>
+            <td>${profile.github ? makeLink('https://github.com/' + profile.github, '💻') : '—'}</td>
+            <td title="${escapeHtml(skillsText)}">${escapeHtml(skills)}</td>
         `;
 
         tbody.appendChild(row);
@@ -171,6 +183,7 @@ function setupPagination() {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageInfo = document.getElementById('pageInfo');
+    const limitSelect = document.getElementById('limitSelect');
 
     prevBtn.addEventListener('click', async () => {
         if (currentOffset > 0) {
@@ -188,6 +201,14 @@ function setupPagination() {
             updatePaginationState();
             scrollToTop();
         }
+    });
+
+    limitSelect.addEventListener('change', async () => {
+        currentLimit = parseInt(limitSelect.value);
+        currentOffset = 0; // Reset to first page
+        await executeSearch();
+        updatePaginationState();
+        scrollToTop();
     });
 
     updatePaginationState();

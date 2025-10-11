@@ -101,6 +101,15 @@ class ProfileResult(BaseModel):
     headline: Optional[str]
     summary: Optional[str]
 
+    # Contact & Social
+    linkedin_url: Optional[str]
+    linkedin_username: Optional[str]
+    email: Optional[str]
+    phone: Optional[str]
+    website: Optional[str]
+    twitter: Optional[str]
+    github: Optional[str]
+
     # Search metadata
     score: float = Field(..., ge=0.0, le=1.0, description="Relevance score")
     vector_similarity: Optional[float] = Field(None, ge=0.0, le=1.0)

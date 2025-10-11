@@ -446,6 +446,13 @@ async def keyword_search(
                 skills,
                 headline,
                 summary,
+                linkedin_url,
+                linkedin_username,
+                email,
+                phone,
+                website,
+                twitter,
+                github,
                 content_quality_score
             FROM profiles
             WHERE {where_clause}
@@ -472,6 +479,13 @@ async def keyword_search(
                 skills=row['skills'],
                 headline=row['headline'],
                 summary=row['summary'],
+                linkedin_url=row['linkedin_url'],
+                linkedin_username=row['linkedin_username'],
+                email=row['email'],
+                phone=row['phone'],
+                website=row['website'],
+                twitter=row['twitter'],
+                github=row['github'],
                 score=0.5,  # Placeholder score for keyword search
                 vector_similarity=0.0,
                 lexical_rank=0.5,
