@@ -54,7 +54,20 @@ def main():
     conn = get_duckdb_conn()
     parquet_path = get_parquet_path()
 
+    # Configure DuckDB for large query processing
+    import os
+    temp_dir = '/tmp/duckdb_extract'
+    os.makedirs(temp_dir, exist_ok=True)
+
+    print("Configuring DuckDB for large dataset...")
+    conn.execute("SET memory_limit='4GB';")  # Increase memory limit
+    conn.execute(f"SET temp_directory='{temp_dir}';")  # Use /tmp for temp files
+    conn.execute("SET max_temp_directory_size='30GB';")  # Allow 30GB temp space
+    conn.execute("SET preserve_insertion_order=false;")  # Disable ordering preservation
+    conn.execute("SET threads=4;")  # Limit threads to reduce memory pressure
+
     print(f"✅ Connected to: {parquet_path}")
+    print(f"✅ DuckDB configured (4GB RAM, 30GB temp at {temp_dir})")
     print()
 
     # Create output directory
