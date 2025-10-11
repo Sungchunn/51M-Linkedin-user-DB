@@ -13,11 +13,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 // === Load Filter Options ===
 async function loadFilters() {
     try {
-        // Load countries
-        const countriesRes = await fetch(`${API_BASE_URL}/countries`);
+        // Show loading message
+        const countrySelect = document.getElementById('country');
+        const industrySelect = document.getElementById('industry');
+
+        countrySelect.innerHTML = '<option value="">Loading countries...</option>';
+        industrySelect.innerHTML = '<option value="">Loading industries...</option>';
+
+        // Load countries with timeout
+        const countriesRes = await fetchWithTimeout(`${API_BASE_URL}/countries`, 30000);
         const countriesData = await countriesRes.json();
 
-        const countrySelect = document.getElementById('country');
+        countrySelect.innerHTML = '<option value="">All Countries</option>';
         countriesData.countries.forEach(country => {
             const option = document.createElement('option');
             option.value = country;
@@ -25,11 +32,11 @@ async function loadFilters() {
             countrySelect.appendChild(option);
         });
 
-        // Load industries
-        const industriesRes = await fetch(`${API_BASE_URL}/industries`);
+        // Load industries with timeout
+        const industriesRes = await fetchWithTimeout(`${API_BASE_URL}/industries`, 30000);
         const industriesData = await industriesRes.json();
 
-        const industrySelect = document.getElementById('industry');
+        industrySelect.innerHTML = '<option value="">All Industries</option>';
         industriesData.industries.forEach(industry => {
             const option = document.createElement('option');
             option.value = industry;
@@ -39,13 +46,56 @@ async function loadFilters() {
 
     } catch (error) {
         console.error('Failed to load filters:', error);
+        document.getElementById('country').innerHTML = '<option value="">Error loading countries</option>';
+        document.getElementById('industry').innerHTML = '<option value="">Error loading industries</option>';
+
+        // Show user-friendly error
+        const statsSection = document.getElementById('statsSection');
+        statsSection.innerHTML = `
+            <div style="padding: 20px; background: #fee2e2; border-radius: 8px; color: #991b1b;">
+                <strong>⚠️ Cannot connect to API</strong>
+                <p style="margin-top: 8px;">Make sure the API server is running:</p>
+                <code style="background: white; padding: 4px 8px; border-radius: 4px; display: block; margin-top: 8px;">
+                    ./start_duckdb_api.sh
+                </code>
+            </div>
+        `;
+    }
+}
+
+// Fetch with timeout helper
+async function fetchWithTimeout(url, timeout = 30000) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timed out - API may be processing large dataset');
+        }
+        throw error;
     }
 }
 
 // === Load Dataset Stats ===
 async function loadStats() {
+    const statsSection = document.getElementById('statsSection');
+
+    // Show loading state
+    statsSection.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: var(--text-secondary);">
+            <div class="spinner" style="margin: 0 auto 16px;"></div>
+            <p>Loading dataset statistics...</p>
+            <small>(This may take 10-15 minutes for DuckDB + S3)</small>
+        </div>
+    `;
+
     try {
-        const response = await fetch(`${API_BASE_URL}/stats`);
+        const response = await fetchWithTimeout(`${API_BASE_URL}/stats`, 900000); // 15 min timeout
         const data = await response.json();
 
         const statsSection = document.getElementById('statsSection');
@@ -84,6 +134,18 @@ async function loadStats() {
         `;
     } catch (error) {
         console.error('Failed to load stats:', error);
+        statsSection.innerHTML = `
+            <div style="padding: 20px; background: #fef3c7; border-radius: 8px; color: #92400e;">
+                <strong>⚠️ Stats Loading Timed Out</strong>
+                <p style="margin-top: 8px;">
+                    DuckDB is downloading 15GB from S3 (takes 10-15 minutes).
+                    You can still search without stats, or wait for them to load.
+                </p>
+                <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: white; border: 1px solid #d97706; border-radius: 6px; cursor: pointer;">
+                    Retry
+                </button>
+            </div>
+        `;
     }
 }
 
