@@ -122,6 +122,12 @@ function displayResults(data) {
             ? skillsText.substring(0, 100) + '...'
             : skillsText || '—';
 
+        // Truncate summary for display (show first 150 chars)
+        const summaryFull = profile.summary || '';
+        const summaryDisplay = summaryFull.length > 150
+            ? summaryFull.substring(0, 150) + '...'
+            : summaryFull || '—';
+
         // Helper function to create clickable link or dash
         const makeLink = (url, text = 'View') => {
             if (!url || url === '—') return '—';
@@ -138,6 +144,7 @@ function displayResults(data) {
             <td>${escapeHtml(profile.industry || '—')}</td>
             <td>${escapeHtml(location)}</td>
             <td>${profile.years_experience !== null ? profile.years_experience + ' yrs' : '—'}</td>
+            <td title="${escapeHtml(summaryFull)}" style="max-width: 300px; white-space: normal;">${escapeHtml(summaryDisplay)}</td>
             <td>${profile.linkedin_url ? `<a href="https://${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${escapeHtml(linkedinDisplay)}</a>` : '—'}</td>
             <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">${escapeHtml(profile.email)}</a>` : '—'}</td>
             <td>${profile.phone ? escapeHtml(profile.phone) : '—'}</td>

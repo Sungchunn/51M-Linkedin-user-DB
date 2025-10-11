@@ -267,7 +267,7 @@ header h1 {
 
 table {
     width: 100%;
-    min-width: 2200px;
+    min-width: 2500px;
     border-collapse: collapse;
 }
 
@@ -319,16 +319,23 @@ th:nth-child(3) { min-width: 140px; } /* Company */
 th:nth-child(4) { min-width: 120px; } /* Industry */
 th:nth-child(5) { min-width: 160px; } /* Location */
 th:nth-child(6) { min-width: 80px; text-align: center; } /* Experience */
-th:nth-child(7) { min-width: 60px; text-align: center; } /* LinkedIn */
-th:nth-child(8) { min-width: 60px; text-align: center; } /* Email */
-th:nth-child(9) { min-width: 100px; } /* Phone */
-th:nth-child(10) { min-width: 60px; text-align: center; } /* Website */
-th:nth-child(11) { min-width: 60px; text-align: center; } /* Twitter */
-th:nth-child(12) { min-width: 60px; text-align: center; } /* GitHub */
-th:nth-child(13) { min-width: 250px; } /* Skills */
+th:nth-child(7) { min-width: 300px; max-width: 400px; } /* Summary */
+th:nth-child(8) { min-width: 150px; } /* LinkedIn */
+th:nth-child(9) { min-width: 180px; } /* Email */
+th:nth-child(10) { min-width: 100px; } /* Phone */
+th:nth-child(11) { min-width: 120px; } /* Website */
+th:nth-child(12) { min-width: 80px; } /* Twitter */
+th:nth-child(13) { min-width: 80px; } /* GitHub */
+th:nth-child(14) { min-width: 250px; } /* Skills */
 
-td:nth-child(6), td:nth-child(7), td:nth-child(8), td:nth-child(10), td:nth-child(11), td:nth-child(12) {
+td:nth-child(6) {
     text-align: center;
+}
+
+/* Summary column - allow text wrapping */
+td:nth-child(7) {
+    white-space: normal;
+    line-height: 1.4;
 }
 
 /* === Loading/Empty/Error States === */
