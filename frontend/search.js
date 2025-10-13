@@ -10,15 +10,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupFormHandler();
 });
 
+// Global industries list
+let allIndustries = [];
+
 // === Load Filter Options ===
 async function loadFilters() {
     try {
         // Show loading message
         const countrySelect = document.getElementById('country');
-        const industrySelect = document.getElementById('industry');
+        const industryContainer = document.getElementById('industryContainer');
 
         countrySelect.innerHTML = '<option value="">Loading countries...</option>';
-        industrySelect.innerHTML = '<option value="">Loading industries...</option>';
+        industryContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>';
 
         // Load countries with timeout
         const countriesRes = await fetchWithTimeout(`${API_BASE_URL}/countries`, 30000);
@@ -35,32 +38,78 @@ async function loadFilters() {
         // Load industries with timeout
         const industriesRes = await fetchWithTimeout(`${API_BASE_URL}/industries`, 30000);
         const industriesData = await industriesRes.json();
+        allIndustries = industriesData.industries;
 
-        industrySelect.innerHTML = '<option value="">All Industries</option>';
-        industriesData.industries.forEach(industry => {
-            const option = document.createElement('option');
-            option.value = industry;
-            option.textContent = industry;
-            industrySelect.appendChild(option);
+        // Render industry checkboxes
+        renderIndustries(allIndustries);
+
+        // Setup industry search
+        const industrySearch = document.getElementById('industrySearch');
+        industrySearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allIndustries.filter(ind =>
+                ind.toLowerCase().includes(searchTerm)
+            );
+            renderIndustries(filtered);
         });
 
     } catch (error) {
         console.error('Failed to load filters:', error);
         document.getElementById('country').innerHTML = '<option value="">Error loading countries</option>';
-        document.getElementById('industry').innerHTML = '<option value="">Error loading industries</option>';
+        document.getElementById('industryContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Error loading industries</p>';
 
         // Show user-friendly error
         const statsSection = document.getElementById('statsSection');
-        statsSection.innerHTML = `
-            <div style="padding: 20px; background: #fee2e2; border-radius: 8px; color: #991b1b;">
-                <strong>⚠️ Cannot connect to API</strong>
-                <p style="margin-top: 8px;">Make sure the API server is running:</p>
-                <code style="background: white; padding: 4px 8px; border-radius: 4px; display: block; margin-top: 8px;">
-                    ./start_duckdb_api.sh
-                </code>
-            </div>
-        `;
+        if (statsSection) {
+            statsSection.innerHTML = `
+                <div style="padding: 20px; background: var(--surface); border: 1px solid var(--error); border-radius: 8px; color: var(--error);">
+                    <strong>⚠️ Cannot connect to API</strong>
+                    <p style="margin-top: 8px;">Make sure the API server is running:</p>
+                    <code style="background: var(--background); padding: 4px 8px; border-radius: 4px; display: block; margin-top: 8px; color: var(--text-primary);">
+                        ./start_api.sh
+                    </code>
+                </div>
+            `;
+        }
     }
+}
+
+// === Render Industry Checkboxes ===
+function renderIndustries(industries) {
+    const container = document.getElementById('industryContainer');
+    const currentSelected = getSelectedIndustries();
+
+    container.innerHTML = '';
+
+    if (industries.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No industries found</p>';
+        return;
+    }
+
+    industries.forEach(industry => {
+        const div = document.createElement('div');
+        div.className = 'industry-checkbox';
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `industry_${industry.replace(/\s+/g, '_')}`;
+        checkbox.value = industry;
+        checkbox.checked = currentSelected.includes(industry);
+
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = industry;
+
+        div.appendChild(checkbox);
+        div.appendChild(label);
+        container.appendChild(div);
+    });
+}
+
+// === Get Selected Industries ===
+function getSelectedIndustries() {
+    const checkboxes = document.querySelectorAll('#industryContainer input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
 }
 
 // Fetch with timeout helper
@@ -169,9 +218,15 @@ function setupFormHandler() {
         const params = {};
 
         for (let [key, value] of formData.entries()) {
-            if (value.trim() !== '') {
-                params[key] = value;
+            if (value && value.trim() !== '') {
+                params[key] = value.trim();
             }
+        }
+
+        // Get selected industries (multi-select)
+        const selectedIndustries = getSelectedIndustries();
+        if (selectedIndustries.length > 0) {
+            params.industries = selectedIndustries;  // Array
         }
 
         // Add offset and limit

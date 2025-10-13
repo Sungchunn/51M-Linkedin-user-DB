@@ -47,23 +47,55 @@
                 <details class="filters-collapsible">
                     <summary class="filters-toggle">Advanced Filters</summary>
                     <div class="filters-content">
-                        <!-- Filters Row 1 -->
+                        <!-- Location Filters -->
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <select id="country" name="country" class="form-control">
+                                <option value="">All Countries</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
                         <div class="filters-row">
                             <div class="form-group">
-                                <label for="country">Country</label>
-                                <select id="country" name="country" class="form-control">
-                                    <option value="">All Countries</option>
-                                    <!-- Populated dynamically -->
-                                </select>
+                                <label for="region">State/Region</label>
+                                <input
+                                    type="text"
+                                    id="region"
+                                    name="region"
+                                    placeholder="e.g. California, New York"
+                                    class="form-control"
+                                >
+                                <small>Free text search</small>
                             </div>
 
                             <div class="form-group">
-                                <label for="industry">Industry</label>
-                                <select id="industry" name="industry" class="form-control">
-                                    <option value="">All Industries</option>
-                                    <!-- Populated dynamically -->
-                                </select>
+                                <label for="locality">City</label>
+                                <input
+                                    type="text"
+                                    id="locality"
+                                    name="locality"
+                                    placeholder="e.g. San Francisco, Austin"
+                                    class="form-control"
+                                >
+                                <small>Free text search</small>
                             </div>
+                        </div>
+
+                        <!-- Industry Filter (Multi-select) -->
+                        <div class="form-group">
+                            <label for="industry">Industries</label>
+                            <div id="industryContainer" class="industry-tags-container">
+                                <!-- Populated dynamically with checkboxes -->
+                            </div>
+                            <input
+                                type="text"
+                                id="industrySearch"
+                                placeholder="Search industries..."
+                                class="form-control"
+                                style="margin-top: 8px;"
+                            >
+                            <small>Select one or more industries</small>
                         </div>
 
                         <!-- Filters Row 2 -->

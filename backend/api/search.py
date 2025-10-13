@@ -111,16 +111,28 @@ async def hybrid_search(
             params.append(request.skills)
             param_idx += 1
 
-        # Industry filter
-        if request.industry:
-            where_conditions.append(f"industry = ${param_idx}")
-            params.append(request.industry)
+        # Industry filter (support both single and multiple)
+        industries_to_filter = []
+        if request.industries:
+            industries_to_filter = request.industries
+        elif request.industry:
+            industries_to_filter = [request.industry]
+
+        if industries_to_filter:
+            where_conditions.append(f"industry = ANY(${param_idx})")
+            params.append(industries_to_filter)
             param_idx += 1
 
         # Quality score filter
         if request.min_quality_score is not None:
             where_conditions.append(f"content_quality_score >= ${param_idx}")
             params.append(request.min_quality_score)
+            param_idx += 1
+
+        # Data completeness filter
+        if request.min_data_completeness is not None:
+            where_conditions.append(f"data_completeness_pct >= ${param_idx}")
+            params.append(request.min_data_completeness)
             param_idx += 1
 
         where_clause = " AND ".join(where_conditions)
@@ -171,6 +183,7 @@ async def hybrid_search(
                 headline,
                 summary,
                 content_quality_score,
+                data_completeness_pct,
                 1 - (embedding <=> $1::vector) AS vector_similarity
             FROM profiles
             WHERE {where_clause}
@@ -303,9 +316,16 @@ async def hybrid_search(
                 count_params.append(request.skills)
                 count_param_idx += 1
 
-            if request.industry:
-                count_where_conditions.append(f"industry = ${count_param_idx}")
-                count_params.append(request.industry)
+            # Industry filter (support both single and multiple)
+            industries_to_filter = []
+            if request.industries:
+                industries_to_filter = request.industries
+            elif request.industry:
+                industries_to_filter = [request.industry]
+
+            if industries_to_filter:
+                count_where_conditions.append(f"industry = ANY(${count_param_idx})")
+                count_params.append(industries_to_filter)
                 count_param_idx += 1
 
             if request.min_quality_score is not None:
@@ -384,10 +404,16 @@ async def keyword_search(
             params.append(request.skills)
             param_idx += 1
 
-        # Industry filter
-        if request.industry:
-            where_conditions.append(f"industry = ${param_idx}")
-            params.append(request.industry)
+        # Industry filter (support both single and multiple)
+        industries_to_filter = []
+        if request.industries:
+            industries_to_filter = request.industries
+        elif request.industry:
+            industries_to_filter = [request.industry]
+
+        if industries_to_filter:
+            where_conditions.append(f"industry = ANY(${param_idx})")
+            params.append(industries_to_filter)
             param_idx += 1
 
         # Quality score filter

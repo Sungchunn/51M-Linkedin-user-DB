@@ -263,6 +263,61 @@ header h1 a {
     margin-bottom: 0;
 }
 
+/* === Industry Multi-Select === */
+.industry-tags-container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    background: var(--background);
+}
+
+.industry-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.industry-checkbox:hover {
+    background: var(--surface-hover);
+}
+
+.industry-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: var(--text-primary);
+}
+
+.industry-checkbox label {
+    flex: 1;
+    cursor: pointer;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.industry-checkbox input[type="checkbox"]:checked + label {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.industry-selected-count {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 8px;
+    background: var(--surface-hover);
+    border-radius: 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
 /* === Buttons === */
 .btn-primary,
 .btn-secondary {

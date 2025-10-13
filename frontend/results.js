@@ -52,7 +52,9 @@ async function executeSearch() {
             offset: currentOffset,
             limit: currentLimit,
             location_country: currentParams.country || null,
-            industry: currentParams.industry || null,
+            region: currentParams.region || null,
+            locality: currentParams.locality || null,
+            industries: currentParams.industries || null,  // Multi-select
             min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
             max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
             skills: currentParams.skills ? currentParams.skills.split(',').map(s => s.trim()) : null,
@@ -258,7 +260,9 @@ async function exportToCSV() {
             offset: 0,
             limit: 10000,  // Export limit
             location_country: currentParams.country || null,
-            industry: currentParams.industry || null,
+            region: currentParams.region || null,
+            locality: currentParams.locality || null,
+            industries: currentParams.industries || null,  // Multi-select
             min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
             max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
             skills: currentParams.skills ? currentParams.skills.split(',').map(s => s.trim()) : null,

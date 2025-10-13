@@ -39,9 +39,11 @@ class SearchRequest(BaseModel):
     max_years_experience: Optional[int] = Field(None, ge=0, le=80, description="Maximum years of experience")
 
     skills: Optional[List[str]] = Field(None, description="Required skills (AND logic)")
-    industry: Optional[str] = Field(None, description="Filter by industry")
+    industry: Optional[str] = Field(None, description="Filter by single industry (deprecated - use industries)")
+    industries: Optional[List[str]] = Field(None, description="Filter by multiple industries (OR logic)")
 
     min_quality_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum quality score")
+    min_data_completeness: Optional[int] = Field(None, ge=0, le=100, description="Minimum data completeness percentage")
 
     # Search weights
     vector_weight: float = Field(0.8, ge=0.0, le=1.0, description="Weight for vector similarity")
@@ -119,6 +121,7 @@ class ProfileResult(BaseModel):
 
     # Quality metrics
     content_quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    data_completeness_pct: Optional[int] = Field(None, ge=0, le=100, description="Data completeness percentage (0-100)")
 
     class Config:
         schema_extra = {
@@ -131,7 +134,8 @@ class ProfileResult(BaseModel):
                 "skills": ["python", "sql", "docker"],
                 "score": 0.92,
                 "vector_similarity": 0.95,
-                "content_quality_score": 0.85
+                "content_quality_score": 0.85,
+                "data_completeness_pct": 75
             }
         }
 
