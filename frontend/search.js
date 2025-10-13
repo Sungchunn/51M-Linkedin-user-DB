@@ -5,6 +5,9 @@ const API_BASE_URL = 'http://localhost:8000';
 
 // === Initialize Page ===
 document.addEventListener('DOMContentLoaded', async () => {
+    // Reset button state (in case user navigated back)
+    resetButtonState();
+
     // Always setup form handler first (don't depend on API)
     setupFormHandler();
 
@@ -229,6 +232,19 @@ async function loadStats() {
     }
 }
 
+// === Reset Button State ===
+function resetButtonState() {
+    const searchBtn = document.getElementById('searchBtn');
+    const btnText = document.getElementById('btnText');
+    const btnLoading = document.getElementById('btnLoading');
+
+    if (searchBtn && btnText && btnLoading) {
+        btnText.style.display = 'inline';
+        btnLoading.style.display = 'none';
+        searchBtn.disabled = false;
+    }
+}
+
 // === Setup Form Handler ===
 function setupFormHandler() {
     const form = document.getElementById('searchForm');
@@ -284,10 +300,8 @@ function setupFormHandler() {
             window.location.href = 'results.html';
         } catch (error) {
             console.error('Form submission error:', error);
-            // Reset button state
-            btnText.style.display = 'inline';
-            btnLoading.style.display = 'none';
-            searchBtn.disabled = false;
+            // Reset button state on error
+            resetButtonState();
             alert('Error: ' + error.message);
         }
     });
