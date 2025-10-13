@@ -24,10 +24,7 @@
             <!-- Hero Title -->
             <div class="hero-title">
                 <div class="hero-badge">PROSPECTIQ</div>
-                <h1>
-                    Search 497K+
-                    <span class="text-rotate-container" id="rotatingText"></span>
-                </h1>
+                <h1>Search 497K+ <span id="rotatingText">verified LinkedIn profiles</span></h1>
                 <p>GTM intelligence for professionals who live in data</p>
             </div>
 
@@ -179,42 +176,39 @@
     </footer>
 
     <script src="search.js"></script>
-    <script type="module">
-        import RotatingText from './RotatingText.js';
+    <script>
+        // Simple rotating text without complex animations
+        (function() {
+            const texts = [
+                'verified LinkedIn profiles',
+                'tech professionals',
+                'sales leaders',
+                'marketing executives',
+                'product managers',
+                'software engineers'
+            ];
+            let currentIndex = 0;
+            const element = document.getElementById('rotatingText');
 
-        // Initialize rotating text
-        window.addEventListener('DOMContentLoaded', () => {
-            // Wait a bit for DOM to be fully ready
-            setTimeout(() => {
-                const container = document.getElementById('rotatingText');
-                if (container) {
-                    try {
-                        console.log('Initializing RotatingText...');
-                        new RotatingText(container, {
-                            texts: [
-                                'verified LinkedIn profiles',
-                                'tech professionals',
-                                'sales leaders',
-                                'marketing executives',
-                                'product managers',
-                                'software engineers'
-                            ],
-                            rotationInterval: 2500,
-                            staggerDuration: 25,
-                            splitBy: 'characters',
-                            auto: true,
-                            loop: true
-                        });
-                        console.log('RotatingText initialized successfully');
-                    } catch (error) {
-                        console.error('RotatingText error:', error);
-                        // Fallback: just show first text
-                        container.textContent = 'verified LinkedIn profiles';
-                        container.style.display = 'inline-block';
-                    }
+            function rotateText() {
+                if (element) {
+                    element.style.opacity = '0';
+                    setTimeout(() => {
+                        currentIndex = (currentIndex + 1) % texts.length;
+                        element.textContent = texts[currentIndex];
+                        element.style.opacity = '1';
+                    }, 300);
                 }
-            }, 100);
-        });
+            }
+
+            // Start rotation after page load
+            window.addEventListener('DOMContentLoaded', () => {
+                if (element) {
+                    element.style.transition = 'opacity 0.3s ease-in-out';
+                    setInterval(rotateText, 3000);
+                }
+            });
+        })();
     </script>
 </body>
 </html>
