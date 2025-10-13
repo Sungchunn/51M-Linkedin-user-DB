@@ -3,110 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INSIGHT - Talent Search</title>
+    <title>INSIGHT - Semantic Talent Search</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <header>
-            <h1><a href="index.html" style="text-decoration: none; color: inherit; cursor: pointer;">🔍 INSIGHT</a></h1>
-            <p class="subtitle">Search 497K+ LinkedIn Profiles</p>
-        </header>
+    <!-- Header -->
+    <header>
+        <div class="header-inner">
+            <h1><a href="index.html">INSIGHT</a></h1>
+            <p class="subtitle">Semantic Talent Finder</p>
+        </div>
+    </header>
 
-        <!-- Search Form -->
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="hero-background"></div>
         <div class="search-card">
+            <!-- Hero Title -->
+            <div class="hero-title">
+                <div class="hero-badge">INSIGHT</div>
+                <h1>Search 497K+ verified LinkedIn profiles</h1>
+                <p>GTM intelligence for professionals who live in data</p>
+            </div>
+
+            <!-- Search Form -->
             <form id="searchForm">
-                <!-- Keyword Search -->
-                <div class="form-group">
-                    <label for="keyword">🔎 Keyword Search</label>
+                <!-- Main Search Input -->
+                <div class="search-input-wrapper">
+                    <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
                     <input
                         type="text"
                         id="keyword"
                         name="keyword"
-                        placeholder="e.g. Python developer, AI researcher, Product Manager..."
+                        placeholder="senior software engineer, product manager, data scientist..."
                         class="form-control"
                     >
-                    <small>Searches across name, title, company, skills, and summary</small>
                 </div>
 
-                <!-- Filters Row 1 -->
-                <div class="filters-row">
-                    <div class="form-group">
-                        <label for="country">🌍 Country</label>
-                        <select id="country" name="country" class="form-control">
-                            <option value="">All Countries</option>
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
+                <!-- Advanced Filters -->
+                <details class="filters-collapsible">
+                    <summary class="filters-toggle">Advanced Filters</summary>
+                    <div class="filters-content">
+                        <!-- Filters Row 1 -->
+                        <div class="filters-row">
+                            <div class="form-group">
+                                <label for="country">Country</label>
+                                <select id="country" name="country" class="form-control">
+                                    <option value="">All Countries</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
 
-                    <div class="form-group">
-                        <label for="industry">🏢 Industry</label>
-                        <select id="industry" name="industry" class="form-control">
-                            <option value="">All Industries</option>
-                            <!-- Populated dynamically -->
-                        </select>
-                    </div>
-                </div>
+                            <div class="form-group">
+                                <label for="industry">Industry</label>
+                                <select id="industry" name="industry" class="form-control">
+                                    <option value="">All Industries</option>
+                                    <!-- Populated dynamically -->
+                                </select>
+                            </div>
+                        </div>
 
-                <!-- Filters Row 2 -->
-                <div class="filters-row">
-                    <div class="form-group">
-                        <label for="min_experience">📊 Min Experience (years)</label>
-                        <input
-                            type="number"
-                            id="min_experience"
-                            name="min_experience"
-                            min="0"
-                            max="80"
-                            placeholder="0"
-                            class="form-control"
-                        >
-                    </div>
+                        <!-- Filters Row 2 -->
+                        <div class="filters-row">
+                            <div class="form-group">
+                                <label for="min_experience">Min Experience (years)</label>
+                                <input
+                                    type="number"
+                                    id="min_experience"
+                                    name="min_experience"
+                                    min="0"
+                                    max="80"
+                                    placeholder="0"
+                                    class="form-control"
+                                >
+                            </div>
 
-                    <div class="form-group">
-                        <label for="max_experience">📊 Max Experience (years)</label>
-                        <input
-                            type="number"
-                            id="max_experience"
-                            name="max_experience"
-                            min="0"
-                            max="80"
-                            placeholder="80"
-                            class="form-control"
-                        >
-                    </div>
-                </div>
+                            <div class="form-group">
+                                <label for="max_experience">Max Experience (years)</label>
+                                <input
+                                    type="number"
+                                    id="max_experience"
+                                    name="max_experience"
+                                    min="0"
+                                    max="80"
+                                    placeholder="80"
+                                    class="form-control"
+                                >
+                            </div>
+                        </div>
 
-                <!-- Skills Filter -->
-                <div class="form-group">
-                    <label for="skills">🛠️ Skills</label>
-                    <input
-                        type="text"
-                        id="skills"
-                        name="skills"
-                        placeholder="e.g. Python, JavaScript, React..."
-                        class="form-control"
-                    >
-                    <small>Partial match on skills field</small>
-                </div>
+                        <!-- Skills Filter -->
+                        <div class="form-group">
+                            <label for="skills">Skills</label>
+                            <input
+                                type="text"
+                                id="skills"
+                                name="skills"
+                                placeholder="e.g. Python, JavaScript, React"
+                                class="form-control"
+                            >
+                            <small>Comma-separated skills (AND logic)</small>
+                        </div>
+                    </div>
+                </details>
 
                 <!-- Search Button -->
-                <button type="submit" class="btn-primary" id="searchBtn">
-                    <span id="btnText">Search</span>
-                    <span id="btnLoading" class="loading" style="display: none;">Searching...</span>
-                </button>
+                <div style="text-align: center; margin-top: 32px;">
+                    <button type="submit" class="btn-primary" id="searchBtn">
+                        <span id="btnText">Search Profiles</span>
+                        <span id="btnLoading" class="loading" style="display: none;">Searching...</span>
+                    </button>
+                </div>
             </form>
-
-            <!-- Stats -->
-            <div id="statsSection" class="stats-section"></div>
         </div>
-
-        <!-- Footer -->
-        <footer>
-            <p>Powered by PostgreSQL + FastAPI • 497K profiles • <100ms queries</p>
-        </footer>
     </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">497K+</div>
+                <div class="stat-label">Profiles indexed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">50</div>
+                <div class="stat-label">US States covered</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">12</div>
+                <div class="stat-label">Industries tracked</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
+    </footer>
 
     <script src="search.js"></script>
 </body>

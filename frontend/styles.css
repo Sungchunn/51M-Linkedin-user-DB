@@ -208,11 +208,59 @@ header h1 a {
     height: 20px;
 }
 
+/* === Collapsible Filters === */
+.filters-collapsible {
+    margin-bottom: 24px;
+}
+
+.filters-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filters-toggle:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.filters-toggle::before {
+    content: '▼';
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+}
+
+.filters-collapsible[open] .filters-toggle::before {
+    transform: rotate(180deg);
+}
+
+.filters-content {
+    margin-top: 20px;
+    padding: 24px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
 .filters-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+}
+
+.filters-row:last-child {
+    margin-bottom: 0;
 }
 
 /* === Buttons === */
