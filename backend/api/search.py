@@ -196,6 +196,13 @@ async def hybrid_search(
                 skills,
                 headline,
                 summary,
+                linkedin_url,
+                linkedin_username,
+                email,
+                phone,
+                website,
+                twitter,
+                github,
                 content_quality_score,
                 data_completeness_pct,
                 1 - (embedding <=> $1::vector) AS vector_similarity
@@ -229,7 +236,15 @@ async def hybrid_search(
             v.skills,
             v.headline,
             v.summary,
+            v.linkedin_url,
+            v.linkedin_username,
+            v.email,
+            v.phone,
+            v.website,
+            v.twitter,
+            v.github,
             v.content_quality_score,
+            v.data_completeness_pct,
             v.vector_similarity,
             COALESCE(l.lexical_rank, 0.0) AS lexical_rank,
             (v.vector_similarity * ${vector_weight_idx}) + (COALESCE(l.lexical_rank, 0.0) * ${lexical_weight_idx}) AS score
@@ -263,10 +278,18 @@ async def hybrid_search(
                 skills=row['skills'],
                 headline=row['headline'],
                 summary=row['summary'],
+                linkedin_url=row['linkedin_url'],
+                linkedin_username=row['linkedin_username'],
+                email=row['email'],
+                phone=row['phone'],
+                website=row['website'],
+                twitter=row['twitter'],
+                github=row['github'],
                 score=float(row['score']),
                 vector_similarity=float(row['vector_similarity']),
                 lexical_rank=float(row['lexical_rank']),
-                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None
+                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None,
+                data_completeness_pct=row['data_completeness_pct']
             )
 
             # Validate score bounds
@@ -500,7 +523,8 @@ async def keyword_search(
                 website,
                 twitter,
                 github,
-                content_quality_score
+                content_quality_score,
+                data_completeness_pct
             FROM profiles
             WHERE {where_clause}
             ORDER BY {order_clause}
@@ -538,7 +562,8 @@ async def keyword_search(
                 score=0.5,  # Placeholder score for keyword search
                 vector_similarity=0.0,
                 lexical_rank=0.5,
-                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None
+                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None,
+                data_completeness_pct=row.get('data_completeness_pct', None)
             )
             results.append(result)
 
