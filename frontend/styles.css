@@ -263,6 +263,48 @@ header h1 a {
     margin-bottom: 0;
 }
 
+/* === Filter Search Input === */
+.search-filter-wrapper {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.search-filter-wrapper .filter-search-input {
+    width: 100%;
+    padding: 10px 14px 10px 42px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+    background: var(--surface);
+    color: var(--text-primary);
+}
+
+.search-filter-wrapper .filter-search-input:hover {
+    border-color: var(--border-hover);
+}
+
+.search-filter-wrapper .filter-search-input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(82, 82, 82, 0.1);
+}
+
+.search-filter-wrapper .filter-search-input::placeholder {
+    color: var(--text-subtle);
+}
+
+.search-filter-wrapper .filter-search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+}
+
 /* === Industry Multi-Select === */
 .industry-tags-container {
     max-height: 200px;
@@ -271,6 +313,7 @@ header h1 a {
     border-radius: 8px;
     padding: 12px;
     background: var(--background);
+    margin-bottom: 8px;
 }
 
 .industry-checkbox {

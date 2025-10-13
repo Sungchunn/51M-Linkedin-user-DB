@@ -50,32 +50,42 @@
                         <!-- US States Filter (Multi-select) -->
                         <div class="form-group">
                             <label for="states">US States</label>
+                            <div class="search-filter-wrapper">
+                                <svg class="filter-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input
+                                    type="text"
+                                    id="statesSearch"
+                                    placeholder="Search states..."
+                                    class="filter-search-input"
+                                >
+                            </div>
                             <div id="statesContainer" class="industry-tags-container">
                                 <!-- Populated dynamically with checkboxes -->
                             </div>
-                            <input
-                                type="text"
-                                id="statesSearch"
-                                placeholder="Search states..."
-                                class="form-control"
-                                style="margin-top: 8px;"
-                            >
                             <small>Select one or more US states</small>
                         </div>
 
                         <!-- Industry Filter (Multi-select) -->
                         <div class="form-group">
                             <label for="industry">Industries</label>
+                            <div class="search-filter-wrapper">
+                                <svg class="filter-search-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="m21 21-4.35-4.35"/>
+                                </svg>
+                                <input
+                                    type="text"
+                                    id="industrySearch"
+                                    placeholder="Search industries..."
+                                    class="filter-search-input"
+                                >
+                            </div>
                             <div id="industryContainer" class="industry-tags-container">
                                 <!-- Populated dynamically with checkboxes -->
                             </div>
-                            <input
-                                type="text"
-                                id="industrySearch"
-                                placeholder="Search industries..."
-                                class="form-control"
-                                style="margin-top: 8px;"
-                            >
                             <small>Select one or more industries</small>
                         </div>
 

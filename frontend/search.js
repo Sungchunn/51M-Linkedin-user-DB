@@ -25,6 +25,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
+// === Handle pageshow event (back/forward cache) ===
+window.addEventListener('pageshow', (event) => {
+    // If page was loaded from bfcache (back/forward navigation)
+    if (event.persisted) {
+        console.log('Page restored from bfcache - resetting button state');
+        resetButtonState();
+    }
+});
+
 // Global lists
 let allIndustries = [];
 let allStates = [];
