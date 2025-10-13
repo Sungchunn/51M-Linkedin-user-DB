@@ -208,36 +208,51 @@ function setupFormHandler() {
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
 
+        console.log('Form submitted!');
+
         // Show loading state
         btnText.style.display = 'none';
         btnLoading.style.display = 'inline';
         searchBtn.disabled = true;
 
-        // Build query parameters
-        const formData = new FormData(form);
-        const params = {};
+        try {
+            // Build query parameters
+            const formData = new FormData(form);
+            const params = {};
 
-        for (let [key, value] of formData.entries()) {
-            if (value && value.trim() !== '') {
-                params[key] = value.trim();
+            for (let [key, value] of formData.entries()) {
+                if (value && value.trim() !== '') {
+                    params[key] = value.trim();
+                }
             }
+
+            // Get selected industries (multi-select)
+            const selectedIndustries = getSelectedIndustries();
+            if (selectedIndustries.length > 0) {
+                params.industries = selectedIndustries;  // Array
+            }
+
+            // Add offset and limit
+            params.offset = 0;
+            params.limit = 100;  // API max is 100
+
+            console.log('Search params:', params);
+
+            // Store search params in sessionStorage
+            sessionStorage.setItem('searchParams', JSON.stringify(params));
+            console.log('Stored in sessionStorage:', sessionStorage.getItem('searchParams'));
+
+            // Navigate to results page
+            console.log('Navigating to results.html...');
+            window.location.href = 'results.html';
+        } catch (error) {
+            console.error('Form submission error:', error);
+            // Reset button state
+            btnText.style.display = 'inline';
+            btnLoading.style.display = 'none';
+            searchBtn.disabled = false;
+            alert('Error: ' + error.message);
         }
-
-        // Get selected industries (multi-select)
-        const selectedIndustries = getSelectedIndustries();
-        if (selectedIndustries.length > 0) {
-            params.industries = selectedIndustries;  // Array
-        }
-
-        // Add offset and limit
-        params.offset = 0;
-        params.limit = 100;  // API max is 100
-
-        // Store search params in sessionStorage
-        sessionStorage.setItem('searchParams', JSON.stringify(params));
-
-        // Navigate to results page
-        window.location.href = 'results.html';
     });
 }
 
