@@ -32,8 +32,10 @@ class SearchRequest(BaseModel):
 
     # Filters
     location_country: Optional[str] = Field(None, description="Filter by country")
-    region: Optional[str] = Field(None, description="Filter by region/state")
-    locality: Optional[str] = Field(None, description="Filter by city")
+    region: Optional[str] = Field(None, description="Filter by region/state (deprecated - use regions)")
+    regions: Optional[List[str]] = Field(None, description="Filter by multiple regions/states (OR logic)")
+    locality: Optional[str] = Field(None, description="Filter by city (deprecated - use localities)")
+    localities: Optional[List[str]] = Field(None, description="Filter by multiple cities (OR logic)")
 
     min_years_experience: Optional[int] = Field(None, ge=0, le=80, description="Minimum years of experience")
     max_years_experience: Optional[int] = Field(None, ge=0, le=80, description="Maximum years of experience")

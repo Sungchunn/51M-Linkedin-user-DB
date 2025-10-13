@@ -185,6 +185,92 @@ async def get_industries():
 
 
 @app.get(
+    "/regions",
+    tags=["Filters"],
+    summary="Get list of regions/states"
+)
+async def get_regions(country: Optional[str] = None):
+    """Get distinct regions/states from profiles, optionally filtered by country"""
+    try:
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            if country:
+                regions = await conn.fetch("""
+                    SELECT DISTINCT region, COUNT(*) as count
+                    FROM profiles
+                    WHERE region IS NOT NULL
+                      AND location_country = $1
+                      AND is_deleted = FALSE
+                    GROUP BY region
+                    ORDER BY count DESC, region
+                    LIMIT 100
+                """, country)
+            else:
+                regions = await conn.fetch("""
+                    SELECT DISTINCT region, COUNT(*) as count
+                    FROM profiles
+                    WHERE region IS NOT NULL
+                      AND is_deleted = FALSE
+                    GROUP BY region
+                    ORDER BY count DESC, region
+                    LIMIT 100
+                """)
+            return {"regions": [{"region": row['region'], "count": row['count']} for row in regions]}
+    except Exception as e:
+        logger.error(f"Failed to fetch regions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
+    "/localities",
+    tags=["Filters"],
+    summary="Get list of cities"
+)
+async def get_localities(country: Optional[str] = None, region: Optional[str] = None):
+    """Get distinct localities/cities from profiles, optionally filtered by country and region"""
+    try:
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            if country and region:
+                localities = await conn.fetch("""
+                    SELECT DISTINCT locality, COUNT(*) as count
+                    FROM profiles
+                    WHERE locality IS NOT NULL
+                      AND location_country = $1
+                      AND region = $2
+                      AND is_deleted = FALSE
+                    GROUP BY locality
+                    ORDER BY count DESC, locality
+                    LIMIT 100
+                """, country, region)
+            elif country:
+                localities = await conn.fetch("""
+                    SELECT DISTINCT locality, COUNT(*) as count
+                    FROM profiles
+                    WHERE locality IS NOT NULL
+                      AND location_country = $1
+                      AND is_deleted = FALSE
+                    GROUP BY locality
+                    ORDER BY count DESC, locality
+                    LIMIT 100
+                """, country)
+            else:
+                localities = await conn.fetch("""
+                    SELECT DISTINCT locality, COUNT(*) as count
+                    FROM profiles
+                    WHERE locality IS NOT NULL
+                      AND is_deleted = FALSE
+                    GROUP BY locality
+                    ORDER BY count DESC, locality
+                    LIMIT 100
+                """)
+            return {"localities": [{"locality": row['locality'], "count": row['count']} for row in localities]}
+    except Exception as e:
+        logger.error(f"Failed to fetch localities: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get(
     "/stats",
     tags=["Statistics"],
     summary="Get dataset statistics"
@@ -271,9 +357,13 @@ async def search_profiles(request: SearchRequest):
         filters_applied = {}
         if request.location_country:
             filters_applied['location_country'] = request.location_country
-        if request.region:
+        if request.regions:
+            filters_applied['regions'] = request.regions
+        elif request.region:
             filters_applied['region'] = request.region
-        if request.locality:
+        if request.localities:
+            filters_applied['localities'] = request.localities
+        elif request.locality:
             filters_applied['locality'] = request.locality
         if request.min_years_experience is not None:
             filters_applied['min_years_experience'] = request.min_years_experience

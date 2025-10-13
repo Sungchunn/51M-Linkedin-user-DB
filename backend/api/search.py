@@ -84,14 +84,28 @@ async def hybrid_search(
             params.append(request.location_country)
             param_idx += 1
 
-        if request.region:
-            where_conditions.append(f"region = ${param_idx}")
-            params.append(request.region)
+        # Region filter (support both single and multiple)
+        regions_to_filter = []
+        if request.regions:
+            regions_to_filter = request.regions
+        elif request.region:
+            regions_to_filter = [request.region]
+
+        if regions_to_filter:
+            where_conditions.append(f"region = ANY(${param_idx})")
+            params.append(regions_to_filter)
             param_idx += 1
 
-        if request.locality:
-            where_conditions.append(f"locality = ${param_idx}")
-            params.append(request.locality)
+        # Locality filter (support both single and multiple)
+        localities_to_filter = []
+        if request.localities:
+            localities_to_filter = request.localities
+        elif request.locality:
+            localities_to_filter = [request.locality]
+
+        if localities_to_filter:
+            where_conditions.append(f"locality = ANY(${param_idx})")
+            params.append(localities_to_filter)
             param_idx += 1
 
         # Experience filters
@@ -291,14 +305,28 @@ async def hybrid_search(
                 count_params.append(request.location_country)
                 count_param_idx += 1
 
-            if request.region:
-                count_where_conditions.append(f"region = ${count_param_idx}")
-                count_params.append(request.region)
+            # Region filter (support both single and multiple)
+            regions_to_filter = []
+            if request.regions:
+                regions_to_filter = request.regions
+            elif request.region:
+                regions_to_filter = [request.region]
+
+            if regions_to_filter:
+                count_where_conditions.append(f"region = ANY(${count_param_idx})")
+                count_params.append(regions_to_filter)
                 count_param_idx += 1
 
-            if request.locality:
-                count_where_conditions.append(f"locality = ${count_param_idx}")
-                count_params.append(request.locality)
+            # Locality filter (support both single and multiple)
+            localities_to_filter = []
+            if request.localities:
+                localities_to_filter = request.localities
+            elif request.locality:
+                localities_to_filter = [request.locality]
+
+            if localities_to_filter:
+                count_where_conditions.append(f"locality = ANY(${count_param_idx})")
+                count_params.append(localities_to_filter)
                 count_param_idx += 1
 
             if request.min_years_experience is not None:
@@ -377,14 +405,28 @@ async def keyword_search(
             params.append(request.location_country)
             param_idx += 1
 
-        if request.region:
-            where_conditions.append(f"region = ${param_idx}")
-            params.append(request.region)
+        # Region filter (support both single and multiple)
+        regions_to_filter = []
+        if request.regions:
+            regions_to_filter = request.regions
+        elif request.region:
+            regions_to_filter = [request.region]
+
+        if regions_to_filter:
+            where_conditions.append(f"region = ANY(${param_idx})")
+            params.append(regions_to_filter)
             param_idx += 1
 
-        if request.locality:
-            where_conditions.append(f"locality = ${param_idx}")
-            params.append(request.locality)
+        # Locality filter (support both single and multiple)
+        localities_to_filter = []
+        if request.localities:
+            localities_to_filter = request.localities
+        elif request.locality:
+            localities_to_filter = [request.locality]
+
+        if localities_to_filter:
+            where_conditions.append(f"locality = ANY(${param_idx})")
+            params.append(localities_to_filter)
             param_idx += 1
 
         # Experience filters

@@ -22,17 +22,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 });
 
-// Global industries list
+// Global lists
 let allIndustries = [];
+let allRegions = [];
+let allLocalities = [];
 
 // === Load Filter Options ===
 async function loadFilters() {
     try {
         // Show loading message
         const countrySelect = document.getElementById('country');
+        const regionContainer = document.getElementById('regionContainer');
+        const localityContainer = document.getElementById('localityContainer');
         const industryContainer = document.getElementById('industryContainer');
 
         countrySelect.innerHTML = '<option value="">Loading countries...</option>';
+        regionContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading regions...</p>';
+        localityContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading cities...</p>';
         industryContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>';
 
         // Load countries with timeout
@@ -47,13 +53,49 @@ async function loadFilters() {
             countrySelect.appendChild(option);
         });
 
+        // Load regions with timeout
+        const regionsRes = await fetchWithTimeout(`${API_BASE_URL}/regions`, 30000);
+        const regionsData = await regionsRes.json();
+        allRegions = regionsData.regions.map(r => r.region);
+
+        // Render region checkboxes
+        renderCheckboxes('regionContainer', allRegions);
+
+        // Setup region search
+        const regionSearch = document.getElementById('regionSearch');
+        regionSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allRegions.filter(region =>
+                region.toLowerCase().includes(searchTerm)
+            );
+            renderCheckboxes('regionContainer', filtered);
+        });
+
+        // Load localities with timeout
+        const localitiesRes = await fetchWithTimeout(`${API_BASE_URL}/localities`, 30000);
+        const localitiesData = await localitiesRes.json();
+        allLocalities = localitiesData.localities.map(l => l.locality);
+
+        // Render locality checkboxes
+        renderCheckboxes('localityContainer', allLocalities);
+
+        // Setup locality search
+        const localitySearch = document.getElementById('localitySearch');
+        localitySearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allLocalities.filter(locality =>
+                locality.toLowerCase().includes(searchTerm)
+            );
+            renderCheckboxes('localityContainer', filtered);
+        });
+
         // Load industries with timeout
         const industriesRes = await fetchWithTimeout(`${API_BASE_URL}/industries`, 30000);
         const industriesData = await industriesRes.json();
         allIndustries = industriesData.industries;
 
         // Render industry checkboxes
-        renderIndustries(allIndustries);
+        renderCheckboxes('industryContainer', allIndustries);
 
         // Setup industry search
         const industrySearch = document.getElementById('industrySearch');
@@ -62,7 +104,7 @@ async function loadFilters() {
             const filtered = allIndustries.filter(ind =>
                 ind.toLowerCase().includes(searchTerm)
             );
-            renderIndustries(filtered);
+            renderCheckboxes('industryContainer', filtered);
         });
 
     } catch (error) {
@@ -86,31 +128,31 @@ async function loadFilters() {
     }
 }
 
-// === Render Industry Checkboxes ===
-function renderIndustries(industries) {
-    const container = document.getElementById('industryContainer');
-    const currentSelected = getSelectedIndustries();
+// === Render Checkboxes (Generic) ===
+function renderCheckboxes(containerId, items) {
+    const container = document.getElementById(containerId);
+    const currentSelected = getSelectedValues(containerId);
 
     container.innerHTML = '';
 
-    if (industries.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No industries found</p>';
+    if (items.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No items found</p>';
         return;
     }
 
-    industries.forEach(industry => {
+    items.forEach(item => {
         const div = document.createElement('div');
         div.className = 'industry-checkbox';
 
         const checkbox = document.createElement('input');
         checkbox.type = 'checkbox';
-        checkbox.id = `industry_${industry.replace(/\s+/g, '_')}`;
-        checkbox.value = industry;
-        checkbox.checked = currentSelected.includes(industry);
+        checkbox.id = `${containerId}_${item.replace(/\s+/g, '_')}`;
+        checkbox.value = item;
+        checkbox.checked = currentSelected.includes(item);
 
         const label = document.createElement('label');
         label.htmlFor = checkbox.id;
-        label.textContent = industry;
+        label.textContent = item;
 
         div.appendChild(checkbox);
         div.appendChild(label);
@@ -118,10 +160,25 @@ function renderIndustries(industries) {
     });
 }
 
-// === Get Selected Industries ===
-function getSelectedIndustries() {
-    const checkboxes = document.querySelectorAll('#industryContainer input[type="checkbox"]:checked');
+// === Get Selected Values (Generic) ===
+function getSelectedValues(containerId) {
+    const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
     return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// === Get Selected Industries (Backward Compatibility) ===
+function getSelectedIndustries() {
+    return getSelectedValues('industryContainer');
+}
+
+// === Get Selected Regions ===
+function getSelectedRegions() {
+    return getSelectedValues('regionContainer');
+}
+
+// === Get Selected Localities ===
+function getSelectedLocalities() {
+    return getSelectedValues('localityContainer');
 }
 
 // Fetch with timeout helper
@@ -242,6 +299,18 @@ function setupFormHandler() {
             const selectedIndustries = getSelectedIndustries();
             if (selectedIndustries.length > 0) {
                 params.industries = selectedIndustries;  // Array
+            }
+
+            // Get selected regions (multi-select)
+            const selectedRegions = getSelectedRegions();
+            if (selectedRegions.length > 0) {
+                params.regions = selectedRegions;  // Array
+            }
+
+            // Get selected localities (multi-select)
+            const selectedLocalities = getSelectedLocalities();
+            if (selectedLocalities.length > 0) {
+                params.localities = selectedLocalities;  // Array
             }
 
             // Add offset and limit
