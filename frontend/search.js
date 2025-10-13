@@ -5,9 +5,21 @@ const API_BASE_URL = 'http://localhost:8000';
 
 // === Initialize Page ===
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadFilters();
-    await loadStats();
+    // Always setup form handler first (don't depend on API)
     setupFormHandler();
+
+    // Load filters and stats (non-blocking)
+    try {
+        await loadFilters();
+    } catch (error) {
+        console.error('Failed to load filters:', error);
+    }
+
+    try {
+        await loadStats();
+    } catch (error) {
+        console.error('Failed to load stats:', error);
+    }
 });
 
 // Global industries list
