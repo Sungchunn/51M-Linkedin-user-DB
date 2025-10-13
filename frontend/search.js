@@ -24,75 +24,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Global lists
 let allIndustries = [];
-let allRegions = [];
-let allLocalities = [];
+let allStates = [];
 
 // === Load Filter Options ===
 async function loadFilters() {
     try {
         // Show loading message
-        const countrySelect = document.getElementById('country');
-        const regionContainer = document.getElementById('regionContainer');
-        const localityContainer = document.getElementById('localityContainer');
+        const statesContainer = document.getElementById('statesContainer');
         const industryContainer = document.getElementById('industryContainer');
 
-        countrySelect.innerHTML = '<option value="">Loading countries...</option>';
-        regionContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading regions...</p>';
-        localityContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading cities...</p>';
+        statesContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading states...</p>';
         industryContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>';
 
-        // Load countries with timeout
-        const countriesRes = await fetchWithTimeout(`${API_BASE_URL}/countries`, 30000);
-        const countriesData = await countriesRes.json();
+        // Load states and industries in parallel
+        const [statesRes, industriesRes] = await Promise.all([
+            fetchWithTimeout(`${API_BASE_URL}/regions?country=united states`, 30000),
+            fetchWithTimeout(`${API_BASE_URL}/industries`, 30000)
+        ]);
 
-        countrySelect.innerHTML = '<option value="">All Countries</option>';
-        countriesData.countries.forEach(country => {
-            const option = document.createElement('option');
-            option.value = country;
-            option.textContent = country;
-            countrySelect.appendChild(option);
-        });
-
-        // Load regions with timeout
-        const regionsRes = await fetchWithTimeout(`${API_BASE_URL}/regions`, 30000);
-        const regionsData = await regionsRes.json();
-        allRegions = regionsData.regions.map(r => r.region);
-
-        // Render region checkboxes
-        renderCheckboxes('regionContainer', allRegions);
-
-        // Setup region search
-        const regionSearch = document.getElementById('regionSearch');
-        regionSearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filtered = allRegions.filter(region =>
-                region.toLowerCase().includes(searchTerm)
-            );
-            renderCheckboxes('regionContainer', filtered);
-        });
-
-        // Load localities with timeout
-        const localitiesRes = await fetchWithTimeout(`${API_BASE_URL}/localities`, 30000);
-        const localitiesData = await localitiesRes.json();
-        allLocalities = localitiesData.localities.map(l => l.locality);
-
-        // Render locality checkboxes
-        renderCheckboxes('localityContainer', allLocalities);
-
-        // Setup locality search
-        const localitySearch = document.getElementById('localitySearch');
-        localitySearch.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase();
-            const filtered = allLocalities.filter(locality =>
-                locality.toLowerCase().includes(searchTerm)
-            );
-            renderCheckboxes('localityContainer', filtered);
-        });
-
-        // Load industries with timeout
-        const industriesRes = await fetchWithTimeout(`${API_BASE_URL}/industries`, 30000);
+        const statesData = await statesRes.json();
         const industriesData = await industriesRes.json();
+
+        allStates = statesData.regions.map(r => r.region);
         allIndustries = industriesData.industries;
+
+        // Render states checkboxes
+        renderCheckboxes('statesContainer', allStates);
+
+        // Setup states search
+        const statesSearch = document.getElementById('statesSearch');
+        statesSearch.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const filtered = allStates.filter(state =>
+                state.toLowerCase().includes(searchTerm)
+            );
+            renderCheckboxes('statesContainer', filtered);
+        });
 
         // Render industry checkboxes
         renderCheckboxes('industryContainer', allIndustries);
@@ -109,7 +76,7 @@ async function loadFilters() {
 
     } catch (error) {
         console.error('Failed to load filters:', error);
-        document.getElementById('country').innerHTML = '<option value="">Error loading countries</option>';
+        document.getElementById('statesContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Error loading states</p>';
         document.getElementById('industryContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Error loading industries</p>';
 
         // Show user-friendly error
@@ -166,19 +133,14 @@ function getSelectedValues(containerId) {
     return Array.from(checkboxes).map(cb => cb.value);
 }
 
-// === Get Selected Industries (Backward Compatibility) ===
+// === Get Selected Industries ===
 function getSelectedIndustries() {
     return getSelectedValues('industryContainer');
 }
 
-// === Get Selected Regions ===
-function getSelectedRegions() {
-    return getSelectedValues('regionContainer');
-}
-
-// === Get Selected Localities ===
-function getSelectedLocalities() {
-    return getSelectedValues('localityContainer');
+// === Get Selected States ===
+function getSelectedStates() {
+    return getSelectedValues('statesContainer');
 }
 
 // Fetch with timeout helper
@@ -301,16 +263,10 @@ function setupFormHandler() {
                 params.industries = selectedIndustries;  // Array
             }
 
-            // Get selected regions (multi-select)
-            const selectedRegions = getSelectedRegions();
-            if (selectedRegions.length > 0) {
-                params.regions = selectedRegions;  // Array
-            }
-
-            // Get selected localities (multi-select)
-            const selectedLocalities = getSelectedLocalities();
-            if (selectedLocalities.length > 0) {
-                params.localities = selectedLocalities;  // Array
+            // Get selected US states (multi-select)
+            const selectedStates = getSelectedStates();
+            if (selectedStates.length > 0) {
+                params.states = selectedStates;  // Array
             }
 
             // Add offset and limit

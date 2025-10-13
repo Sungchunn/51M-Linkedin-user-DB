@@ -47,45 +47,20 @@
                 <details class="filters-collapsible">
                     <summary class="filters-toggle">Advanced Filters</summary>
                     <div class="filters-content">
-                        <!-- Location Filters -->
+                        <!-- US States Filter (Multi-select) -->
                         <div class="form-group">
-                            <label for="country">Country</label>
-                            <select id="country" name="country" class="form-control">
-                                <option value="">All Countries</option>
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
-
-                        <!-- Region Filter (Multi-select) -->
-                        <div class="form-group">
-                            <label for="region">State/Region</label>
-                            <div id="regionContainer" class="industry-tags-container">
+                            <label for="states">US States</label>
+                            <div id="statesContainer" class="industry-tags-container">
                                 <!-- Populated dynamically with checkboxes -->
                             </div>
                             <input
                                 type="text"
-                                id="regionSearch"
-                                placeholder="Search regions..."
+                                id="statesSearch"
+                                placeholder="Search states..."
                                 class="form-control"
                                 style="margin-top: 8px;"
                             >
-                            <small>Select one or more regions</small>
-                        </div>
-
-                        <!-- Locality Filter (Multi-select) -->
-                        <div class="form-group">
-                            <label for="locality">City</label>
-                            <div id="localityContainer" class="industry-tags-container">
-                                <!-- Populated dynamically with checkboxes -->
-                            </div>
-                            <input
-                                type="text"
-                                id="localitySearch"
-                                placeholder="Search cities..."
-                                class="form-control"
-                                style="margin-top: 8px;"
-                            >
-                            <small>Select one or more cities</small>
+                            <small>Select one or more US states</small>
                         </div>
 
                         <!-- Industry Filter (Multi-select) -->

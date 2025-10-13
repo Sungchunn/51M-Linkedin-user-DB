@@ -51,9 +51,8 @@ async function executeSearch() {
             query: currentParams.keyword || '',
             offset: currentOffset,
             limit: currentLimit,
-            location_country: currentParams.country || null,
-            regions: currentParams.regions || null,  // Multi-select
-            localities: currentParams.localities || null,  // Multi-select
+            location_country: 'united states',  // Always US
+            regions: currentParams.states || null,  // US states multi-select
             industries: currentParams.industries || null,  // Multi-select
             min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
             max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
@@ -259,9 +258,8 @@ async function exportToCSV() {
             query: currentParams.keyword || '',
             offset: 0,
             limit: 10000,  // Export limit
-            location_country: currentParams.country || null,
-            regions: currentParams.regions || null,  // Multi-select
-            localities: currentParams.localities || null,  // Multi-select
+            location_country: 'united states',  // Always US
+            regions: currentParams.states || null,  // US states multi-select
             industries: currentParams.industries || null,  // Multi-select
             min_years_experience: currentParams.min_experience ? parseInt(currentParams.min_experience) : null,
             max_years_experience: currentParams.max_experience ? parseInt(currentParams.max_experience) : null,
