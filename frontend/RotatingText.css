@@ -4,13 +4,18 @@
   display: inline-flex;
   position: relative;
   min-height: 1.2em;
+  overflow: hidden;
+  vertical-align: bottom;
 }
 
 .text-rotate-wrapper {
   display: flex;
-  flex-wrap: wrap;
-  white-space: pre-wrap;
-  position: relative;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
 }
 
 .text-rotate-sr-only {
@@ -27,20 +32,24 @@
 
 .text-rotate-word {
   display: inline-flex;
+  position: relative;
 }
 
 .text-rotate-element {
   display: inline-block;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, opacity;
+  transform-origin: center;
 }
 
 .text-rotate-space {
   white-space: pre;
+  width: 0.25em;
 }
 
 /* Enter animation */
 .text-rotate-enter {
-  transform: translateY(100%);
+  transform: translateY(120%);
   opacity: 0;
 }
 
