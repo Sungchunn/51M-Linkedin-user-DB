@@ -142,9 +142,12 @@ header h1 a {
     color: var(--text-primary);
     font-weight: 600;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     min-width: 450px;
+    min-height: 2.5rem;
     text-align: left;
+    display: inline-block;
+    vertical-align: bottom;
 }
 
 .hero-title p {

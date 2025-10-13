@@ -146,12 +146,9 @@
 
                 <!-- Search Button -->
                 <div style="text-align: center; margin-top: 32px;">
-                    <button type="submit" class="btn-primary btn-with-shader" id="searchBtn">
-                        <div class="btn-shader-canvas" id="btnShaderCanvas"></div>
-                        <span class="btn-content">
-                            <span id="btnText">Search Profiles</span>
-                            <span id="btnLoading" class="loading" style="display: none;">Searching...</span>
-                        </span>
+                    <button type="submit" class="btn-primary" id="searchBtn">
+                        <span id="btnText">Search Profiles</span>
+                        <span id="btnLoading" class="loading" style="display: none;">Searching...</span>
                     </button>
                 </div>
             </form>
@@ -181,46 +178,42 @@
         <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
     </footer>
 
-    <script type="module" src="search.js"></script>
+    <script src="search.js"></script>
     <script type="module">
         import RotatingText from './RotatingText.js';
-        import ShapeBlur from './ShapeBlur.js';
 
-        // Initialize rotating text and shader effect
-        document.addEventListener('DOMContentLoaded', () => {
-            // Initialize rotating text
-            const container = document.getElementById('rotatingText');
-            if (container) {
-                new RotatingText(container, {
-                    texts: [
-                        'verified LinkedIn profiles',
-                        'tech professionals',
-                        'sales leaders',
-                        'marketing executives',
-                        'product managers',
-                        'software engineers'
-                    ],
-                    rotationInterval: 2500,
-                    staggerDuration: 25,
-                    splitBy: 'characters',
-                    auto: true,
-                    loop: true
-                });
-            }
-
-            // Initialize button shader effect
-            const shaderCanvas = document.getElementById('btnShaderCanvas');
-            if (shaderCanvas && typeof THREE !== 'undefined') {
-                new ShapeBlur(shaderCanvas, {
-                    variation: 0,
-                    pixelRatioProp: 2,
-                    shapeSize: 1.2,
-                    roundness: 0.4,
-                    borderSize: 0.05,
-                    circleSize: 0.3,
-                    circleEdge: 0.5
-                });
-            }
+        // Initialize rotating text
+        window.addEventListener('DOMContentLoaded', () => {
+            // Wait a bit for DOM to be fully ready
+            setTimeout(() => {
+                const container = document.getElementById('rotatingText');
+                if (container) {
+                    try {
+                        console.log('Initializing RotatingText...');
+                        new RotatingText(container, {
+                            texts: [
+                                'verified LinkedIn profiles',
+                                'tech professionals',
+                                'sales leaders',
+                                'marketing executives',
+                                'product managers',
+                                'software engineers'
+                            ],
+                            rotationInterval: 2500,
+                            staggerDuration: 25,
+                            splitBy: 'characters',
+                            auto: true,
+                            loop: true
+                        });
+                        console.log('RotatingText initialized successfully');
+                    } catch (error) {
+                        console.error('RotatingText error:', error);
+                        // Fallback: just show first text
+                        container.textContent = 'verified LinkedIn profiles';
+                        container.style.display = 'inline-block';
+                    }
+                }
+            }, 100);
         });
     </script>
 </body>

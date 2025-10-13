@@ -1,21 +1,18 @@
 /* RotatingText Animation Styles */
 
 .text-rotate-container {
-  display: inline-flex;
+  display: inline-block;
   position: relative;
   min-height: 1.2em;
-  overflow: hidden;
+  overflow: visible;
   vertical-align: bottom;
 }
 
 .text-rotate-wrapper {
-  display: flex;
+  display: inline-flex;
   flex-wrap: nowrap;
   white-space: nowrap;
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 100%;
+  position: relative;
 }
 
 .text-rotate-sr-only {
