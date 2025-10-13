@@ -132,6 +132,19 @@ header h1 a {
     color: var(--text-primary);
     margin-bottom: 12px;
     letter-spacing: -0.5px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.3em;
+}
+
+.hero-title h1 .text-rotate-container {
+    color: var(--text-primary);
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+    min-width: 450px;
+    text-align: left;
 }
 
 .hero-title p {
@@ -785,6 +798,17 @@ footer {
 
     .search-card {
         padding: 24px;
+    }
+
+    .hero-title h1 {
+        font-size: 1.5rem;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .hero-title h1 .text-rotate-container {
+        min-width: 100%;
+        text-align: center;
     }
 
     .filters-row {

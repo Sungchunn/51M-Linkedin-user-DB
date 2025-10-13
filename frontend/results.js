@@ -1,4 +1,4 @@
-// INSIGHT - Results Page JavaScript
+// PROSPECTIQ - Results Page JavaScript
 // Handles search execution, pagination, and table display
 
 const API_BASE_URL = 'http://localhost:8000';
@@ -289,7 +289,7 @@ async function exportToCSV() {
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `insight_results_${new Date().toISOString().slice(0,10)}.csv`);
+        link.setAttribute('download', `prospectiq_results_${new Date().toISOString().slice(0,10)}.csv`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();

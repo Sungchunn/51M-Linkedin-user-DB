@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>INSIGHT - Semantic Talent Search</title>
+    <title>PROSPECTIQ - Semantic Talent Search</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="RotatingText.css">
 </head>
 <body>
     <!-- Header -->
     <header>
         <div class="header-inner">
-            <h1><a href="index.html">INSIGHT</a></h1>
-            <p class="subtitle">Semantic Talent Finder</p>
+            <h1><a href="index.html">PROSPECTIQ</a></h1>
+            <p class="subtitle">Intelligence-Driven Prospecting</p>
         </div>
     </header>
 
@@ -21,8 +22,11 @@
         <div class="search-card">
             <!-- Hero Title -->
             <div class="hero-title">
-                <div class="hero-badge">INSIGHT</div>
-                <h1>Search 497K+ verified LinkedIn profiles</h1>
+                <div class="hero-badge">PROSPECTIQ</div>
+                <h1>
+                    Search 497K+
+                    <span class="text-rotate-container" id="rotatingText"></span>
+                </h1>
                 <p>GTM intelligence for professionals who live in data</p>
             </div>
 
@@ -173,6 +177,31 @@
         <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
     </footer>
 
-    <script src="search.js"></script>
+    <script type="module" src="search.js"></script>
+    <script type="module">
+        import RotatingText from './RotatingText.js';
+
+        // Initialize rotating text
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('rotatingText');
+            if (container) {
+                new RotatingText(container, {
+                    texts: [
+                        'verified LinkedIn profiles',
+                        'tech professionals',
+                        'sales leaders',
+                        'marketing executives',
+                        'product managers',
+                        'software engineers'
+                    ],
+                    rotationInterval: 2500,
+                    staggerDuration: 25,
+                    splitBy: 'characters',
+                    auto: true,
+                    loop: true
+                });
+            }
+        });
+    </script>
 </body>
 </html>

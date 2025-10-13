@@ -1,4 +1,4 @@
-// INSIGHT - Search Page JavaScript
+// PROSPECTIQ - Search Page JavaScript
 // Handles search form, filter loading, and stats
 
 const API_BASE_URL = 'http://localhost:8000';
