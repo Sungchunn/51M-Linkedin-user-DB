@@ -143,15 +143,35 @@ header h1 a {
 
 /* === Form Elements === */
 .form-group {
-    margin-bottom: 20px;
+    margin-bottom: 24px;
+}
+
+.filter-label-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
 .form-group label {
     display: block;
+    font-weight: 600;
+    margin-bottom: 0;
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+}
+
+.filter-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--surface-hover);
+    padding: 4px 10px;
+    border-radius: 12px;
     font-weight: 500;
-    margin-bottom: 8px;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .form-control {
@@ -181,9 +201,11 @@ header h1 a {
 
 .form-group small {
     display: block;
-    margin-top: 6px;
+    margin-top: 8px;
     color: var(--text-muted);
     font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 0;
 }
 
 /* Main search input */
@@ -246,10 +268,11 @@ header h1 a {
 
 .filters-content {
     margin-top: 20px;
-    padding: 24px;
-    background: transparent;
+    padding: 28px;
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .filters-row {
@@ -266,75 +289,108 @@ header h1 a {
 /* === Filter Search Input === */
 .search-filter-wrapper {
     position: relative;
-    margin-bottom: 12px;
+    margin-bottom: 16px;
 }
 
 .search-filter-wrapper .filter-search-input {
     width: 100%;
-    padding: 10px 14px 10px 42px;
+    padding: 12px 16px 12px 44px;
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.9rem;
-    transition: all 0.2s;
-    background: var(--surface);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--background);
     color: var(--text-primary);
+    font-weight: 400;
 }
 
 .search-filter-wrapper .filter-search-input:hover {
     border-color: var(--border-hover);
+    background: var(--surface);
 }
 
 .search-filter-wrapper .filter-search-input:focus {
     outline: none;
-    border-color: var(--border-focus);
-    box-shadow: 0 0 0 3px rgba(82, 82, 82, 0.1);
+    border-color: var(--text-muted);
+    background: var(--surface);
+    box-shadow: 0 0 0 4px rgba(115, 115, 115, 0.08);
 }
 
 .search-filter-wrapper .filter-search-input::placeholder {
     color: var(--text-subtle);
+    font-weight: 400;
 }
 
 .search-filter-wrapper .filter-search-icon {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-muted);
     width: 16px;
     height: 16px;
     pointer-events: none;
+    transition: color 0.25s;
+}
+
+.search-filter-wrapper .filter-search-input:focus ~ .filter-search-icon {
+    color: var(--text-secondary);
 }
 
 /* === Industry Multi-Select === */
 .industry-tags-container {
-    max-height: 200px;
+    max-height: 220px;
     overflow-y: auto;
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 8px;
     background: var(--background);
     margin-bottom: 8px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Custom scrollbar for webkit browsers */
+.industry-tags-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.industry-tags-container::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 10px;
+}
+
+.industry-tags-container::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.industry-tags-container::-webkit-scrollbar-thumb:hover {
+    background: var(--border-focus);
 }
 
 .industry-checkbox {
     display: flex;
     align-items: center;
-    padding: 8px;
-    border-radius: 6px;
+    padding: 10px 12px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-bottom: 2px;
 }
 
 .industry-checkbox:hover {
-    background: var(--surface-hover);
+    background: var(--surface);
+    transform: translateX(2px);
 }
 
 .industry-checkbox input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    margin-right: 10px;
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
     cursor: pointer;
     accent-color: var(--text-primary);
+    border-radius: 4px;
 }
 
 .industry-checkbox label {
@@ -343,11 +399,18 @@ header h1 a {
     margin: 0;
     color: var(--text-secondary);
     font-size: 0.875rem;
+    font-weight: 400;
+    transition: all 0.2s;
+    line-height: 1.4;
 }
 
 .industry-checkbox input[type="checkbox"]:checked + label {
     color: var(--text-primary);
     font-weight: 500;
+}
+
+.industry-checkbox:has(input[type="checkbox"]:checked) {
+    background: var(--surface-hover);
 }
 
 .industry-selected-count {

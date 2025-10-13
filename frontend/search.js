@@ -129,6 +129,9 @@ function renderCheckboxes(containerId, items) {
         checkbox.value = item;
         checkbox.checked = currentSelected.includes(item);
 
+        // Add change listener to update count
+        checkbox.addEventListener('change', () => updateFilterCount(containerId));
+
         const label = document.createElement('label');
         label.htmlFor = checkbox.id;
         label.textContent = item;
@@ -137,12 +140,37 @@ function renderCheckboxes(containerId, items) {
         div.appendChild(label);
         container.appendChild(div);
     });
+
+    // Update count after rendering
+    updateFilterCount(containerId);
 }
 
 // === Get Selected Values (Generic) ===
 function getSelectedValues(containerId) {
     const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
     return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// === Update Filter Count ===
+function updateFilterCount(containerId) {
+    const selectedCount = getSelectedValues(containerId).length;
+
+    // Determine which count element to update
+    let countElement;
+    if (containerId === 'statesContainer') {
+        countElement = document.getElementById('statesCount');
+    } else if (containerId === 'industryContainer') {
+        countElement = document.getElementById('industryCount');
+    }
+
+    if (countElement) {
+        if (selectedCount > 0) {
+            countElement.textContent = `${selectedCount} selected`;
+            countElement.style.display = 'inline-block';
+        } else {
+            countElement.style.display = 'none';
+        }
+    }
 }
 
 // === Get Selected Industries ===
