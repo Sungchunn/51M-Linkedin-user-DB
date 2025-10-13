@@ -207,25 +207,10 @@ async def hybrid_search(
         lexical_results AS (
             SELECT
                 id,
-                ts_rank(
-                    to_tsvector('english',
-                        coalesce(full_name, '') || ' ' ||
-                        coalesce(headline, '') || ' ' ||
-                        coalesce(summary, '') || ' ' ||
-                        coalesce(job_title, '') || ' ' ||
-                        coalesce(company_name, '')
-                    ),
-                    plainto_tsquery('english', ${tsquery_idx})
-                ) AS lexical_rank
+                ts_rank(search_vector, plainto_tsquery('english', ${tsquery_idx})) AS lexical_rank
             FROM profiles
             WHERE {where_clause}
-              AND to_tsvector('english',
-                    coalesce(full_name, '') || ' ' ||
-                    coalesce(headline, '') || ' ' ||
-                    coalesce(summary, '') || ' ' ||
-                    coalesce(job_title, '') || ' ' ||
-                    coalesce(company_name, '')
-                  ) @@ plainto_tsquery('english', ${tsquery_idx})
+              AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
             LIMIT 500
         )
         SELECT
@@ -464,17 +449,9 @@ async def keyword_search(
             params.append(request.min_quality_score)
             param_idx += 1
 
-        # Add keyword filter if query provided
+        # Add keyword filter if query provided (use pre-computed search_vector)
         if request.query and request.query.strip():
-            where_conditions.append(f"""
-                to_tsvector('english',
-                    coalesce(full_name, '') || ' ' ||
-                    coalesce(headline, '') || ' ' ||
-                    coalesce(summary, '') || ' ' ||
-                    coalesce(job_title, '') || ' ' ||
-                    coalesce(company_name, '')
-                ) @@ plainto_tsquery('english', ${param_idx})
-            """)
+            where_conditions.append(f"search_vector @@ plainto_tsquery('english', ${param_idx})")
             params.append(request.query)
             param_idx += 1
 
@@ -488,20 +465,14 @@ async def keyword_search(
         params.append(request.offset)
         offset_idx = param_idx
 
-        # If query provided, rank by relevance; otherwise just return recent profiles
+        # If query provided, rank by relevance using pre-computed search_vector
         if request.query and request.query.strip():
-            order_clause = f"""
-                ts_rank(
-                    to_tsvector('english',
-                        coalesce(full_name, '') || ' ' ||
-                        coalesce(headline, '') || ' ' ||
-                        coalesce(summary, '') || ' ' ||
-                        coalesce(job_title, '') || ' ' ||
-                        coalesce(company_name, '')
-                    ),
-                    plainto_tsquery('english', '{request.query}')
-                ) DESC
-            """
+            order_clause = f"ts_rank(search_vector, plainto_tsquery('english', $1)) DESC"
+            # Prepend query param for ORDER BY
+            params.insert(0, request.query)
+            # Adjust other param indices
+            limit_idx += 1
+            offset_idx += 1
         else:
             order_clause = "created_at DESC"
 
