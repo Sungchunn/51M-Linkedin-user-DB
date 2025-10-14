@@ -147,27 +147,27 @@ open frontend/index.html
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      PROSPECTIQ STACK                        │
+│                      PROSPECTIQ STACK                       │
 ├─────────────────────────────────────────────────────────────┤
-│  Frontend   │ Vanilla JavaScript + HTML5 + CSS3            │
+│  Frontend   │ Vanilla JavaScript + HTML5 + CSS3             │
 │             │ → No framework dependencies                   │
 │             │ → Modern dark theme UI                        │
 │             │ → Real-time search with filters               │
 ├─────────────────────────────────────────────────────────────┤
-│  Backend    │ FastAPI (Python 3.11+)                       │
+│  Backend    │ FastAPI (Python 3.11+)                        │
 │             │ → Async/await with asyncpg                    │
 │             │ → Connection pooling                          │
 │             │ → Pydantic data validation                    │
 ├─────────────────────────────────────────────────────────────┤
-│  Database   │ PostgreSQL 17 + pgvector                     │
-│             │ → HNSW vector index (1536 dimensions)        │
-│             │ → GIN full-text search indexes               │
-│             │ → Composite indexes for performance          │
+│  Database   │ PostgreSQL 17 + pgvector                      │
+│             │ → HNSW vector index (1536 dimensions)         │
+│             │ → GIN full-text search indexes                │
+│             │ → Composite indexes for performance           │
 ├─────────────────────────────────────────────────────────────┤
-│  ML/AI      │ OpenAI text-embedding-3-small                │
+│  ML/AI      │ OpenAI text-embedding-3-small                 │
 │             │ → 1536-dimensional embeddings                 │
 │             │ → Semantic similarity search                  │
-│             │ → Batch processing for efficiency            │
+│             │ → Batch processing for efficiency             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -340,26 +340,26 @@ fly deploy
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    AWS PRODUCTION STACK                      │
+│                    AWS PRODUCTION STACK                     │
 ├─────────────────────────────────────────────────────────────┤
 │  CDN            │ CloudFront (global edge caching)          │
 ├─────────────────────────────────────────────────────────────┤
-│  Load Balancer  │ Application Load Balancer (ALB)          │
+│  Load Balancer  │ Application Load Balancer (ALB)           │
 │                 │ → Auto-scaling FastAPI containers         │
 ├─────────────────────────────────────────────────────────────┤
-│  Compute        │ ECS Fargate (4-16 containers)            │
+│  Compute        │ ECS Fargate (4-16 containers)             │
 │                 │ → Horizontal auto-scaling                 │
 ├─────────────────────────────────────────────────────────────┤
-│  Database       │ RDS PostgreSQL 17 (db.r6g.2xlarge)      │
+│  Database       │ RDS PostgreSQL 17 (db.r6g.2xlarge)        │
 │                 │ → Multi-AZ for high availability          │
 │                 │ → 100GB-500GB storage                     │
 │                 │ → Read replicas for scaling               │
 ├─────────────────────────────────────────────────────────────┤
-│  Cache          │ ElastiCache Redis (cache.r6g.large)     │
+│  Cache          │ ElastiCache Redis (cache.r6g.large)       │
 │                 │ → Query result caching (5min TTL)         │
 │                 │ → Deduplication bloom filters             │
 ├─────────────────────────────────────────────────────────────┤
-│  Storage        │ S3 (Parquet files)                       │
+│  Storage        │ S3 (Parquet files)                        │
 │                 │ → 51M profiles source data                │
 │                 │ → Incremental update pipeline             │
 └─────────────────────────────────────────────────────────────┘
