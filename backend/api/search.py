@@ -480,24 +480,22 @@ async def keyword_search(
 
         where_clause = " AND ".join(where_conditions)
 
-        # Build search query
+        # If query provided, add parameter for ORDER BY ts_rank
+        if request.query and request.query.strip():
+            tsrank_idx = param_idx
+            params.append(request.query)
+            param_idx += 1
+            order_clause = f"ts_rank(search_vector, plainto_tsquery('english', ${tsrank_idx})) DESC"
+        else:
+            order_clause = "created_at DESC"
+
+        # Build search query - add limit and offset params
         params.append(request.limit)
         limit_idx = param_idx
         param_idx += 1
 
         params.append(request.offset)
         offset_idx = param_idx
-
-        # If query provided, rank by relevance using pre-computed search_vector
-        if request.query and request.query.strip():
-            order_clause = f"ts_rank(search_vector, plainto_tsquery('english', $1)) DESC"
-            # Prepend query param for ORDER BY
-            params.insert(0, request.query)
-            # Adjust other param indices
-            limit_idx += 1
-            offset_idx += 1
-        else:
-            order_clause = "created_at DESC"
 
         query = f"""
             SELECT
@@ -572,8 +570,12 @@ async def keyword_search(
             SELECT count(*) FROM profiles
             WHERE {where_clause}
         """
-        # Remove limit and offset params for count
-        count_params = params[:-2]
+        # Remove limit, offset, and potentially ts_rank params for count
+        # Count params are all params except the last 2 (limit, offset) and potentially one more (ts_rank)
+        if request.query and request.query.strip():
+            count_params = params[:-3]  # Remove ts_rank, limit, offset
+        else:
+            count_params = params[:-2]  # Remove limit, offset only
         total_count = await conn.fetchval(count_query, *count_params)
 
         logger.info(

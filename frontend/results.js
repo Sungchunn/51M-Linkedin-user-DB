@@ -132,7 +132,7 @@ function displayResults(data) {
         // Helper function to create clickable link or dash
         const makeLink = (url, text = 'View') => {
             if (!url || url === '—') return '—';
-            return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${text}</a>`;
+            return `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" style="color: #60d5ff; text-decoration: none;">${text}</a>`;
         };
 
         // Format LinkedIn URL (remove 'linkedin.com/in/' prefix for display)
@@ -147,10 +147,10 @@ function displayResults(data) {
             <td>${escapeHtml(location)}</td>
             <td>${profile.years_experience !== null ? profile.years_experience + ' yrs' : '—'}</td>
             <td title="${escapeHtml(summaryFull)}" style="max-width: 300px; white-space: normal;">${escapeHtml(summaryDisplay)}</td>
-            <td>${profile.linkedin_url ? `<a href="https://${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${escapeHtml(linkedinDisplay)}</a>` : '—'}</td>
-            <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: var(--primary-color);">${escapeHtml(profile.email)}</a>` : '—'}</td>
+            <td>${profile.linkedin_url ? `<a href="https://${escapeHtml(profile.linkedin_url)}" target="_blank" rel="noopener" style="color: #60d5ff; text-decoration: none;">${escapeHtml(linkedinDisplay)}</a>` : '—'}</td>
+            <td>${profile.email ? `<a href="mailto:${escapeHtml(profile.email)}" style="color: #60d5ff; text-decoration: none;">${escapeHtml(profile.email)}</a>` : '—'}</td>
             <td>${profile.phone ? escapeHtml(profile.phone) : '—'}</td>
-            <td>${profile.website ? `<a href="https://${escapeHtml(profile.website)}" target="_blank" rel="noopener" style="color: var(--primary-color); text-decoration: none;">${escapeHtml(profile.website)}</a>` : '—'}</td>
+            <td>${profile.website ? `<a href="https://${escapeHtml(profile.website)}" target="_blank" rel="noopener" style="color: #60d5ff; text-decoration: none;">${escapeHtml(profile.website)}</a>` : '—'}</td>
             <td>${profile.twitter ? makeLink('https://twitter.com/' + profile.twitter, '@' + profile.twitter) : '—'}</td>
             <td>${profile.github ? makeLink('https://github.com/' + profile.github, profile.github) : '—'}</td>
             <td title="${escapeHtml(skillsText)}">${escapeHtml(skills)}</td>
