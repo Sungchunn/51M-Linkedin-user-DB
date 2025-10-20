@@ -608,8 +608,9 @@ async def export_ndjson(
 
     async def iter_lines():
         ctx: AuthContext = resolve_auth_context(x_api_key)
-        if not ctx.allow_export:
-            raise HTTPException(status_code=403, detail="Export not permitted for this API key")
+        require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
+        if require_key and not ctx.allow_export:
+            raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
         # Rate limit exports
         if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
@@ -711,8 +712,9 @@ async def export_csv(
 
     async def iter_csv():
         ctx: AuthContext = resolve_auth_context(x_api_key)
-        if not ctx.allow_export:
-            raise HTTPException(status_code=403, detail="Export not permitted for this API key")
+        require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
+        if require_key and not ctx.allow_export:
+            raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
         if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
