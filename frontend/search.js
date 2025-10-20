@@ -49,10 +49,20 @@ async function loadFilters() {
         industryContainer.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>';
 
         // Load states and industries in parallel
+        const regionsUrl = `${API_BASE_URL}/regions?country=${encodeURIComponent('united states')}`;
         const [statesRes, industriesRes] = await Promise.all([
-            fetchWithTimeout(`${API_BASE_URL}/regions?country=united states`, 30000),
+            fetchWithTimeout(regionsUrl, 30000),
             fetchWithTimeout(`${API_BASE_URL}/industries`, 30000)
         ]);
+
+        if (!statesRes.ok) {
+            const text = await statesRes.text().catch(() => '');
+            throw new Error(`States fetch failed (${statesRes.status}): ${text}`);
+        }
+        if (!industriesRes.ok) {
+            const text = await industriesRes.text().catch(() => '');
+            throw new Error(`Industries fetch failed (${industriesRes.status}): ${text}`);
+        }
 
         const statesData = await statesRes.json();
         const industriesData = await industriesRes.json();

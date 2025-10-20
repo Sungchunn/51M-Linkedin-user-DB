@@ -227,6 +227,8 @@ async def get_industries(response: Response, request: Request, x_api_key: str | 
     """Get distinct industries from profiles"""
     try:
         ctx: AuthContext = resolve_auth_context(x_api_key)
+        origin = request.headers.get('origin')
+        logger.info(f"/industries request from ip={request.client.host if request.client else 'unknown'} origin={origin}")
         if not limiter.allow(f"industries:{ctx.api_key or request.client.host}", 60, 120):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
@@ -254,6 +256,8 @@ async def get_regions(response: Response, request: Request, country: Optional[st
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
         ctx: AuthContext = resolve_auth_context(x_api_key)
+        origin = request.headers.get('origin')
+        logger.info(f"/regions request from ip={request.client.host if request.client else 'unknown'} origin={origin} country={country}")
         if not limiter.allow(f"regions:{ctx.api_key or request.client.host}", 60, 120):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
