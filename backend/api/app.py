@@ -79,20 +79,22 @@ app = FastAPI(
 
 # Add CORS middleware
 import os
-allowed_origins = [
-    o.strip()
-    for o in os.getenv(
-        "CORS_ORIGINS",
-        "http://localhost:5500,http://127.0.0.1:5500"
-    ).split(",")
-    if o.strip()
-]
+allowed_origins_env = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5500,http://127.0.0.1:5500"
+)
+allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+allow_origin_regex = os.getenv(
+    "CORS_ORIGIN_REGEX",
+    r"https?://(localhost|127\.0\.0\.1)(:\\d+)?$"
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*"],
+    allow_origin_regex=allow_origin_regex,
 )
 
 # Explicit preflight handlers to satisfy strict browsers and proxies
