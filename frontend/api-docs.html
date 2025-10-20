@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>INSIGHT API Documentation</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .container { max-width: 960px; margin: 40px auto; padding: 0 16px; }
+      code, pre { background: #0b1020; color: #d7e1ff; border-radius: 8px; padding: 12px; display: block; overflow-x: auto; }
+      h1, h2, h3 { margin-top: 28px; }
+      .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; background: #19203a; color: #a9b4d0; margin-right: 8px; }
+      table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; }
+      th, td { border-bottom: 1px solid #2a3253; text-align: left; padding: 8px; vertical-align: top; }
+      .muted { color: #9aa6c7; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>INSIGHT API Documentation</h1>
+      <p class="muted">Hybrid talent search API optimized for HTTP request nodes. Supports GET with query params and POST with JSON.</p>
+
+      <h2>Base URL</h2>
+      <pre><code>http://localhost:8000</code></pre>
+
+      <h2>Authentication</h2>
+      <p>No authentication in local/dev. Add a reverse proxy/API key for production.</p>
+
+      <h2>Endpoints</h2>
+
+      <h3><span class="badge">GET</span> /health</h3>
+      <p>Health check for API and database.</p>
+      <pre><code>GET /health
+200 OK
+{
+  "status": "healthy",
+  "timestamp": "2025-10-07T03:00:00Z",
+  "database": "connected",
+  "profiles_total": 10000,
+  "profiles_with_embeddings": 5000
+}</code></pre>
+
+      <h3><span class="badge">GET</span> /search</h3>
+      <p>Semantic search using query params (ideal for HTTP request nodes). Repeated params form lists.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th><th>Default</th></tr>
+        <tr><td>q</td><td>string</td><td>Query text. Empty = browse mode.</td><td>""</td></tr>
+        <tr><td>limit</td><td>int</td><td>Results per page (1-100).</td><td>20</td></tr>
+        <tr><td>offset</td><td>int</td><td>Pagination offset.</td><td>0</td></tr>
+        <tr><td>location_country</td><td>string</td><td>Filter by country.</td><td>-</td></tr>
+        <tr><td>regions</td><td>string[]</td><td>Multiple regions, repeat param: regions=CA&amp;regions=NY</td><td>-</td></tr>
+        <tr><td>localities</td><td>string[]</td><td>Multiple cities, repeat param.</td><td>-</td></tr>
+        <tr><td>min_years_experience</td><td>int</td><td>Minimum years experience (0-80).</td><td>-</td></tr>
+        <tr><td>max_years_experience</td><td>int</td><td>Maximum years experience (0-80).</td><td>-</td></tr>
+        <tr><td>skills</td><td>string[]</td><td>Required skills (AND logic).</td><td>-</td></tr>
+        <tr><td>industries</td><td>string[]</td><td>Industries (OR logic).</td><td>-</td></tr>
+        <tr><td>min_quality_score</td><td>float</td><td>Min content quality score [0.0,1.0].</td><td>-</td></tr>
+        <tr><td>min_data_completeness</td><td>int</td><td>Min completeness [0-100].</td><td>-</td></tr>
+        <tr><td>vector_weight</td><td>float</td><td>Vector similarity weight [0,1].</td><td>0.8</td></tr>
+        <tr><td>lexical_weight</td><td>float</td><td>Lexical match weight [0,1].</td><td>0.2</td></tr>
+        <tr><td>ef_search</td><td>int</td><td>HNSW quality vs speed (10-400).</td><td>64</td></tr>
+      </table>
+
+      <p>Example:</p>
+      <pre><code>GET /search?q=senior+python+engineer&location_country=united%20states&regions=california&skills=python&skills=sql&limit=20&offset=0</code></pre>
+
+      <h3><span class="badge">POST</span> /search</h3>
+      <p>Semantic search with JSON body (useful for complex filters).</p>
+      <pre><code>POST /search
+Content-Type: application/json
+{
+  "query": "senior python engineer",
+  "limit": 20,
+  "offset": 0,
+  "location_country": "united states",
+  "regions": ["california"],
+  "skills": ["python", "sql"],
+  "vector_weight": 0.8,
+  "lexical_weight": 0.2
+}</code></pre>
+
+      <h3><span class="badge">GET</span> /countries</h3>
+      <p>List of countries. Cached for 10 minutes.</p>
+      <pre><code>GET /countries
+200 OK
+{"countries": ["united states", "canada", ...]}</code></pre>
+
+      <h3><span class="badge">GET</span> /industries</h3>
+      <p>List of industries. Cached for 10 minutes.</p>
+      <pre><code>GET /industries
+200 OK
+{"industries": ["software", "finance", ...]}</code></pre>
+
+      <h3><span class="badge">GET</span> /regions</h3>
+      <p>Top regions, optionally filter by country. Cached for 10 minutes.</p>
+      <pre><code>GET /regions?country=united%20states
+200 OK
+{"regions": [{"region": "california", "count": 12345}, ...]}</code></pre>
+
+      <h3><span class="badge">GET</span> /localities</h3>
+      <p>Top cities, optionally filter by country and region. Cached for 10 minutes.</p>
+      <pre><code>GET /localities?country=united%20states&region=california
+200 OK
+{"localities": [{"locality": "san francisco", "count": 2345}, ...]}</code></pre>
+
+      <h2>Using HTTP Request Nodes</h2>
+      <p>Configure the node as follows:</p>
+      <ul>
+        <li><b>Method:</b> GET (for simple searches) or POST (for complex JSON)</li>
+        <li><b>URL:</b> <code>http://localhost:8000/search</code></li>
+        <li><b>Params:</b> Add repeated keys for arrays (e.g., <code>skills</code>)</li>
+        <li><b>Timeout:</b> 30s recommended</li>
+      </ul>
+      <p>Example cURL (mirrors most HTTP request nodes):</p>
+      <pre><code>curl -G \
+  --data-urlencode "q=senior python engineer" \
+  --data-urlencode "location_country=united states" \
+  --data-urlencode "regions=california" \
+  --data-urlencode "skills=python" \
+  --data-urlencode "skills=sql" \
+  "http://localhost:8000/search"</code></pre>
+
+      <h2>Performance & Limits</h2>
+      <ul>
+        <li>Pagination: <code>limit</code> max 100, use <code>offset</code> for paging.</li>
+        <li>Query timeout: 30s server-side; keep requests focused.</li>
+        <li>Caching: Filters endpoints cache for 10 minutes via <code>Cache-Control</code>.</li>
+      </ul>
+
+      <p class="muted">Version 1.0.0</p>
+    </div>
+  </body>
+  </html>
+
