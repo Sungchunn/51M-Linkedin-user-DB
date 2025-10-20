@@ -88,6 +88,19 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Explicit preflight handlers to satisfy strict browsers and proxies
+@app.options("/search")
+async def options_search():
+    return Response(status_code=204)
+
+@app.options("/export/ndjson")
+async def options_export_ndjson():
+    return Response(status_code=204)
+
+@app.options("/export/csv")
+async def options_export_csv():
+    return Response(status_code=204)
+
 
 @app.get("/", tags=["Root"])
 async def root():
