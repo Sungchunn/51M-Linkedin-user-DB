@@ -33,6 +33,9 @@ class SearchRequest(BaseModel):
     limit: int = Field(20, ge=1, le=1000, description="Number of results to return (max 1000)")
     offset: int = Field(0, ge=0, description="Offset for pagination")
 
+    # Opaque pagination
+    page_token: Optional[str] = Field(None, description="Opaque token to fetch the next page (overrides offset/filters if provided)")
+
     # Filters
     location_country: Optional[str] = Field(None, description="Filter by country")
     region: Optional[str] = Field(None, description="Filter by region/state (deprecated - use regions)")
@@ -174,6 +177,7 @@ class SearchResponse(BaseModel):
 
     query: str
     filters_applied: dict
+    next_page_token: Optional[str] = Field(None, description="Token to retrieve the next page")
 
     @validator('returned_count')
     def validate_returned_count(cls, v, values):

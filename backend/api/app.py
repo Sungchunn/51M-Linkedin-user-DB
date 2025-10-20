@@ -13,6 +13,9 @@ from fastapi import FastAPI, HTTPException, status, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
+import base64
+import io
+import csv
 from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
@@ -91,6 +94,19 @@ async def root():
         "status": "running",
         "docs": "/docs"
     }
+
+# Page token helpers
+def _encode_token(payload: dict) -> str:
+    data = json.dumps(payload, separators=(",", ":"), default=str).encode("utf-8")
+    return base64.urlsafe_b64encode(data).decode("ascii")
+
+
+def _decode_token(token: str) -> dict:
+    try:
+        data = base64.urlsafe_b64decode(token.encode("ascii"))
+        return json.loads(data)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid page_token: {e}")
 
 
 @app.get(
@@ -350,6 +366,14 @@ async def search_profiles(request: SearchRequest):
     start_time = time.time()
 
     try:
+        # If a page_token is provided, reconstruct request from token (server-side snapshot)
+        if request.page_token:
+            snapshot = _decode_token(request.page_token)
+            # Rehydrate request fields from snapshot
+            for k, v in snapshot.items():
+                if hasattr(request, k):
+                    setattr(request, k, v)
+
         pool = await database.get_pool()
 
         async with pool.acquire() as conn:
@@ -388,6 +412,14 @@ async def search_profiles(request: SearchRequest):
             f"time={query_time_ms:.1f}ms"
         )
 
+        # Compute next page token if more results remain
+        next_token = None
+        if request.offset + request.limit < total_count:
+            snapshot = request.dict()
+            snapshot.pop('page_token', None)
+            snapshot['offset'] = request.offset + request.limit
+            next_token = _encode_token(snapshot)
+
         return SearchResponse(
             results=results,
             total_count=total_count,
@@ -396,7 +428,8 @@ async def search_profiles(request: SearchRequest):
             limit=request.limit,
             query_time_ms=query_time_ms,
             query=request.query,
-            filters_applied=filters_applied
+            filters_applied=filters_applied,
+            next_page_token=next_token
         )
 
     except search.SearchError as e:
@@ -424,6 +457,7 @@ async def search_profiles_get(
     q: str = Query("", description="Search query text (empty for browse mode)"),
     limit: int = Query(20, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
+    page_token: str | None = Query(None, description="Opaque token to fetch the next page (overrides other params)"),
     location_country: str | None = Query(None, description="Filter by country"),
     region: str | None = Query(None, description="Filter by region/state (deprecated - use regions)"),
     regions: list[str] | None = Query(None, description="Filter by multiple regions/states (OR logic)"),
@@ -449,6 +483,7 @@ async def search_profiles_get(
         query=q,
         limit=limit,
         offset=offset,
+        page_token=page_token,
         location_country=location_country,
         region=region,
         regions=regions,
@@ -520,6 +555,103 @@ async def export_ndjson(
     headers = {"Content-Type": "application/x-ndjson"}
     return StreamingResponse(iter_lines(), headers=headers, media_type="application/x-ndjson")
 
+
+@app.get(
+    "/export/csv",
+    tags=["Export"],
+    summary="Export search results as CSV (up to 1000 per call)"
+)
+async def export_csv(
+    q: str = Query("", description="Search query text (empty for browse mode)"),
+    limit: int = Query(1000, ge=1, le=1000, description="Number of results to return (max 1000)"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    location_country: str | None = Query(None),
+    regions: list[str] | None = Query(None),
+    localities: list[str] | None = Query(None),
+    min_years_experience: int | None = Query(None, ge=0, le=80),
+    max_years_experience: int | None = Query(None, ge=0, le=80),
+    skills: list[str] | None = Query(None),
+    industries: list[str] | None = Query(None),
+    min_quality_score: float | None = Query(None, ge=0.0, le=1.0),
+    min_data_completeness: int | None = Query(None, ge=0, le=100),
+    vector_weight: float = Query(0.8, ge=0.0, le=1.0),
+    lexical_weight: float = Query(0.2, ge=0.0, le=1.0),
+    ef_search: int = Query(64, ge=10, le=400),
+):
+    req = SearchRequest(
+        query=q,
+        limit=limit,
+        offset=offset,
+        location_country=location_country,
+        regions=regions,
+        localities=localities,
+        min_years_experience=min_years_experience,
+        max_years_experience=max_years_experience,
+        skills=skills,
+        industries=industries,
+        min_quality_score=min_quality_score,
+        min_data_completeness=min_data_completeness,
+        vector_weight=vector_weight,
+        lexical_weight=lexical_weight,
+        ef_search=ef_search,
+    )
+
+    headers = {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": "attachment; filename=insight_export.csv",
+    }
+
+    fieldnames = [
+        "id",
+        "full_name",
+        "first_name",
+        "last_name",
+        "job_title",
+        "company_name",
+        "industry",
+        "location",
+        "location_country",
+        "region",
+        "locality",
+        "years_experience",
+        "skills",
+        "headline",
+        "summary",
+        "linkedin_url",
+        "linkedin_username",
+        "email",
+        "phone",
+        "website",
+        "twitter",
+        "github",
+        "score",
+        "vector_similarity",
+        "lexical_rank",
+        "content_quality_score",
+        "data_completeness_pct",
+    ]
+
+    async def iter_csv():
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            results, _ = await search.hybrid_search(conn, req)
+            # Header
+            sio = io.StringIO()
+            writer = csv.DictWriter(sio, fieldnames=fieldnames)
+            writer.writeheader()
+            yield sio.getvalue()
+            sio.seek(0)
+            sio.truncate(0)
+            for r in results:
+                data = r.dict()
+                if isinstance(data.get("skills"), list):
+                    data["skills"] = "; ".join(data["skills"]) if data["skills"] else ""
+                writer.writerow({k: data.get(k, "") for k in fieldnames})
+                yield sio.getvalue()
+                sio.seek(0)
+                sio.truncate(0)
+
+    return StreamingResponse(iter_csv(), headers=headers, media_type="text/csv")
 
 # Exception handlers
 @app.exception_handler(HTTPException)

@@ -137,6 +137,30 @@ Content-Type: application/json
 {...}\n</code></pre>
       <p>Recommended for workflows where you need 1000 leads per call. Use <code>offset</code> to paginate subsequent exports.</p>
 
+      <h3><span class="badge">GET</span> /export/csv</h3>
+      <p>Return up to 1000 results as a CSV file (streamed). Fields include common profile attributes and scores.</p>
+      <pre><code>GET /export/csv?q=python&limit=1000&regions=california
+200 OK (Content-Type: text/csv)
+id,full_name,job_title,company_name,industry,location_country,region,locality,skills,score,...
+...</code></pre>
+
+      <h2>Next Page Tokens</h2>
+      <p>Responses from <code>/search</code> include <code>next_page_token</code> when more results exist. Pass it back using <code>page_token</code> to fetch the next page without managing offsets.</p>
+      <pre><code>GET /search?q=python&limit=1000
+200 OK
+{
+  "results": [...],
+  "total_count": 12345,
+  "returned_count": 1000,
+  "next_page_token": "eyJxdWVyeSI6ICJweXRob24iLCAi..." 
+}
+
+# Next page
+GET /search?page_token=eyJxdWVyeSI6ICJweXRob24iLCAi...
+200 OK
+{ "results": [...], ... }
+</code></pre>
+
       <p class="muted">Version 1.0.0</p>
     </div>
   </body>
