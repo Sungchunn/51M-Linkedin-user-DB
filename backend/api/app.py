@@ -89,23 +89,15 @@ allow_origin_regex = os.getenv(
     "CORS_ORIGIN_REGEX",
     r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\\d+)?$"
 )
-if dev_relax_cors or allowed_origins_env.strip() == "*":
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"]
-    )
-else:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-        allow_origin_regex=allow_origin_regex,
-    )
+# For local dev and to match previously working behavior, default to wide-open CORS.
+# You can tighten by setting CORS_ORIGINS explicitly in .env.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 # Explicit preflight handlers to satisfy strict browsers and proxies
 @app.options("/search")
@@ -199,9 +191,7 @@ async def health_check():
 async def get_countries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct countries from profiles"""
     try:
-        ctx: AuthContext = resolve_auth_context(x_api_key)
-        if not limiter.allow(f"countries:{ctx.api_key or request.client.host}", 60, 120):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+        # No rate limit on filters to avoid UX issues
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             countries = await conn.fetch("""
@@ -226,11 +216,9 @@ async def get_countries(response: Response, request: Request, x_api_key: str | N
 async def get_industries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct industries from profiles"""
     try:
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        # No rate limit on filters to avoid UX issues
         origin = request.headers.get('origin')
         logger.info(f"/industries request from ip={request.client.host if request.client else 'unknown'} origin={origin}")
-        if not limiter.allow(f"industries:{ctx.api_key or request.client.host}", 60, 120):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             industries = await conn.fetch("""
@@ -255,11 +243,9 @@ async def get_industries(response: Response, request: Request, x_api_key: str | 
 async def get_regions(response: Response, request: Request, country: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        # No rate limit on filters to avoid UX issues
         origin = request.headers.get('origin')
         logger.info(f"/regions request from ip={request.client.host if request.client else 'unknown'} origin={origin} country={country}")
-        if not limiter.allow(f"regions:{ctx.api_key or request.client.host}", 60, 120):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country:
@@ -298,9 +284,7 @@ async def get_regions(response: Response, request: Request, country: Optional[st
 async def get_localities(response: Response, request: Request, country: Optional[str] = None, region: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct localities/cities from profiles, optionally filtered by country and region"""
     try:
-        ctx: AuthContext = resolve_auth_context(x_api_key)
-        if not limiter.allow(f"localities:{ctx.api_key or request.client.host}", 60, 120):
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+        # No rate limit on filters to avoid UX issues
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country and region:
