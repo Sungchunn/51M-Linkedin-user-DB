@@ -11,7 +11,8 @@ Negative Spaces Implementation:
 
 from fastapi import FastAPI, HTTPException, status, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+import json
 from contextlib import asynccontextmanager
 import logging
 from datetime import datetime
@@ -421,7 +422,7 @@ async def search_profiles(request: SearchRequest):
 )
 async def search_profiles_get(
     q: str = Query("", description="Search query text (empty for browse mode)"),
-    limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
+    limit: int = Query(20, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     location_country: str | None = Query(None, description="Filter by country"),
     region: str | None = Query(None, description="Filter by region/state (deprecated - use regions)"),
@@ -465,6 +466,59 @@ async def search_profiles_get(
         ef_search=ef_search,
     )
     return await search_profiles(req)
+
+
+@app.get(
+    "/export/ndjson",
+    tags=["Export"],
+    summary="Export search results as NDJSON (up to 1000 per call)"
+)
+async def export_ndjson(
+    q: str = Query("", description="Search query text (empty for browse mode)"),
+    limit: int = Query(1000, ge=1, le=1000, description="Number of results to return (max 1000)"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    location_country: str | None = Query(None),
+    regions: list[str] | None = Query(None),
+    localities: list[str] | None = Query(None),
+    min_years_experience: int | None = Query(None, ge=0, le=80),
+    max_years_experience: int | None = Query(None, ge=0, le=80),
+    skills: list[str] | None = Query(None),
+    industries: list[str] | None = Query(None),
+    min_quality_score: float | None = Query(None, ge=0.0, le=1.0),
+    min_data_completeness: int | None = Query(None, ge=0, le=100),
+    vector_weight: float = Query(0.8, ge=0.0, le=1.0),
+    lexical_weight: float = Query(0.2, ge=0.0, le=1.0),
+    ef_search: int = Query(64, ge=10, le=400),
+):
+    """Stream results as NDJSON for easy bulk ingestion."""
+
+    req = SearchRequest(
+        query=q,
+        limit=limit,
+        offset=offset,
+        location_country=location_country,
+        regions=regions,
+        localities=localities,
+        min_years_experience=min_years_experience,
+        max_years_experience=max_years_experience,
+        skills=skills,
+        industries=industries,
+        min_quality_score=min_quality_score,
+        min_data_completeness=min_data_completeness,
+        vector_weight=vector_weight,
+        lexical_weight=lexical_weight,
+        ef_search=ef_search,
+    )
+
+    async def iter_lines():
+        pool = await database.get_pool()
+        async with pool.acquire() as conn:
+            results, _ = await search.hybrid_search(conn, req)
+            for r in results:
+                yield json.dumps(r.dict(), default=str) + "\n"
+
+    headers = {"Content-Type": "application/x-ndjson"}
+    return StreamingResponse(iter_lines(), headers=headers, media_type="application/x-ndjson")
 
 
 # Exception handlers

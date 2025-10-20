@@ -30,7 +30,7 @@ class SearchRequest(BaseModel):
     query: str = Field("", description="Search query text (empty for browse mode)")
 
     # Pagination
-    limit: int = Field(20, ge=1, le=100, description="Number of results to return")
+    limit: int = Field(20, ge=1, le=1000, description="Number of results to return (max 1000)")
     offset: int = Field(0, ge=0, description="Offset for pagination")
 
     # Filters

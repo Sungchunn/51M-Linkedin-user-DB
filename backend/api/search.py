@@ -209,7 +209,7 @@ async def hybrid_search(
             FROM profiles
             WHERE {where_clause}
             ORDER BY embedding <=> $1::vector
-            LIMIT 500
+            LIMIT LEAST(${limit_idx}*4, 5000)
         ),
         lexical_results AS (
             SELECT
@@ -218,7 +218,7 @@ async def hybrid_search(
             FROM profiles
             WHERE {where_clause}
               AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
-            LIMIT 500
+            LIMIT LEAST(${limit_idx}*4, 5000)
         )
         SELECT
             v.id,

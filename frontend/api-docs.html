@@ -45,7 +45,7 @@
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th><th>Default</th></tr>
         <tr><td>q</td><td>string</td><td>Query text. Empty = browse mode.</td><td>""</td></tr>
-        <tr><td>limit</td><td>int</td><td>Results per page (1-100).</td><td>20</td></tr>
+        <tr><td>limit</td><td>int</td><td>Results per page (1-1000).</td><td>20</td></tr>
         <tr><td>offset</td><td>int</td><td>Pagination offset.</td><td>0</td></tr>
         <tr><td>location_country</td><td>string</td><td>Filter by country.</td><td>-</td></tr>
         <tr><td>regions</td><td>string[]</td><td>Multiple regions, repeat param: regions=CA&amp;regions=NY</td><td>-</td></tr>
@@ -122,13 +122,22 @@ Content-Type: application/json
 
       <h2>Performance & Limits</h2>
       <ul>
-        <li>Pagination: <code>limit</code> max 100, use <code>offset</code> for paging.</li>
+        <li>Pagination: <code>limit</code> max 1000, use <code>offset</code> for paging.</li>
         <li>Query timeout: 30s server-side; keep requests focused.</li>
         <li>Caching: Filters endpoints cache for 10 minutes via <code>Cache-Control</code>.</li>
       </ul>
+
+      <h2>Bulk Export</h2>
+      <h3><span class="badge">GET</span> /export/ndjson</h3>
+      <p>Return up to 1000 results per call in NDJSON format (one JSON object per line).</p>
+      <pre><code>GET /export/ndjson?q=python&limit=1000&regions=california
+200 OK
+{...}\n
+{...}\n
+{...}\n</code></pre>
+      <p>Recommended for workflows where you need 1000 leads per call. Use <code>offset</code> to paginate subsequent exports.</p>
 
       <p class="muted">Version 1.0.0</p>
     </div>
   </body>
   </html>
-
