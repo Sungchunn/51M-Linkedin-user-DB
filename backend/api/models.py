@@ -10,6 +10,9 @@ Negative Spaces Implementation:
 
 from typing import List, Optional
 from pydantic import BaseModel, Field, validator
+import logging
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 
 
@@ -53,6 +56,17 @@ class SearchRequest(BaseModel):
 
     # HNSW search parameter
     ef_search: int = Field(64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)")
+
+    @validator('lexical_weight')
+    def validate_weights(cls, v, values):
+        """Warn if vector_weight + lexical_weight != 1.0"""
+        vec = values.get('vector_weight', 0.0)
+        total = vec + v
+        if abs(total - 1.0) > 1e-6:
+            logger.warning(
+                f"NEGATIVE SPACE: vector_weight ({vec}) + lexical_weight ({v}) != 1.0; total={total}"
+            )
+        return v
 
     @validator('max_years_experience')
     def validate_experience_range(cls, v, values):

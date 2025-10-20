@@ -9,7 +9,7 @@ Negative Spaces Implementation:
 - CORS configuration
 """
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Query, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -143,7 +143,7 @@ async def health_check():
     tags=["Filters"],
     summary="Get list of countries"
 )
-async def get_countries():
+async def get_countries(response: Response):
     """Get distinct countries from profiles"""
     try:
         pool = await database.get_pool()
@@ -155,6 +155,7 @@ async def get_countries():
                   AND is_deleted = FALSE
                 ORDER BY location_country
             """)
+            response.headers["Cache-Control"] = "public, max-age=600"
             return {"countries": [row['location_country'] for row in countries]}
     except Exception as e:
         logger.error(f"Failed to fetch countries: {e}")
@@ -166,7 +167,7 @@ async def get_countries():
     tags=["Filters"],
     summary="Get list of industries"
 )
-async def get_industries():
+async def get_industries(response: Response):
     """Get distinct industries from profiles"""
     try:
         pool = await database.get_pool()
@@ -178,6 +179,7 @@ async def get_industries():
                   AND is_deleted = FALSE
                 ORDER BY industry
             """)
+            response.headers["Cache-Control"] = "public, max-age=600"
             return {"industries": [row['industry'] for row in industries]}
     except Exception as e:
         logger.error(f"Failed to fetch industries: {e}")
@@ -189,7 +191,7 @@ async def get_industries():
     tags=["Filters"],
     summary="Get list of regions/states"
 )
-async def get_regions(country: Optional[str] = None):
+async def get_regions(response: Response, country: Optional[str] = None):
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
         pool = await database.get_pool()
@@ -215,6 +217,7 @@ async def get_regions(country: Optional[str] = None):
                     ORDER BY count DESC, region
                     LIMIT 100
                 """)
+            response.headers["Cache-Control"] = "public, max-age=600"
             return {"regions": [{"region": row['region'], "count": row['count']} for row in regions]}
     except Exception as e:
         logger.error(f"Failed to fetch regions: {e}")
@@ -226,7 +229,7 @@ async def get_regions(country: Optional[str] = None):
     tags=["Filters"],
     summary="Get list of cities"
 )
-async def get_localities(country: Optional[str] = None, region: Optional[str] = None):
+async def get_localities(response: Response, country: Optional[str] = None, region: Optional[str] = None):
     """Get distinct localities/cities from profiles, optionally filtered by country and region"""
     try:
         pool = await database.get_pool()
@@ -264,6 +267,7 @@ async def get_localities(country: Optional[str] = None, region: Optional[str] = 
                     ORDER BY count DESC, locality
                     LIMIT 100
                 """)
+            response.headers["Cache-Control"] = "public, max-age=600"
             return {"localities": [{"locality": row['locality'], "count": row['count']} for row in localities]}
     except Exception as e:
         logger.error(f"Failed to fetch localities: {e}")
@@ -275,7 +279,7 @@ async def get_localities(country: Optional[str] = None, region: Optional[str] = 
     tags=["Statistics"],
     summary="Get dataset statistics"
 )
-async def get_stats():
+async def get_stats(response: Response):
     """Get dataset statistics"""
     try:
         pool = await database.get_pool()
@@ -305,6 +309,7 @@ async def get_stats():
                 LIMIT 20
             """)
 
+            response.headers["Cache-Control"] = "public, max-age=60"
             return {
                 "total_profiles": total,
                 "countries": [{"country": row['country'], "count": row['count']} for row in countries],
@@ -406,6 +411,60 @@ async def search_profiles(request: SearchRequest):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {e}"
         )
+
+
+@app.get(
+    "/search",
+    response_model=SearchResponse,
+    tags=["Search"],
+    summary="Semantic search (GET with query params)"
+)
+async def search_profiles_get(
+    q: str = Query("", description="Search query text (empty for browse mode)"),
+    limit: int = Query(20, ge=1, le=100, description="Number of results to return"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    location_country: str | None = Query(None, description="Filter by country"),
+    region: str | None = Query(None, description="Filter by region/state (deprecated - use regions)"),
+    regions: list[str] | None = Query(None, description="Filter by multiple regions/states (OR logic)"),
+    locality: str | None = Query(None, description="Filter by city (deprecated - use localities)"),
+    localities: list[str] | None = Query(None, description="Filter by multiple cities (OR logic)"),
+    min_years_experience: int | None = Query(None, ge=0, le=80, description="Minimum years of experience"),
+    max_years_experience: int | None = Query(None, ge=0, le=80, description="Maximum years of experience"),
+    skills: list[str] | None = Query(None, description="Required skills (AND logic)"),
+    industry: str | None = Query(None, description="Filter by single industry (deprecated - use industries)"),
+    industries: list[str] | None = Query(None, description="Filter by multiple industries (OR logic)"),
+    min_quality_score: float | None = Query(None, ge=0.0, le=1.0, description="Minimum quality score"),
+    min_data_completeness: int | None = Query(None, ge=0, le=100, description="Minimum data completeness percentage"),
+    vector_weight: float = Query(0.8, ge=0.0, le=1.0, description="Weight for vector similarity"),
+    lexical_weight: float = Query(0.2, ge=0.0, le=1.0, description="Weight for lexical matching"),
+    ef_search: int = Query(64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)")
+):
+    """
+    GET version of search to support simple HTTP request nodes.
+
+    Use repeated query params for lists, e.g. `regions=CA&regions=NY`.
+    """
+    req = SearchRequest(
+        query=q,
+        limit=limit,
+        offset=offset,
+        location_country=location_country,
+        region=region,
+        regions=regions,
+        locality=locality,
+        localities=localities,
+        min_years_experience=min_years_experience,
+        max_years_experience=max_years_experience,
+        skills=skills,
+        industry=industry,
+        industries=industries,
+        min_quality_score=min_quality_score,
+        min_data_completeness=min_data_completeness,
+        vector_weight=vector_weight,
+        lexical_weight=lexical_weight,
+        ef_search=ef_search,
+    )
+    return await search_profiles(req)
 
 
 # Exception handlers
