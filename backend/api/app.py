@@ -86,7 +86,7 @@ allowed_origins_env = os.getenv(
 allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 allow_origin_regex = os.getenv(
     "CORS_ORIGIN_REGEX",
-    r"https?://(localhost|127\.0\.0\.1)(:\\d+)?$"
+    r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\\d+)?$"
 )
 app.add_middleware(
     CORSMiddleware,
