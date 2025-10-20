@@ -6,11 +6,15 @@ Welcome to the INSIGHT Semantic Talent Finder documentation. This directory cont
 
 ### Planning & Architecture
 
-- **[claude.md](./claude.md)** ⚠️ LOCAL ONLY - DO NOT COMMIT
+- **[agents/agent.md](./agents/agent.md)** — Canonical agent instructions (use with any AI assistant)
   - Project context for AI assistance
   - Git workflow policies
   - Negative spaces philosophy summary
   - Code organization rules
+
+- **[claude.md](./claude.md)** ⚠️ LOCAL ONLY - DO NOT COMMIT
+  - Local helper context for Claude sessions
+  - When conflicting with `agents/agent.md`, prefer `agents/agent.md`
 
 - **[PROJECT_PHASES.md](./PROJECT_PHASES.md)**
   - Complete 6-phase breakdown
