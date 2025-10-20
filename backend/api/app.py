@@ -9,7 +9,7 @@ Negative Spaces Implementation:
 - CORS configuration
 """
 
-from fastapi import FastAPI, HTTPException, status, Query, Response
+from fastapi import FastAPI, HTTPException, status, Query, Response, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 import json
@@ -29,6 +29,8 @@ from backend.api.models import (
     ErrorResponse
 )
 from backend.api import database, search
+from backend.api.auth import resolve_auth_context, AuthContext
+from backend.api.rate_limit import limiter
 
 # Configure logging
 logging.basicConfig(
@@ -76,12 +78,14 @@ app = FastAPI(
 
 
 # Add CORS middleware
+import os
+allowed_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5500").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["*"]
 )
 
 
@@ -160,9 +164,12 @@ async def health_check():
     tags=["Filters"],
     summary="Get list of countries"
 )
-async def get_countries(response: Response):
+async def get_countries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct countries from profiles"""
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not limiter.allow(f"countries:{ctx.api_key or request.client.host}", 60, 120):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             countries = await conn.fetch("""
@@ -184,9 +191,12 @@ async def get_countries(response: Response):
     tags=["Filters"],
     summary="Get list of industries"
 )
-async def get_industries(response: Response):
+async def get_industries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct industries from profiles"""
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not limiter.allow(f"industries:{ctx.api_key or request.client.host}", 60, 120):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             industries = await conn.fetch("""
@@ -208,9 +218,12 @@ async def get_industries(response: Response):
     tags=["Filters"],
     summary="Get list of regions/states"
 )
-async def get_regions(response: Response, country: Optional[str] = None):
+async def get_regions(response: Response, request: Request, country: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not limiter.allow(f"regions:{ctx.api_key or request.client.host}", 60, 120):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country:
@@ -246,9 +259,12 @@ async def get_regions(response: Response, country: Optional[str] = None):
     tags=["Filters"],
     summary="Get list of cities"
 )
-async def get_localities(response: Response, country: Optional[str] = None, region: Optional[str] = None):
+async def get_localities(response: Response, request: Request, country: Optional[str] = None, region: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get distinct localities/cities from profiles, optionally filtered by country and region"""
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not limiter.allow(f"localities:{ctx.api_key or request.client.host}", 60, 120):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country and region:
@@ -296,9 +312,12 @@ async def get_localities(response: Response, country: Optional[str] = None, regi
     tags=["Statistics"],
     summary="Get dataset statistics"
 )
-async def get_stats(response: Response):
+async def get_stats(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """Get dataset statistics"""
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not limiter.allow(f"stats:{ctx.api_key or request.client.host}", 30, 60):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             # Total profiles
@@ -343,7 +362,7 @@ async def get_stats(response: Response):
     tags=["Search"],
     summary="Semantic search for talent profiles"
 )
-async def search_profiles(request: SearchRequest):
+async def search_profiles(request: SearchRequest, http_request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     """
     Execute hybrid semantic search on talent profiles.
 
@@ -366,6 +385,18 @@ async def search_profiles(request: SearchRequest):
     start_time = time.time()
 
     try:
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        # Effective limits
+        if request.limit > ctx.max_limit:
+            request.limit = ctx.max_limit
+        if request.offset > ctx.max_offset:
+            raise HTTPException(status_code=422, detail=f"Offset exceeds maximum {ctx.max_offset}")
+
+        # Rate limit per API key/IP
+        rl_key = f"search:{ctx.api_key or http_request.client.host}"
+        if not limiter.allow(rl_key, int(os.getenv("RATE_LIMIT_SEARCH_PER_MIN", "60")), int(os.getenv("RATE_LIMIT_SEARCH_BURST", "120"))):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+
         # If a page_token is provided, reconstruct request from token (server-side snapshot)
         if request.page_token:
             snapshot = _decode_token(request.page_token)
@@ -420,6 +451,12 @@ async def search_profiles(request: SearchRequest):
             snapshot['offset'] = request.offset + request.limit
             next_token = _encode_token(snapshot)
 
+        # PII redaction unless authorized
+        if not ctx.allow_pii:
+            for r in results:
+                r.email = None
+                r.phone = None
+
         return SearchResponse(
             results=results,
             total_count=total_count,
@@ -454,10 +491,12 @@ async def search_profiles(request: SearchRequest):
     summary="Semantic search (GET with query params)"
 )
 async def search_profiles_get(
+    request: Request,
     q: str = Query("", description="Search query text (empty for browse mode)"),
     limit: int = Query(20, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     page_token: str | None = Query(None, description="Opaque token to fetch the next page (overrides other params)"),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     location_country: str | None = Query(None, description="Filter by country"),
     region: str | None = Query(None, description="Filter by region/state (deprecated - use regions)"),
     regions: list[str] | None = Query(None, description="Filter by multiple regions/states (OR logic)"),
@@ -500,7 +539,7 @@ async def search_profiles_get(
         lexical_weight=lexical_weight,
         ef_search=ef_search,
     )
-    return await search_profiles(req)
+    return await search_profiles(req, http_request=request, x_api_key=x_api_key)
 
 
 @app.get(
@@ -509,6 +548,7 @@ async def search_profiles_get(
     summary="Export search results as NDJSON (up to 1000 per call)"
 )
 async def export_ndjson(
+    request: Request,
     q: str = Query("", description="Search query text (empty for browse mode)"),
     limit: int = Query(1000, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
@@ -524,6 +564,7 @@ async def export_ndjson(
     vector_weight: float = Query(0.8, ge=0.0, le=1.0),
     lexical_weight: float = Query(0.2, ge=0.0, le=1.0),
     ef_search: int = Query(64, ge=10, le=400),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     """Stream results as NDJSON for easy bulk ingestion."""
 
@@ -546,10 +587,25 @@ async def export_ndjson(
     )
 
     async def iter_lines():
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not ctx.allow_export:
+            raise HTTPException(status_code=403, detail="Export not permitted for this API key")
+        # Rate limit exports
+        if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+        # Require filters and query to mitigate bulk dumps
+        export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
+        has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
+        if (q.strip() == "") or (export_require_filter and not has_any_filter):
+            raise HTTPException(status_code=422, detail="Export requires non-empty query and at least one filter")
+
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
             for r in results:
+                if not ctx.allow_pii:
+                    r.email = None
+                    r.phone = None
                 yield json.dumps(r.dict(), default=str) + "\n"
 
     headers = {"Content-Type": "application/x-ndjson"}
@@ -562,6 +618,7 @@ async def export_ndjson(
     summary="Export search results as CSV (up to 1000 per call)"
 )
 async def export_csv(
+    request: Request,
     q: str = Query("", description="Search query text (empty for browse mode)"),
     limit: int = Query(1000, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
@@ -577,6 +634,7 @@ async def export_csv(
     vector_weight: float = Query(0.8, ge=0.0, le=1.0),
     lexical_weight: float = Query(0.2, ge=0.0, le=1.0),
     ef_search: int = Query(64, ge=10, le=400),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
 ):
     req = SearchRequest(
         query=q,
@@ -632,6 +690,15 @@ async def export_csv(
     ]
 
     async def iter_csv():
+        ctx: AuthContext = resolve_auth_context(x_api_key)
+        if not ctx.allow_export:
+            raise HTTPException(status_code=403, detail="Export not permitted for this API key")
+        if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
+            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+        export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
+        has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
+        if (q.strip() == "") or (export_require_filter and not has_any_filter):
+            raise HTTPException(status_code=422, detail="Export requires non-empty query and at least one filter")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
@@ -644,6 +711,9 @@ async def export_csv(
             sio.truncate(0)
             for r in results:
                 data = r.dict()
+                if not ctx.allow_pii:
+                    data["email"] = ""
+                    data["phone"] = ""
                 if isinstance(data.get("skills"), list):
                     data["skills"] = "; ".join(data["skills"]) if data["skills"] else ""
                 writer.writerow({k: data.get(k, "") for k in fieldnames})

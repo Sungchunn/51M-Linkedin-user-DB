@@ -24,7 +24,19 @@
       <pre><code>http://localhost:8000</code></pre>
 
       <h2>Authentication</h2>
-      <p>No authentication in local/dev. Add a reverse proxy/API key for production.</p>
+      <p>Use an API key for server-to-server usage. Send header <code>X-API-Key: &lt;your-key&gt;</code>. Tiers and scopes:
+      </p>
+      <ul>
+        <li><b>Public (no key):</b> limit ≤ 50, no exports, PII redacted.</li>
+        <li><b>Basic key:</b> limit ≤ 200, PII redacted, no exports unless scope <code>export:read</code>.</li>
+        <li><b>Trusted key:</b> limit ≤ 1000, exports allowed with <code>export:read</code>, optional <code>pii:read</code> for PII fields.</li>
+      </ul>
+
+      <h2>Rate Limits</h2>
+      <ul>
+        <li><b>Search:</b> 60/min (burst 120)</li>
+        <li><b>Export:</b> 6/min (burst 10)</li>
+      </ul>
 
       <h2>Endpoints</h2>
 
@@ -129,7 +141,7 @@ Content-Type: application/json
 
       <h2>Bulk Export</h2>
       <h3><span class="badge">GET</span> /export/ndjson</h3>
-      <p>Return up to 1000 results per call in NDJSON format (one JSON object per line).</p>
+      <p>Return up to 1000 results per call in NDJSON format (one JSON object per line). Requires <code>export:read</code>. Non-empty <code>q</code> and at least one filter (e.g., <code>location_country</code>) are required.</p>
       <pre><code>GET /export/ndjson?q=python&limit=1000&regions=california
 200 OK
 {...}\n
@@ -138,7 +150,7 @@ Content-Type: application/json
       <p>Recommended for workflows where you need 1000 leads per call. Use <code>offset</code> to paginate subsequent exports.</p>
 
       <h3><span class="badge">GET</span> /export/csv</h3>
-      <p>Return up to 1000 results as a CSV file (streamed). Fields include common profile attributes and scores.</p>
+      <p>Return up to 1000 results as a CSV file (streamed). Requires <code>export:read</code>. Non-empty <code>q</code> and at least one filter are required. PII fields are redacted unless the key has <code>pii:read</code>.</p>
       <pre><code>GET /export/csv?q=python&limit=1000&regions=california
 200 OK (Content-Type: text/csv)
 id,full_name,job_title,company_name,industry,location_country,region,locality,skills,score,...
