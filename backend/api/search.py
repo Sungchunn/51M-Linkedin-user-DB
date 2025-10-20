@@ -57,14 +57,19 @@ async def hybrid_search(
             logger.info("No embeddings found, using keyword-only search")
             return await keyword_search(conn, request)
 
-        # Generate query embedding
-        provider = providers.get_provider()
-        query_embedding = provider.embed_single(request.query)
+        # Generate query embedding with graceful fallback to keyword search
+        try:
+            provider = providers.get_provider()
+            query_embedding = provider.embed_single(request.query)
+        except Exception as e:
+            logger.warning(
+                f"Embedding provider error, falling back to keyword search: {e}")
+            return await keyword_search(conn, request)
 
         if query_embedding is None:
-            raise SearchError(
-                f"NEGATIVE SPACE: Failed to generate embedding for query: {request.query}"
-            )
+            logger.warning(
+                "Query embedding is None, falling back to keyword search")
+            return await keyword_search(conn, request)
 
         # Build WHERE clause for filters
         where_conditions = ["embedding IS NOT NULL", "is_deleted = FALSE"]
