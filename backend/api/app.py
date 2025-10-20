@@ -617,8 +617,8 @@ async def export_ndjson(
         # Require filters and query to mitigate bulk dumps
         export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
         has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
-        if (q.strip() == "") or (export_require_filter and not has_any_filter):
-            raise HTTPException(status_code=422, detail="Export requires non-empty query and at least one filter")
+        if (q.strip() == "") and (export_require_filter and not has_any_filter):
+            raise HTTPException(status_code=422, detail="Export requires query or at least one filter")
 
         pool = await database.get_pool()
         async with pool.acquire() as conn:
@@ -719,8 +719,8 @@ async def export_csv(
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
         has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
-        if (q.strip() == "") or (export_require_filter and not has_any_filter):
-            raise HTTPException(status_code=422, detail="Export requires non-empty query and at least one filter")
+        if (q.strip() == "") and (export_require_filter and not has_any_filter):
+            raise HTTPException(status_code=422, detail="Export requires query or at least one filter")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
