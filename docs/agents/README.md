@@ -22,3 +22,15 @@ When there is any conflict, agent.md takes precedence.
 - Update `agent.md` for any changes to agent behavior or workflow.
 - Keep `claude.md` for local working notes only; do not rely on it for canonical rules.
 
+## Handoff Protocol (Collaboration)
+
+- After each meaningful commit or doc change, append a short entry to `docs/agents/HANDOFF.md`.
+- Keep entries concise (5–8 lines) and include:
+  - Context: what changed (feature/fix/docs)
+  - Rationale: why this approach
+  - Impacts: API/UX/limits/security
+  - Next: what you expect the other agent to do next
+- Use the template in `Handoff.md` and place newest entries at the top (reverse‑chronological).
+
+Commit message hint:
+- Add a trailer `Handoff: brief-summary-here` to surface the entry in git history.
