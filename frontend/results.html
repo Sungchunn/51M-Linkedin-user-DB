@@ -140,6 +140,13 @@
         <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
     </footer>
 
+    <script src="auth.js"></script>
+    <script>
+        // Check authentication before allowing access
+        if (!window.authUtils.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+    </script>
     <script src="results.js?v=2"></script>
 </body>
 </html>

@@ -1050,5 +1050,13 @@ for profile in data['results']:
             });
         });
     </script>
+
+    <script src="auth.js"></script>
+    <script>
+        // Check authentication before allowing access
+        if (!window.authUtils.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+    </script>
 </body>
 </html>

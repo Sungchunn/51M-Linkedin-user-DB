@@ -182,6 +182,13 @@
         </div>
     </footer>
 
+    <script src="auth.js"></script>
+    <script>
+        // Check authentication before allowing access
+        if (!window.authUtils.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+    </script>
     <script src="search.js"></script>
     <script>
         // Simple rotating text without complex animations
