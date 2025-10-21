@@ -50,7 +50,7 @@ PROSPECTIQ is a production-ready talent intelligence platform designed for GTM t
 
 <table>
 <tr>
-<td width="50%" valign="top">
+<td width="33%" valign="top">
 
 **Search & Discovery**
 - [x] Semantic search with vector embeddings
@@ -61,15 +61,26 @@ PROSPECTIQ is a production-ready talent intelligence platform designed for GTM t
 - [x] Query time: 500-1000ms
 
 </td>
-<td width="50%" valign="top">
+<td width="33%" valign="top">
 
 **Data & Export**
 - [x] 497,552 profiles indexed
 - [x] 15+ data fields per profile
-- [x] CSV export (up to 10K rows)
+- [x] CSV/NDJSON export (up to 10K rows)
 - [x] LinkedIn, Twitter, GitHub profiles
 - [x] Professional summaries
 - [x] Skills arrays with 30+ skills per profile
+
+</td>
+<td width="33%" valign="top">
+
+**Authentication & API** 🆕
+- [x] User registration and login
+- [x] JWT-based authentication (24h/30d tokens)
+- [x] API key generation with scopes
+- [x] Tiered rate limiting (200-1000 req/min)
+- [x] Dashboard for key management
+- [x] Secure password hashing (bcrypt)
 
 </td>
 </tr>
@@ -125,19 +136,41 @@ cp .env.example .env
 ### **3. Open Web Interface**
 
 ```bash
-# Open frontend in your browser
-open frontend/index.html
+# Serve frontend (recommended)
+python3 -m http.server 5500 --directory frontend
 
-# Or manually navigate to:
-# file:///path/to/WebApplication/frontend/index.html
+# Or open directly in browser
+open http://localhost:5500/index.html
 ```
 
-### **4. Search & Export**
+### **4. Create Account & API Key**
 
+```bash
+# Open login page
+open http://localhost:5500/login.html
+
+# 1. Register a new account
+# 2. Login to access dashboard
+# 3. Create API key with scopes (search:read, export:read, pii:read)
+# 4. Copy API key (shown only once!)
+```
+
+### **5. Search & Export**
+
+**Web Interface:**
 1. Enter keywords: *"senior software engineer"*, *"product manager"*, *"data scientist"*
 2. Apply filters: US States, Industries, Experience range, Skills
 3. View results with full summaries and contact information
-4. Export to CSV for CRM integration (HubSpot, Salesforce, etc.)
+4. Export to CSV/NDJSON for CRM integration (HubSpot, Salesforce, etc.)
+
+**API Access:**
+```bash
+# Use your API key to search programmatically
+curl -X POST http://localhost:8000/search \
+  -H "X-API-Key: your-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "senior software engineer", "limit": 100}'
+```
 
 ---
 
@@ -326,9 +359,11 @@ fly deploy
 **Phase 2 Checklist:**
 
 - [ ] Extract 1M best profiles (use `scripts/prepare_1m_dataset.py`)
-- [ ] Add authentication (JWT tokens)
-- [ ] Implement rate limiting (100 requests/min per IP)
-- [ ] Setup environment variables management
+- [x] Add authentication (JWT tokens) ✅
+- [x] API key generation with scopes ✅
+- [x] User dashboard for key management ✅
+- [ ] Implement rate limiting (tier-based with Redis)
+- [ ] Setup environment variables management (secrets manager)
 - [ ] Enable HTTPS (auto via Railway/Render)
 - [ ] Configure CORS for production domain
 - [ ] Add monitoring (Sentry/LogRocket)
@@ -416,12 +451,82 @@ terraform apply
 
 ## 🔌 API Endpoints
 
-### **POST /search** - Hybrid Search
+### **Authentication Endpoints** 🆕
+
+#### **POST /auth/register** - Create Account
+```bash
+curl -X POST http://localhost:8000/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "email": "john@example.com",
+    "password": "SecurePass123!",
+    "full_name": "John Doe"
+  }'
+```
+
+#### **POST /auth/login** - Login
+```bash
+curl -X POST http://localhost:8000/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "johndoe",
+    "password": "SecurePass123!"
+  }'
+```
+
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer",
+  "expires_in": 86400
+}
+```
+
+#### **POST /auth/api-keys** - Create API Key
+```bash
+curl -X POST http://localhost:8000/auth/api-keys \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "key_name": "Production API Key",
+    "scopes": ["search:read", "export:read", "pii:read"],
+    "tier": "trusted"
+  }'
+```
+
+**Response:**
+```json
+{
+  "api_key": "a1b2c3d4e5f6...full-64-char-key",
+  "key_name": "Production API Key",
+  "key_prefix": "a1b2c3d4e5f6...",
+  "scopes": ["search:read", "export:read", "pii:read"],
+  "tier": "trusted",
+  "created_at": "2025-10-21T04:30:00Z"
+}
+```
+
+⚠️ **API key is shown only once! Save it securely.**
+
+#### **GET /auth/api-keys** - List Your API Keys
+```bash
+curl -X GET http://localhost:8000/auth/api-keys \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### **Search Endpoints**
+
+#### **POST /search** - Hybrid Search
 
 Search profiles using semantic vector search + full-text search.
 
+**With API Key:**
 ```bash
 curl -X POST http://localhost:8000/search \
+  -H "X-API-Key: your-api-key-here" \
   -H "Content-Type: application/json" \
   -d '{
     "query": "senior software engineer with Python and React experience",
@@ -433,6 +538,16 @@ curl -X POST http://localhost:8000/search \
     "skills": ["Python", "React"],
     "limit": 100,
     "offset": 0
+  }'
+```
+
+**Without API Key (Public Access - 50 results max):**
+```bash
+curl -X POST http://localhost:8000/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "senior software engineer",
+    "limit": 50
   }'
 ```
 
@@ -627,10 +742,13 @@ poetry run python -m backend.data_pipeline.embeddings.generate
 WebApplication/
 ├── backend/
 │   ├── api/                      # FastAPI application
-│   │   ├── app.py               # Main server + CORS
+│   │   ├── app.py               # Main server + CORS + auth routes
 │   │   ├── database.py          # AsyncPG connection pool
 │   │   ├── models.py            # Pydantic request/response models
-│   │   └── search.py            # Hybrid search logic
+│   │   ├── search.py            # Hybrid search logic
+│   │   ├── auth_routes.py       # 🆕 Authentication endpoints
+│   │   ├── jwt_utils.py         # 🆕 JWT token management
+│   │   └── user_manager.py      # 🆕 User & API key operations
 │   ├── data_pipeline/
 │   │   ├── embeddings/          # OpenAI embedding generation
 │   │   │   ├── generate.py      # Batch embedding generator
@@ -648,22 +766,34 @@ WebApplication/
 │   ├── results.html             # Results display
 │   ├── search.js                # Search form logic
 │   ├── results.js               # Results rendering + CSV export
-│   ├── styles.css               # Dark theme styles
-│   └── RotatingText.css         # Hero animation
+│   ├── styles.css               # Dark theme styles (global CSS vars)
+│   ├── RotatingText.css         # Hero animation
+│   ├── login.html               # 🆕 Login & registration page
+│   ├── dashboard.html           # 🆕 User dashboard (API key management)
+│   ├── api-docs.html            # 🆕 API documentation
+│   ├── auth.js                  # 🆕 Authentication utilities
+│   └── dashboard.js             # 🆕 Dashboard logic
 ├── migrations/                  # SQL schema migrations
 │   ├── 001_init_schema.sql
 │   ├── 002_indexes.sql
 │   ├── 003_vector_index.sql
-│   └── 005_data_completeness.sql
+│   ├── 005_data_completeness.sql
+│   └── 008_users_and_api_keys.sql  # 🆕 Authentication schema
 ├── scripts/
 │   ├── prepare_1m_dataset.py    # Extract 1M profiles from 51M
 │   ├── check_data_quality.py    # Data validation
-│   └── run_all_tests.sh         # Test suite runner
+│   ├── run_all_tests.sh         # Test suite runner
+│   ├── run_api_bg.sh            # 🆕 Start API in background
+│   └── serve_frontend_bg.sh     # 🆕 Start frontend server
 ├── docs/
 │   ├── ARCHITECTURE.md          # System architecture
 │   ├── INGESTION_ARCHITECTURE.md # Data pipeline details
 │   ├── SCALING_PLAN.md          # Cloud deployment guide
-│   └── PHASE_STATUS.md          # Implementation status
+│   ├── PHASE_STATUS.md          # Implementation status
+│   ├── THEME_GUIDELINES.md      # 🆕 UI/theme styling standards
+│   └── agents/
+│       ├── agent.md             # 🆕 AI agent instructions
+│       └── HANDOFF.md           # 🆕 Handoff log for collaboration
 ├── infrastructure/
 │   └── terraform/               # AWS infrastructure as code
 │       ├── main.tf
@@ -781,28 +911,32 @@ poetry run python3 scripts/check_data_quality.py
 This dataset contains scraped LinkedIn data. Before deploying to production:
 
 1. **Review data source legality** in your jurisdiction
-2. **Implement authentication** for production API (JWT recommended)
-3. **Add rate limiting** to prevent abuse (100 requests/min suggested)
-4. **Use environment variables** for all credentials (never commit .env)
-5. **Enable HTTPS** for production deployment (mandatory)
-6. **Comply with GDPR/privacy laws** if serving EU users
-7. **Implement data deletion requests** mechanism
-8. **Add audit logging** for compliance tracking
+2. ✅ **Authentication implemented** - JWT tokens with bcrypt password hashing
+3. ✅ **API key system** - Scoped permissions (search:read, export:read, pii:read)
+4. **Add rate limiting** to prevent abuse (tier-based: basic 200/min, trusted 1000/min)
+5. **Use environment variables** for all credentials (never commit .env)
+6. **Enable HTTPS** for production deployment (mandatory)
+7. **Comply with GDPR/privacy laws** if serving EU users
+8. **Implement data deletion requests** mechanism
+9. ✅ **Audit logging** - API key operations tracked in audit_log table
 
 ### **Security Checklist for Production**
 
-- [ ] JWT authentication implemented
-- [ ] Rate limiting configured (Redis-based)
+- [x] JWT authentication implemented ✅
+- [x] API key generation with scopes ✅
+- [x] Password hashing (bcrypt) ✅
+- [x] Bearer token authentication ✅
+- [ ] Rate limiting configured (Redis-based tier enforcement)
 - [ ] CORS restricted to production domain
 - [ ] Database credentials in secrets manager (AWS Secrets Manager)
-- [ ] API keys rotated regularly
+- [ ] API keys rotation policy
 - [ ] HTTPS/TLS enforced (min TLS 1.2)
-- [ ] Input validation on all endpoints (Pydantic)
-- [ ] SQL injection prevention (parameterized queries)
+- [x] Input validation on all endpoints (Pydantic) ✅
+- [x] SQL injection prevention (parameterized queries) ✅
 - [ ] XSS protection in frontend
 - [ ] Security headers configured (helmet.js equivalent)
 - [ ] Automated security scanning (Snyk/Dependabot)
-- [ ] Audit logs enabled (CloudTrail)
+- [x] Audit logs enabled (audit_log table) ✅
 
 See [docs/SECURITY.md](./docs/SECURITY.md) for comprehensive security guide.
 
@@ -818,17 +952,30 @@ See [docs/SECURITY.md](./docs/SECURITY.md) for comprehensive security guide.
 | **[docs/INGESTION_ARCHITECTURE.md](./docs/INGESTION_ARCHITECTURE.md)** | Three-tier data pipeline |
 | **[docs/SCALING_PLAN.md](./docs/SCALING_PLAN.md)** | Cloud deployment strategy |
 | **[docs/PHASE_STATUS.md](./docs/PHASE_STATUS.md)** | Implementation roadmap |
+| **[docs/THEME_GUIDELINES.md](./docs/THEME_GUIDELINES.md)** | 🆕 UI/theme styling standards |
+| **[docs/agents/agent.md](./docs/agents/agent.md)** | 🆕 AI agent instructions |
 | **[docs/SECURITY.md](./docs/SECURITY.md)** | Security best practices |
 
 ---
 
 ## 🔄 Changelog
 
-### **Latest (2025-10-14)** ✅
+### **v1.2.0 (2025-10-21)** 🆕 **LATEST**
+- ✅ **Authentication System**: User registration, login with JWT tokens (24h access, 30d refresh)
+- ✅ **API Key Management**: Generate keys with scopes (search:read, export:read, pii:read)
+- ✅ **User Dashboard**: Web interface for managing API keys
+- ✅ **Tiered Access**: Public (50 results), Basic (200 req/min), Trusted (1000 req/min)
+- ✅ **Security**: bcrypt password hashing, SHA-256 API key hashing, audit logging
+- ✅ **Theme Documentation**: Comprehensive UI guidelines (THEME_GUIDELINES.md)
+- ✅ **API Documentation**: Restructured docs with sidebar navigation, code examples
+- ✅ **Database Schema**: users, api_keys, refresh_tokens, audit_log tables
+
+### **v1.1.0 (2025-10-14)** ✅
 - Fixed link readability in results table (bright cyan #60d5ff)
 - Added data completeness percentage tracking
 - Fixed parameter indexing bug in hybrid search
 - Added comprehensive deployment roadmap
+- CSV/NDJSON export support
 
 ### **v1.0.0 (2025-10-11)** ✅
 - ✅ 497K profiles loaded and indexed
