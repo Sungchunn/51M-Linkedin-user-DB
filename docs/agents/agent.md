@@ -267,6 +267,48 @@ except Exception as e:
 - Monitor query latencies
 - Alert on threshold violations
 
+## UI/Theme Guidelines
+
+**IMPORTANT**: All frontend pages must follow the dark minimal theme established in `docs/THEME_GUIDELINES.md`.
+
+### Quick Reference
+- **CSS Variables**: Always use variables from `styles.css` (never hardcode colors)
+- **Signature Glow**: All primary buttons must have the white glow effect
+- **Spacing**: Use multiples of 8px for consistency
+- **Border Radius**: 12px for cards, 8px for buttons/inputs, 6px for small elements
+- **Transitions**: `transition: all 0.2s` for smooth interactions
+- **Monospace**: Use for technical content (API keys, code, data)
+
+### Before Creating New Pages
+1. Read `docs/THEME_GUIDELINES.md` for complete styling standards
+2. Reference existing pages: `login.html`, `dashboard.html`, `api-docs.html`
+3. Use the new page template from THEME_GUIDELINES.md
+4. Run the checklist before committing
+
+### Common Patterns
+```css
+/* Always use CSS variables */
+background: var(--surface);
+color: var(--text-primary);
+border: 1px solid var(--border);
+
+/* Primary button with glow */
+.btn-primary {
+    background: var(--primary-color);
+    position: relative;
+    overflow: hidden;
+}
+.btn-primary::before { /* ripple */ }
+.btn-primary:hover {
+    box-shadow:
+        0 0 40px rgba(250, 250, 250, 0.4),
+        0 0 80px rgba(250, 250, 250, 0.2),
+        0 0 120px rgba(250, 250, 250, 0.1);
+}
+```
+
+**See**: `docs/THEME_GUIDELINES.md` for complete documentation
+
 ## Long-Running Commands Policy
 
 **CRITICAL**: For any command that takes >30 seconds to complete, provide the bash code to the user instead of running it.
@@ -326,6 +368,6 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 
 ---
 
-**Last Updated**: 2025-10-07
-**Status**: Phase 0 - Foundation Setup
+**Last Updated**: 2025-10-21
+**Status**: Phase 4 Complete - Authentication & API System Live
 
