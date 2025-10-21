@@ -10,8 +10,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    await loadUserProfile();
-    await loadApiKeys();
+    // Load user profile and API keys in parallel for faster loading
+    await Promise.all([
+        loadUserProfile(),
+        loadApiKeys()
+    ]);
 });
 
 // Load user profile
@@ -35,6 +38,9 @@ async function loadUserProfile() {
 
 // Load API keys
 async function loadApiKeys() {
+    const container = document.getElementById('apiKeysList');
+    container.innerHTML = '<div class="empty-state">Loading API keys...</div>';
+
     try {
         const response = await fetch(`${API_BASE_URL}/auth/api-keys`, {
             headers: window.authUtils.getAuthHeaders()
@@ -48,8 +54,10 @@ async function loadApiKeys() {
         renderApiKeys(keys);
     } catch (error) {
         console.error('Error loading API keys:', error);
-        document.getElementById('apiKeysList').innerHTML = `
-            <div class="empty-state">Error loading API keys. Please try again.</div>
+        container.innerHTML = `
+            <div class="empty-state" style="color: var(--error);">
+                ⚠️ Error loading API keys. Please refresh the page.
+            </div>
         `;
     }
 }
