@@ -440,144 +440,7 @@
             </ul>
         </section>
 
-        <!-- Authentication -->
-        <section id="authentication" class="doc-section">
-            <h2 class="section-title">Authentication</h2>
-            <p class="section-description">
-                API keys are required for production usage. Include your API key in the <code class="inline-code">X-API-Key</code> header.
-            </p>
-
-            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">API Key Tiers</h3>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Tier</th>
-                        <th>Max Results</th>
-                        <th>Rate Limit</th>
-                        <th>Features</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Public</td>
-                        <td>50</td>
-                        <td>60/min</td>
-                        <td>Basic search, PII redacted</td>
-                    </tr>
-                    <tr>
-                        <td>Basic</td>
-                        <td>200</td>
-                        <td>200/min</td>
-                        <td>Search + Export (with scope)</td>
-                    </tr>
-                    <tr>
-                        <td>Trusted</td>
-                        <td>1000</td>
-                        <td>1000/min</td>
-                        <td>Full access + PII (with scope)</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Scopes</h3>
-            <ul>
-                <li><code class="inline-code">search:read</code> - Basic search access (default)</li>
-                <li><code class="inline-code">export:read</code> - CSV/NDJSON export capabilities</li>
-                <li><code class="inline-code">pii:read</code> - Access to email, phone, LinkedIn URLs</li>
-            </ul>
-
-            <div class="info-box">
-                <div class="info-box-title">Example Request</div>
-                <div class="info-box-content">
-<pre><code>curl http://localhost:8000/search?q=engineer \
-  -H "X-API-Key: your-api-key-here"</code></pre>
-                </div>
-            </div>
-        </section>
-
-        <!-- Rate Limits -->
-        <section id="rate-limits" class="doc-section">
-            <h2 class="section-title">Rate Limits</h2>
-            <p class="section-description">
-                Rate limits are enforced per IP address (for public) or per API key (for authenticated requests).
-            </p>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Endpoint</th>
-                        <th>Limit</th>
-                        <th>Burst</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>/search</td>
-                        <td>60/min (public)<br>200/min (basic)<br>1000/min (trusted)</td>
-                        <td>120/min</td>
-                    </tr>
-                    <tr>
-                        <td>/export/*</td>
-                        <td>6/min</td>
-                        <td>10/min</td>
-                    </tr>
-                    <tr>
-                        <td>/filters</td>
-                        <td>No limit</td>
-                        <td>-</td>
-                    </tr>
-                </tbody>
-            </table>
-
-            <div class="info-box warning">
-                <div class="info-box-title">⚠️ Rate Limit Headers</div>
-                <div class="info-box-content">
-                    When rate limited, you'll receive a <code class="inline-code">429 Too Many Requests</code> response.
-                    Retry after the specified time in the <code class="inline-code">Retry-After</code> header.
-                </div>
-            </div>
-        </section>
-
-        <!-- Quick Start -->
-        <section id="quick-start" class="doc-section">
-            <h2 class="section-title">Quick Start</h2>
-            <p class="section-description">
-                Get started with the PROSPECTIQ API in 3 simple steps.
-            </p>
-
-            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 1: Get an API Key</h3>
-            <ol>
-                <li>Go to the <a href="dashboard.html" style="color: var(--text-primary);">API Keys</a> page</li>
-                <li>Click "Create New Key"</li>
-                <li>Select scopes and tier</li>
-                <li>Copy your API key (shown only once!)</li>
-            </ol>
-
-            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 2: Make Your First Request</h3>
-<pre><code>curl "http://localhost:8000/search?q=software+engineer&limit=5" \
-  -H "X-API-Key: your-api-key-here"</code></pre>
-
-            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 3: Process the Response</h3>
-<pre><code>{
-  "results": [
-    {
-      "id": "uuid",
-      "full_name": "John Doe",
-      "job_title": "Senior Software Engineer",
-      "company_name": "Tech Corp",
-      "location": "San Francisco, CA",
-      "skills": ["Python", "React", "AWS"],
-      "score": 0.92
-    }
-  ],
-  "total_count": 1247,
-  "returned_count": 5,
-  "query_time_ms": 423
-}</code></pre>
-        </section>
-
-        <!-- cURL Generator -->
+        <!-- cURL Generator - MOVED TO TOP -->
         <section id="curl-generator" class="doc-section">
             <h2 class="section-title">🔧 cURL Command Generator</h2>
             <p class="section-description">
@@ -585,6 +448,21 @@
             </p>
 
             <div class="curl-generator-container" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;">
+
+                <!-- API Base URL Input -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        API Base URL (optional)
+                    </label>
+                    <input
+                        type="text"
+                        id="curlBaseUrl"
+                        placeholder="http://localhost:8000"
+                        value="http://localhost:8000"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: monospace; font-size: 13px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Leave default for local development, or enter your production API URL</small>
+                </div>
 
                 <!-- API Key Input -->
                 <div class="form-group" style="margin-bottom: 20px;">
@@ -753,6 +631,143 @@
                     </div>
                 </div>
             </div>
+        </section>
+
+        <!-- Authentication -->
+        <section id="authentication" class="doc-section">
+            <h2 class="section-title">Authentication</h2>
+            <p class="section-description">
+                API keys are required for production usage. Include your API key in the <code class="inline-code">X-API-Key</code> header.
+            </p>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">API Key Tiers</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tier</th>
+                        <th>Max Results</th>
+                        <th>Rate Limit</th>
+                        <th>Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Public</td>
+                        <td>50</td>
+                        <td>60/min</td>
+                        <td>Basic search, PII redacted</td>
+                    </tr>
+                    <tr>
+                        <td>Basic</td>
+                        <td>200</td>
+                        <td>200/min</td>
+                        <td>Search + Export (with scope)</td>
+                    </tr>
+                    <tr>
+                        <td>Trusted</td>
+                        <td>1000</td>
+                        <td>1000/min</td>
+                        <td>Full access + PII (with scope)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Scopes</h3>
+            <ul>
+                <li><code class="inline-code">search:read</code> - Basic search access (default)</li>
+                <li><code class="inline-code">export:read</code> - CSV/NDJSON export capabilities</li>
+                <li><code class="inline-code">pii:read</code> - Access to email, phone, LinkedIn URLs</li>
+            </ul>
+
+            <div class="info-box">
+                <div class="info-box-title">Example Request</div>
+                <div class="info-box-content">
+<pre><code>curl http://localhost:8000/search?q=engineer \
+  -H "X-API-Key: your-api-key-here"</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rate Limits -->
+        <section id="rate-limits" class="doc-section">
+            <h2 class="section-title">Rate Limits</h2>
+            <p class="section-description">
+                Rate limits are enforced per IP address (for public) or per API key (for authenticated requests).
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Limit</th>
+                        <th>Burst</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>/search</td>
+                        <td>60/min (public)<br>200/min (basic)<br>1000/min (trusted)</td>
+                        <td>120/min</td>
+                    </tr>
+                    <tr>
+                        <td>/export/*</td>
+                        <td>6/min</td>
+                        <td>10/min</td>
+                    </tr>
+                    <tr>
+                        <td>/filters</td>
+                        <td>No limit</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Rate Limit Headers</div>
+                <div class="info-box-content">
+                    When rate limited, you'll receive a <code class="inline-code">429 Too Many Requests</code> response.
+                    Retry after the specified time in the <code class="inline-code">Retry-After</code> header.
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start -->
+        <section id="quick-start" class="doc-section">
+            <h2 class="section-title">Quick Start</h2>
+            <p class="section-description">
+                Get started with the PROSPECTIQ API in 3 simple steps.
+            </p>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 1: Get an API Key</h3>
+            <ol>
+                <li>Go to the <a href="dashboard.html" style="color: var(--text-primary);">API Keys</a> page</li>
+                <li>Click "Create New Key"</li>
+                <li>Select scopes and tier</li>
+                <li>Copy your API key (shown only once!)</li>
+            </ol>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 2: Make Your First Request</h3>
+<pre><code>curl "http://localhost:8000/search?q=software+engineer&limit=5" \
+  -H "X-API-Key: your-api-key-here"</code></pre>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 3: Process the Response</h3>
+<pre><code>{
+  "results": [
+    {
+      "id": "uuid",
+      "full_name": "John Doe",
+      "job_title": "Senior Software Engineer",
+      "company_name": "Tech Corp",
+      "location": "San Francisco, CA",
+      "skills": ["Python", "React", "AWS"],
+      "score": 0.92
+    }
+  ],
+  "total_count": 1247,
+  "returned_count": 5,
+  "query_time_ms": 423
+}</code></pre>
         </section>
 
         <!-- Health Endpoint -->
@@ -1301,6 +1316,7 @@ for profile in data['results']:
 
         // Generate cURL command
         function generateCurl() {
+            const baseUrl = document.getElementById('curlBaseUrl').value.trim() || 'http://localhost:8000';
             const apiKey = document.getElementById('curlApiKey').value.trim();
             const query = document.getElementById('curlQuery').value.trim();
             const regions = getCurlSelectedValues('curlRegionsContainer', 'curlRegions');
@@ -1331,7 +1347,7 @@ for profile in data['results']:
                 });
             }
 
-            const url = `${API_BASE_URL}/search?${params.toString()}`;
+            const url = `${baseUrl}/search?${params.toString()}`;
 
             // Build cURL command
             let curlCommand = `curl -X GET "${url}"`;
