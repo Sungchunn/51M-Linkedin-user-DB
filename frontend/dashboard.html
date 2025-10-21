@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PROSPECTIQ</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        .dashboard-title {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-info {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 8px;
+            color: var(--error);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .logout-btn:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .dashboard-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .btn-primary {
+            padding: 12px 24px;
+            background: var(--primary-color);
+            border: 1px solid var(--border-hover);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease-out, height 0.6s ease-out;
+            z-index: 0;
+        }
+
+        .btn-primary:hover::before {
+            width: 400px;
+            height: 400px;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            box-shadow:
+                0 0 40px rgba(250, 250, 250, 0.4),
+                0 0 80px rgba(250, 250, 250, 0.2),
+                0 0 120px rgba(250, 250, 250, 0.1),
+                var(--shadow-md);
+            border-color: var(--text-primary);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary span {
+            position: relative;
+            z-index: 1;
+        }
+
+        .api-keys-list {
+            display: grid;
+            gap: 16px;
+        }
+
+        .api-key-card {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s;
+        }
+
+        .api-key-card:hover {
+            border-color: var(--border-hover);
+        }
+
+        .api-key-info {
+            flex: 1;
+        }
+
+        .api-key-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .api-key-details {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .api-key-prefix {
+            font-family: monospace;
+            background: var(--surface-hover);
+            padding: 2px 8px;
+            border-radius: 4px;
+            color: var(--text-secondary);
+        }
+
+        .api-key-scopes {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .scope-badge {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 4px;
+            color: var(--success);
+        }
+
+        .api-key-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-revoke {
+            padding: 8px 16px;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 6px;
+            color: var(--error);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .btn-revoke:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: all 0.2s;
+        }
+
+        .form-input:hover, .form-select:hover {
+            border-color: var(--border-hover);
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 4px rgba(115, 115, 115, 0.08);
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .checkbox-label:hover {
+            border-color: var(--border-hover);
+            background: var(--surface-hover);
+        }
+
+        .checkbox-label input:checked + span {
+            color: var(--success);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .btn-cancel {
+            padding: 12px 24px;
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-cancel:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+        }
+
+        .api-key-created {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .api-key-created-title {
+            color: var(--success);
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .api-key-value {
+            font-family: monospace;
+            background: var(--background);
+            padding: 12px;
+            border-radius: 6px;
+            color: var(--text-primary);
+            word-break: break-all;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .copy-btn {
+            padding: 8px 16px;
+            background: var(--primary-color);
+            border: 1px solid var(--border-hover);
+            border-radius: 6px;
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .copy-btn:hover {
+            background: var(--primary-hover);
+            border-color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .nav-links {
+            margin-top: 32px;
+            text-align: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 16px;
+            transition: color 0.2s;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <div>
+                <div class="dashboard-title">Dashboard</div>
+                <div class="user-info">Welcome, <span id="username">User</span></div>
+            </div>
+            <div class="user-menu">
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+
+        <div class="dashboard-section">
+            <div class="section-header">
+                <div class="section-title">API Keys</div>
+                <button class="btn-primary" onclick="openCreateKeyModal()"><span>+ Create New Key</span></button>
+            </div>
+
+            <div id="apiKeysList" class="api-keys-list">
+                <div class="empty-state">Loading API keys...</div>
+            </div>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">← Back to Search</a>
+            <a href="api-docs.html">API Documentation</a>
+            <a href="login.html" onclick="localStorage.clear()">Register New Account</a>
+        </div>
+    </div>
+
+    <!-- Create API Key Modal -->
+    <div id="createKeyModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Create New API Key</div>
+
+            <form id="createKeyForm">
+                <div class="form-group">
+                    <label class="form-label" for="keyName">Key Name</label>
+                    <input type="text" id="keyName" class="form-input" placeholder="My Project Key" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Scopes</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="scope" value="search:read" checked>
+                            <span>search:read</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="scope" value="export:read">
+                            <span>export:read</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="scope" value="pii:read">
+                            <span>pii:read</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="tier">Tier</label>
+                    <select id="tier" class="form-select">
+                        <option value="basic">Basic (200 requests/min)</option>
+                        <option value="trusted">Trusted (1000 requests/min)</option>
+                    </select>
+                </div>
+
+                <div id="keyCreatedBox" style="display: none;" class="api-key-created">
+                    <div class="api-key-created-title">✓ API Key Created!</div>
+                    <div class="api-key-value" id="createdKeyValue"></div>
+                    <button type="button" class="copy-btn" onclick="copyApiKey()">Copy to Clipboard</button>
+                    <p style="color: #ff6b6b; font-size: 13px; margin-top: 12px;">⚠️ Save this key now. You won't be able to see it again!</p>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeCreateKeyModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" id="createKeyBtn"><span>Create Key</span></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+    <script src="dashboard.js"></script>
+</body>
+</html>
