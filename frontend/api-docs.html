@@ -365,6 +365,7 @@
             <a href="#authentication" class="nav-link">Authentication</a>
             <a href="#rate-limits" class="nav-link">Rate Limits</a>
             <a href="#quick-start" class="nav-link">Quick Start</a>
+            <a href="#curl-generator" class="nav-link">🔧 cURL Generator</a>
         </div>
 
         <div class="nav-section">
@@ -574,6 +575,184 @@
   "returned_count": 5,
   "query_time_ms": 423
 }</code></pre>
+        </section>
+
+        <!-- cURL Generator -->
+        <section id="curl-generator" class="doc-section">
+            <h2 class="section-title">🔧 cURL Command Generator</h2>
+            <p class="section-description">
+                Generate ready-to-use cURL commands with live data from the dataset. Select your filters and get a copy-paste ready command.
+            </p>
+
+            <div class="curl-generator-container" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;">
+
+                <!-- API Key Input -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        API Key (optional)
+                    </label>
+                    <input
+                        type="text"
+                        id="curlApiKey"
+                        placeholder="your-api-key-here"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: monospace; font-size: 13px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Leave empty for public access (limited features)</small>
+                </div>
+
+                <!-- Search Query -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Search Query
+                    </label>
+                    <input
+                        type="text"
+                        id="curlQuery"
+                        placeholder="e.g. senior software engineer, product manager, data scientist"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                </div>
+
+                <!-- Filters Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+
+                    <!-- Regions Filter -->
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            US States (multi-select)
+                            <span id="curlRegionsCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                        </label>
+                        <div style="position: relative;">
+                            <input
+                                type="text"
+                                id="curlRegionsSearch"
+                                placeholder="Search states..."
+                                style="width: 100%; padding: 8px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; margin-bottom: 8px;"
+                            >
+                        </div>
+                        <div id="curlRegionsContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--background);">
+                            <p style="color: var(--text-muted); padding: 8px;">Loading states...</p>
+                        </div>
+                    </div>
+
+                    <!-- Industries Filter -->
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Industries (multi-select)
+                            <span id="curlIndustriesCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                        </label>
+                        <div style="position: relative;">
+                            <input
+                                type="text"
+                                id="curlIndustriesSearch"
+                                placeholder="Search industries..."
+                                style="width: 100%; padding: 8px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; margin-bottom: 8px;"
+                            >
+                        </div>
+                        <div id="curlIndustriesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--background);">
+                            <p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Range -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Min Experience (years)
+                        </label>
+                        <input
+                            type="number"
+                            id="curlMinExp"
+                            min="0"
+                            max="80"
+                            placeholder="0"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Max Experience (years)
+                        </label>
+                        <input
+                            type="number"
+                            id="curlMaxExp"
+                            min="0"
+                            max="80"
+                            placeholder="80"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Limit
+                        </label>
+                        <input
+                            type="number"
+                            id="curlLimit"
+                            min="1"
+                            max="1000"
+                            value="20"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Offset
+                        </label>
+                        <input
+                            type="number"
+                            id="curlOffset"
+                            min="0"
+                            value="0"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Skills (comma-separated)
+                    </label>
+                    <input
+                        type="text"
+                        id="curlSkills"
+                        placeholder="e.g. Python, JavaScript, React, SQL"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Profiles must have ALL listed skills (AND logic)</small>
+                </div>
+
+                <!-- Generate Button -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <button onclick="generateCurl()" style="padding: 14px 32px; background: var(--primary-color); border: 1px solid var(--border-hover); border-radius: 8px; color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);">
+                        🔧 Generate cURL Command
+                    </button>
+                </div>
+
+                <!-- Generated cURL Output -->
+                <div id="curlOutput" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: var(--text-primary); font-size: 16px;">Generated cURL Command</h4>
+                        <button onclick="copyCurlCommand()" style="padding: 8px 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 6px; color: var(--success); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                            📋 Copy to Clipboard
+                        </button>
+                    </div>
+                    <pre style="background: #0a0a0a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.6;"><code id="curlCommand" style="color: #f0f0f0;"></code></pre>
+
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(96, 213, 255, 0.05); border: 1px solid rgba(96, 213, 255, 0.2); border-radius: 6px;">
+                        <strong style="color: var(--text-primary); font-size: 13px;">💡 Pro Tip:</strong>
+                        <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;">
+                            Add <code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 12px;">| jq</code> to pretty-print JSON output, or
+                            <code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 12px;">| jq '.results[] | {name: .full_name, title: .job_title}'</code> to extract specific fields.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- Health Endpoint -->
@@ -1006,6 +1185,191 @@ for profile in data['results']:
     </button>
 
     <script>
+        // cURL Generator - Global variables
+        const API_BASE_URL = 'http://localhost:8000';
+        let curlAllRegions = [];
+        let curlAllIndustries = [];
+
+        // Load filter data on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurlFilters();
+        });
+
+        // Load regions and industries for cURL generator
+        async function loadCurlFilters() {
+            try {
+                // Load regions and industries in parallel
+                const [regionsRes, industriesRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/regions?country=united+states`),
+                    fetch(`${API_BASE_URL}/industries`)
+                ]);
+
+                if (regionsRes.ok) {
+                    const data = await regionsRes.json();
+                    curlAllRegions = data.regions.map(r => r.region).sort();
+                    renderCurlCheckboxes('curlRegionsContainer', curlAllRegions, 'curlRegions');
+
+                    // Setup search
+                    document.getElementById('curlRegionsSearch').addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        const filtered = curlAllRegions.filter(r => r.toLowerCase().includes(term));
+                        renderCurlCheckboxes('curlRegionsContainer', filtered, 'curlRegions');
+                    });
+                } else {
+                    document.getElementById('curlRegionsContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Failed to load states</p>';
+                }
+
+                if (industriesRes.ok) {
+                    const data = await industriesRes.json();
+                    curlAllIndustries = data.industries.sort();
+                    renderCurlCheckboxes('curlIndustriesContainer', curlAllIndustries, 'curlIndustries');
+
+                    // Setup search
+                    document.getElementById('curlIndustriesSearch').addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        const filtered = curlAllIndustries.filter(i => i.toLowerCase().includes(term));
+                        renderCurlCheckboxes('curlIndustriesContainer', filtered, 'curlIndustries');
+                    });
+                } else {
+                    document.getElementById('curlIndustriesContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Failed to load industries</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load curl filters:', error);
+            }
+        }
+
+        // Render checkboxes for cURL generator
+        function renderCurlCheckboxes(containerId, items, prefix) {
+            const container = document.getElementById(containerId);
+            const currentSelected = getCurlSelectedValues(containerId, prefix);
+
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No items found</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; align-items: center; padding: 6px 8px; cursor: pointer; transition: background 0.2s;';
+                div.onmouseover = () => div.style.background = 'var(--surface-hover)';
+                div.onmouseout = () => div.style.background = 'transparent';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `${prefix}_${item.replace(/\s+/g, '_')}`;
+                checkbox.value = item;
+                checkbox.checked = currentSelected.includes(item);
+                checkbox.style.marginRight = '8px';
+                checkbox.addEventListener('change', () => updateCurlFilterCount(containerId, prefix));
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = item;
+                label.style.cssText = 'cursor: pointer; flex: 1; color: var(--text-secondary); font-size: 13px;';
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+
+            updateCurlFilterCount(containerId, prefix);
+        }
+
+        // Get selected values for cURL generator
+        function getCurlSelectedValues(containerId, prefix) {
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Update filter count
+        function updateCurlFilterCount(containerId, prefix) {
+            const count = getCurlSelectedValues(containerId, prefix).length;
+            let countElement;
+
+            if (prefix === 'curlRegions') {
+                countElement = document.getElementById('curlRegionsCount');
+            } else if (prefix === 'curlIndustries') {
+                countElement = document.getElementById('curlIndustriesCount');
+            }
+
+            if (countElement) {
+                countElement.textContent = count > 0 ? `(${count} selected)` : '';
+            }
+        }
+
+        // Generate cURL command
+        function generateCurl() {
+            const apiKey = document.getElementById('curlApiKey').value.trim();
+            const query = document.getElementById('curlQuery').value.trim();
+            const regions = getCurlSelectedValues('curlRegionsContainer', 'curlRegions');
+            const industries = getCurlSelectedValues('curlIndustriesContainer', 'curlIndustries');
+            const minExp = document.getElementById('curlMinExp').value;
+            const maxExp = document.getElementById('curlMaxExp').value;
+            const limit = document.getElementById('curlLimit').value || '20';
+            const offset = document.getElementById('curlOffset').value || '0';
+            const skills = document.getElementById('curlSkills').value.trim();
+
+            // Build URL with query params
+            const params = new URLSearchParams();
+
+            if (query) params.set('q', query);
+            params.set('limit', limit);
+            params.set('offset', offset);
+            params.set('location_country', 'united states');
+
+            regions.forEach(r => params.append('regions', r));
+            industries.forEach(i => params.append('industries', i));
+
+            if (minExp) params.set('min_years_experience', minExp);
+            if (maxExp) params.set('max_years_experience', maxExp);
+
+            if (skills) {
+                skills.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+                    params.append('skills', skill);
+                });
+            }
+
+            const url = `${API_BASE_URL}/search?${params.toString()}`;
+
+            // Build cURL command
+            let curlCommand = `curl -X GET "${url}"`;
+
+            if (apiKey) {
+                curlCommand += ` \\\n  -H "X-API-Key: ${apiKey}"`;
+            }
+
+            curlCommand += ` \\\n  -H "Accept: application/json"`;
+
+            // Display the command
+            document.getElementById('curlCommand').textContent = curlCommand;
+            document.getElementById('curlOutput').style.display = 'block';
+
+            // Scroll to output
+            document.getElementById('curlOutput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Copy cURL command to clipboard
+        function copyCurlCommand() {
+            const command = document.getElementById('curlCommand').textContent;
+
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'rgba(16, 185, 129, 0.2)';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'rgba(16, 185, 129, 0.1)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard. Please copy manually.');
+            });
+        }
+
         // Smooth scrolling for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
