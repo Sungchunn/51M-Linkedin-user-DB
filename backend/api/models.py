@@ -243,3 +243,97 @@ class ErrorResponse(BaseModel):
                 "timestamp": "2025-10-07T03:00:00Z"
             }
         }
+
+
+# ==================== AUTHENTICATION MODELS ====================
+
+class UserRegisterRequest(BaseModel):
+    """User registration request"""
+    username: str = Field(..., min_length=3, max_length=50, description="Username (3-50 chars)")
+    email: str = Field(..., description="Email address")
+    password: str = Field(..., min_length=8, description="Password (min 8 chars)")
+    full_name: Optional[str] = Field(None, max_length=255, description="Full name")
+
+    @validator('username')
+    def username_alphanumeric(cls, v):
+        if not v.replace('_', '').replace('-', '').isalnum():
+            raise ValueError('Username must be alphanumeric (underscores and hyphens allowed)')
+        return v.lower()
+
+    @validator('email')
+    def email_lowercase(cls, v):
+        return v.lower()
+
+
+class UserLoginRequest(BaseModel):
+    """User login request"""
+    username: str = Field(..., description="Username")
+    password: str = Field(..., description="Password")
+
+
+class TokenResponse(BaseModel):
+    """JWT token response"""
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    expires_in: int = Field(..., description="Seconds until access token expires")
+
+
+class UserResponse(BaseModel):
+    """User profile response"""
+    id: str
+    username: str
+    email: str
+    full_name: Optional[str]
+    is_admin: bool
+    is_active: bool
+    created_at: datetime
+    last_login_at: Optional[datetime]
+
+
+class APIKeyCreateRequest(BaseModel):
+    """Request to create a new API key"""
+    key_name: str = Field(..., min_length=3, max_length=100, description="Descriptive name for the API key")
+    scopes: List[str] = Field(default=["search:read"], description="Permissions: search:read, export:read, pii:read")
+    tier: str = Field(default="basic", description="Tier: public, basic, trusted")
+    expires_in_days: Optional[int] = Field(None, gt=0, le=365, description="Expiration in days (max 365)")
+
+    @validator('tier')
+    def validate_tier(cls, v):
+        if v not in ['public', 'basic', 'trusted']:
+            raise ValueError('Tier must be: public, basic, or trusted')
+        return v
+
+    @validator('scopes')
+    def validate_scopes(cls, v):
+        valid_scopes = {'search:read', 'export:read', 'pii:read', 'admin:write'}
+        for scope in v:
+            if scope not in valid_scopes:
+                raise ValueError(f'Invalid scope: {scope}. Valid: {valid_scopes}')
+        return v
+
+
+class APIKeyResponse(BaseModel):
+    """API key response (created)"""
+    id: str
+    api_key: str = Field(..., description="Full API key - SAVE THIS! Only shown once")
+    key_prefix: str = Field(..., description="First 16 chars for identification")
+    key_name: str
+    scopes: List[str]
+    tier: str
+    is_active: bool
+    created_at: datetime
+
+
+class APIKeyListItem(BaseModel):
+    """API key list item (without full key)"""
+    id: str
+    key_name: str
+    key_prefix: str = Field(..., description="First 16 chars (e.g., abc123...)")
+    scopes: List[str]
+    tier: str
+    is_active: bool
+    usage_count: int
+    last_used_at: Optional[datetime]
+    expires_at: Optional[datetime]
+    created_at: datetime

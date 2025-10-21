@@ -60,6 +60,13 @@ async def lifespan(app: FastAPI):
         logger.error(f"❌ Failed to initialize database: {e}")
         raise
 
+    # Create admin user if not exists
+    try:
+        from backend.api.user_manager import UserManager
+        await UserManager.create_admin_if_not_exists()
+    except Exception as e:
+        logger.error(f"⚠️  Failed to create admin user: {e}")
+
     yield
 
     # Shutdown: Close connection pool
@@ -98,6 +105,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+# Include authentication router
+from backend.api.auth_routes import router as auth_router
+app.include_router(auth_router)
 
 # Explicit preflight handlers to satisfy strict browsers and proxies
 @app.options("/search")
@@ -188,7 +199,7 @@ async def health_check():
     tags=["Filters"],
     summary="Get list of countries"
 )
-async def get_countries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def get_countries(response: Response):
     """Get distinct countries from profiles"""
     try:
         # No rate limit on filters to avoid UX issues
@@ -213,12 +224,10 @@ async def get_countries(response: Response, request: Request, x_api_key: str | N
     tags=["Filters"],
     summary="Get list of industries"
 )
-async def get_industries(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def get_industries(response: Response):
     """Get distinct industries from profiles"""
     try:
         # No rate limit on filters to avoid UX issues
-        origin = request.headers.get('origin')
-        logger.info(f"/industries request from ip={request.client.host if request.client else 'unknown'} origin={origin}")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             industries = await conn.fetch("""
@@ -240,12 +249,10 @@ async def get_industries(response: Response, request: Request, x_api_key: str | 
     tags=["Filters"],
     summary="Get list of regions/states"
 )
-async def get_regions(response: Response, request: Request, country: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def get_regions(response: Response, country: Optional[str] = None):
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
         # No rate limit on filters to avoid UX issues
-        origin = request.headers.get('origin')
-        logger.info(f"/regions request from ip={request.client.host if request.client else 'unknown'} origin={origin} country={country}")
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country:
@@ -281,7 +288,7 @@ async def get_regions(response: Response, request: Request, country: Optional[st
     tags=["Filters"],
     summary="Get list of cities"
 )
-async def get_localities(response: Response, request: Request, country: Optional[str] = None, region: Optional[str] = None, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def get_localities(response: Response, country: Optional[str] = None, region: Optional[str] = None):
     """Get distinct localities/cities from profiles, optionally filtered by country and region"""
     try:
         # No rate limit on filters to avoid UX issues
@@ -332,9 +339,11 @@ async def get_localities(response: Response, request: Request, country: Optional
     tags=["Statistics"],
     summary="Get dataset statistics"
 )
-async def get_stats(response: Response, request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def get_stats(response: Response, request: Request):
     """Get dataset statistics"""
     try:
+        # Stats endpoint has light rate limiting but no auth required
+        x_api_key = request.headers.get("x-api-key")
         ctx: AuthContext = resolve_auth_context(x_api_key)
         if not limiter.allow(f"stats:{ctx.api_key or request.client.host}", 30, 60):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
