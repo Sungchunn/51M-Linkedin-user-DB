@@ -344,7 +344,7 @@ async def get_stats(response: Response, request: Request):
     try:
         # Stats endpoint has light rate limiting but no auth required
         x_api_key = request.headers.get("x-api-key")
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        ctx: AuthContext = await resolve_auth_context(x_api_key)
         if not limiter.allow(f"stats:{ctx.api_key or request.client.host}", 30, 60):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         pool = await database.get_pool()
@@ -414,7 +414,7 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
     start_time = time.time()
 
     try:
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        ctx: AuthContext = await resolve_auth_context(x_api_key)
         # Effective limits
         if request.limit > ctx.max_limit:
             request.limit = ctx.max_limit
@@ -633,7 +633,7 @@ async def export_ndjson(
     )
 
     async def iter_lines():
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        ctx: AuthContext = await resolve_auth_context(x_api_key)
         require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
         if require_key and not ctx.allow_export:
             raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
@@ -738,7 +738,7 @@ async def export_csv(
     ]
 
     async def iter_csv():
-        ctx: AuthContext = resolve_auth_context(x_api_key)
+        ctx: AuthContext = await resolve_auth_context(x_api_key)
         require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
         if require_key and not ctx.allow_export:
             raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
