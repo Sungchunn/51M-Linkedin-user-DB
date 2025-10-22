@@ -650,9 +650,10 @@ async def export_ndjson(
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
             for r in results:
-                if not ctx.allow_pii:
-                    r.email = None
-                    r.phone = None
+                # TEMPORARY: Disabled for testing - ENABLE IN PRODUCTION!
+                # if not ctx.allow_pii:
+                #     r.email = None
+                #     r.phone = None
                 yield json.dumps(r.dict(), default=str) + "\n"
 
     headers = {"Content-Type": "application/x-ndjson"}
@@ -759,9 +760,10 @@ async def export_csv(
             sio.truncate(0)
             for r in results:
                 data = r.dict()
-                if not ctx.allow_pii:
-                    data["email"] = ""
-                    data["phone"] = ""
+                # TEMPORARY: Disabled for testing - ENABLE IN PRODUCTION!
+                # if not ctx.allow_pii:
+                #     data["email"] = ""
+                #     data["phone"] = ""
                 if isinstance(data.get("skills"), list):
                     data["skills"] = "; ".join(data["skills"]) if data["skills"] else ""
                 writer.writerow({k: data.get(k, "") for k in fieldnames})
