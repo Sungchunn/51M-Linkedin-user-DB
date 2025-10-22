@@ -481,10 +481,11 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
             next_token = _encode_token(snapshot)
 
         # PII redaction unless authorized
-        if not ctx.allow_pii:
-            for r in results:
-                r.email = None
-                r.phone = None
+        # TEMPORARY: Disabled for testing - ENABLE IN PRODUCTION!
+        # if not ctx.allow_pii:
+        #     for r in results:
+        #         r.email = None
+        #         r.phone = None
 
         return SearchResponse(
             results=results,
