@@ -82,7 +82,12 @@ async function executeSearch() {
         if (currentParams.has_twitter) params.set('has_twitter', 'true');
         if (currentParams.has_github) params.set('has_github', 'true');
 
-        const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`);
+        // DEBUG: Log the full URL being called
+        const fullUrl = `${API_BASE_URL}/search?${params.toString()}`;
+        console.log('DEBUG: Calling API URL:', fullUrl);
+        console.log('DEBUG: currentParams from sessionStorage:', currentParams);
+
+        const response = await fetch(fullUrl);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

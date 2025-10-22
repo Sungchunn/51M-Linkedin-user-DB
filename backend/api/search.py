@@ -433,6 +433,12 @@ async def keyword_search(
     Uses full-text search only.
     """
     try:
+        # DEBUG: Log all incoming filter parameters
+        logger.info(f"DEBUG FILTERS: job_title={request.job_title}, company={request.company}, "
+                   f"has_linkedin={request.has_linkedin}, has_email={request.has_email}, "
+                   f"has_phone={request.has_phone}, has_website={request.has_website}, "
+                   f"has_twitter={request.has_twitter}, has_github={request.has_github}")
+
         # Build WHERE clause for filters
         where_conditions = ["is_deleted = FALSE"]
         params = []
@@ -536,6 +542,10 @@ async def keyword_search(
             param_idx += 1
 
         where_clause = " AND ".join(where_conditions)
+
+        # DEBUG: Log the WHERE clause
+        logger.info(f"DEBUG WHERE CLAUSE: {where_clause}")
+        logger.info(f"DEBUG PARAMS: {params}")
 
         # If query provided, add parameter for ORDER BY ts_rank
         if request.query and request.query.strip():
