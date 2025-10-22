@@ -154,19 +154,19 @@ async def hybrid_search(
             params.append(f"%{request.company}%")
             param_idx += 1
 
-        # Contact information filters
+        # Contact information filters (exclude NULL, empty string, and "-")
         if request.has_linkedin:
-            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != ''")
+            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'")
         if request.has_email:
-            where_conditions.append("email IS NOT NULL AND email != ''")
+            where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
         if request.has_phone:
-            where_conditions.append("phone IS NOT NULL AND phone != ''")
+            where_conditions.append("phone IS NOT NULL AND phone != '' AND phone != '-'")
         if request.has_website:
-            where_conditions.append("website IS NOT NULL AND website != ''")
+            where_conditions.append("website IS NOT NULL AND website != '' AND website != '-'")
         if request.has_twitter:
-            where_conditions.append("twitter IS NOT NULL AND twitter != ''")
+            where_conditions.append("twitter IS NOT NULL AND twitter != '' AND twitter != '-'")
         if request.has_github:
-            where_conditions.append("github IS NOT NULL AND github != ''")
+            where_conditions.append("github IS NOT NULL AND github != '' AND github != '-'")
 
         # Quality score filter
         if request.min_quality_score is not None:
@@ -509,19 +509,19 @@ async def keyword_search(
             params.append(f"%{request.company}%")
             param_idx += 1
 
-        # Contact information filters
+        # Contact information filters (exclude NULL, empty string, and "-")
         if request.has_linkedin:
-            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != ''")
+            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'")
         if request.has_email:
-            where_conditions.append("email IS NOT NULL AND email != ''")
+            where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
         if request.has_phone:
-            where_conditions.append("phone IS NOT NULL AND phone != ''")
+            where_conditions.append("phone IS NOT NULL AND phone != '' AND phone != '-'")
         if request.has_website:
-            where_conditions.append("website IS NOT NULL AND website != ''")
+            where_conditions.append("website IS NOT NULL AND website != '' AND website != '-'")
         if request.has_twitter:
-            where_conditions.append("twitter IS NOT NULL AND twitter != ''")
+            where_conditions.append("twitter IS NOT NULL AND twitter != '' AND twitter != '-'")
         if request.has_github:
-            where_conditions.append("github IS NOT NULL AND github != ''")
+            where_conditions.append("github IS NOT NULL AND github != '' AND github != '-'")
 
         # Quality score filter
         if request.min_quality_score is not None:
