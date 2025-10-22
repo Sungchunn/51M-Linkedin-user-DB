@@ -929,11 +929,59 @@
                             <td>Maximum years (0-80)</td>
                             <td>-</td>
                         </tr>
+                        <tr>
+                            <td>job_title</td>
+                            <td>string</td>
+                            <td>Filter by job title (partial match, case-insensitive)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>company</td>
+                            <td>string</td>
+                            <td>Filter by company name (partial match, case-insensitive)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_linkedin</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with LinkedIn URL</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_email</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with email address</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_phone</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with phone number</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_website</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with website/domain</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_twitter</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with Twitter handle</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_github</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with GitHub username</td>
+                            <td>-</td>
+                        </tr>
                     </tbody>
                 </table>
 
                 <h4 style="margin-top: 16px; color: var(--text-primary);">Example Request</h4>
-<pre><code>GET /search?q=senior+python+engineer&location_country=united+states&regions=california&skills=python&skills=sql&limit=20</code></pre>
+<pre><code>GET /search?q=senior+python+engineer&location_country=united+states&regions=california&skills=python&skills=sql&job_title=software+engineer&has_email=true&limit=20</code></pre>
             </div>
 
             <!-- POST Search -->
@@ -956,7 +1004,12 @@
   "industries": ["Computer Software", "Internet"],
   "skills": ["python", "sql"],
   "min_years_experience": 5,
-  "max_years_experience": 15
+  "max_years_experience": 15,
+  "job_title": "software engineer",
+  "company": "google",
+  "has_email": true,
+  "has_phone": true,
+  "has_linkedin": true
 }</code></pre>
 
                 <h4 style="margin-top: 16px; color: var(--text-primary);">Response</h4>
@@ -1134,6 +1187,8 @@ GET /search?page_token=eyJxdWVyeSI6...</code></pre>
   --data-urlencode "location_country=united states" \
   --data-urlencode "regions=california" \
   --data-urlencode "skills=python" \
+  --data-urlencode "job_title=software engineer" \
+  --data-urlencode "has_email=true" \
   --data-urlencode "limit=50"</code></pre>
 
             <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">JavaScript (fetch)</h3>
@@ -1148,6 +1203,9 @@ GET /search?page_token=eyJxdWVyeSI6...</code></pre>
     location_country: 'united states',
     regions: ['california'],
     skills: ['python', 'react'],
+    job_title: 'software engineer',
+    has_email: true,
+    has_linkedin: true,
     limit: 50
   })
 });
@@ -1166,6 +1224,9 @@ response = requests.post('http://localhost:8000/search',
         'location_country': 'united states',
         'regions': ['california'],
         'skills': ['python', 'react'],
+        'job_title': 'software engineer',
+        'has_email': True,
+        'has_linkedin': True,
         'limit': 50
     }
 )
