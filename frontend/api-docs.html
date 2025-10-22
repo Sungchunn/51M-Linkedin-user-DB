@@ -590,6 +590,68 @@
                     <small style="color: var(--text-muted); font-size: 12px;">Profiles must have ALL listed skills (AND logic)</small>
                 </div>
 
+                <!-- Job Title Filter -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Job Title
+                    </label>
+                    <input
+                        type="text"
+                        id="curlJobTitle"
+                        placeholder="e.g. Software Engineer, Product Manager"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Search for specific job titles (partial match)</small>
+                </div>
+
+                <!-- Company Filter -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Company
+                    </label>
+                    <input
+                        type="text"
+                        id="curlCompany"
+                        placeholder="e.g. Google, Microsoft, Amazon"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Search for specific companies (partial match)</small>
+                </div>
+
+                <!-- Contact Information Filters -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 12px;">
+                        Contact Information Filters
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasLinkedin" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has LinkedIn Profile</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasEmail" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Email</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasPhone" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Phone</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasWebsite" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Website/Domain</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasTwitter" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Twitter</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasGithub" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has GitHub</span>
+                        </label>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 12px;">Filter profiles that have specific contact information</small>
+                </div>
+
                 <!-- Generate Button -->
                 <div style="text-align: center; margin-bottom: 24px;">
                     <button onclick="generateCurl()" style="padding: 14px 32px; background: var(--primary-color); border: 1px solid var(--border-hover); border-radius: 8px; color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);">
@@ -1311,6 +1373,14 @@ for profile in data['results']:
             const limit = document.getElementById('curlLimit').value || '20';
             const offset = document.getElementById('curlOffset').value || '0';
             const skills = document.getElementById('curlSkills').value.trim();
+            const jobTitle = document.getElementById('curlJobTitle').value.trim();
+            const company = document.getElementById('curlCompany').value.trim();
+            const hasLinkedin = document.getElementById('curlHasLinkedin').checked;
+            const hasEmail = document.getElementById('curlHasEmail').checked;
+            const hasPhone = document.getElementById('curlHasPhone').checked;
+            const hasWebsite = document.getElementById('curlHasWebsite').checked;
+            const hasTwitter = document.getElementById('curlHasTwitter').checked;
+            const hasGithub = document.getElementById('curlHasGithub').checked;
 
             // Build URL with query params
             const params = new URLSearchParams();
@@ -1331,6 +1401,18 @@ for profile in data['results']:
                     params.append('skills', skill);
                 });
             }
+
+            // Job title and company filters
+            if (jobTitle) params.set('job_title', jobTitle);
+            if (company) params.set('company', company);
+
+            // Contact information filters
+            if (hasLinkedin) params.set('has_linkedin', 'true');
+            if (hasEmail) params.set('has_email', 'true');
+            if (hasPhone) params.set('has_phone', 'true');
+            if (hasWebsite) params.set('has_website', 'true');
+            if (hasTwitter) params.set('has_twitter', 'true');
+            if (hasGithub) params.set('has_github', 'true');
 
             const url = `${baseUrl}/search?${params.toString()}`;
 
