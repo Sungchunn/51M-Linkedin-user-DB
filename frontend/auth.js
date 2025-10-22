@@ -23,6 +23,7 @@ const alertBox = document.getElementById('alertBox');
 const modeSubtitle = document.getElementById('modeSubtitle');
 const fullNameGroup = document.getElementById('fullNameGroup');
 const emailGroup = document.getElementById('emailGroup');
+const confirmPasswordGroup = document.getElementById('confirmPasswordGroup');
 
 // Toggle between login and register
 toggleMode.addEventListener('click', () => {
@@ -38,12 +39,14 @@ function updateFormMode() {
         toggleText.innerHTML = "Don't have an account? <strong>Sign up</strong>";
         fullNameGroup.style.display = 'none';
         emailGroup.style.display = 'none';
+        confirmPasswordGroup.style.display = 'none';
     } else {
         modeSubtitle.textContent = 'Create a new account';
         submitBtn.textContent = 'Sign Up';
         toggleText.innerHTML = 'Already have an account? <strong>Sign in</strong>';
         fullNameGroup.style.display = 'block';
         emailGroup.style.display = 'block';
+        confirmPasswordGroup.style.display = 'block';
     }
     hideAlert();
 }
@@ -69,11 +72,28 @@ authForm.addEventListener('submit', async (e) => {
         } else {
             const email = document.getElementById('email').value.trim();
             const fullName = document.getElementById('fullName').value.trim();
+            const confirmPassword = document.getElementById('confirmPassword').value;
 
             if (!email) {
                 showAlert('Email is required for registration', 'error');
                 submitBtn.disabled = false;
                 updateFormMode();
+                return;
+            }
+
+            // Validate password confirmation
+            if (password !== confirmPassword) {
+                showAlert('Passwords do not match', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign Up';
+                return;
+            }
+
+            // Validate password strength
+            if (password.length < 8) {
+                showAlert('Password must be at least 8 characters long', 'error');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Sign Up';
                 return;
             }
 
