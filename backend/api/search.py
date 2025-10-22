@@ -142,6 +142,32 @@ async def hybrid_search(
             params.append(industries_to_filter)
             param_idx += 1
 
+        # Job title filter (partial match, case-insensitive)
+        if request.job_title:
+            where_conditions.append(f"job_title ILIKE ${param_idx}")
+            params.append(f"%{request.job_title}%")
+            param_idx += 1
+
+        # Company filter (partial match, case-insensitive)
+        if request.company:
+            where_conditions.append(f"company_name ILIKE ${param_idx}")
+            params.append(f"%{request.company}%")
+            param_idx += 1
+
+        # Contact information filters
+        if request.has_linkedin:
+            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != ''")
+        if request.has_email:
+            where_conditions.append("email IS NOT NULL AND email != ''")
+        if request.has_phone:
+            where_conditions.append("phone IS NOT NULL AND phone != ''")
+        if request.has_website:
+            where_conditions.append("website IS NOT NULL AND website != ''")
+        if request.has_twitter:
+            where_conditions.append("twitter IS NOT NULL AND twitter != ''")
+        if request.has_github:
+            where_conditions.append("github IS NOT NULL AND github != ''")
+
         # Quality score filter
         if request.min_quality_score is not None:
             where_conditions.append(f"content_quality_score >= ${param_idx}")
@@ -470,6 +496,32 @@ async def keyword_search(
             where_conditions.append(f"industry = ANY(${param_idx})")
             params.append(industries_to_filter)
             param_idx += 1
+
+        # Job title filter (partial match, case-insensitive)
+        if request.job_title:
+            where_conditions.append(f"job_title ILIKE ${param_idx}")
+            params.append(f"%{request.job_title}%")
+            param_idx += 1
+
+        # Company filter (partial match, case-insensitive)
+        if request.company:
+            where_conditions.append(f"company_name ILIKE ${param_idx}")
+            params.append(f"%{request.company}%")
+            param_idx += 1
+
+        # Contact information filters
+        if request.has_linkedin:
+            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != ''")
+        if request.has_email:
+            where_conditions.append("email IS NOT NULL AND email != ''")
+        if request.has_phone:
+            where_conditions.append("phone IS NOT NULL AND phone != ''")
+        if request.has_website:
+            where_conditions.append("website IS NOT NULL AND website != ''")
+        if request.has_twitter:
+            where_conditions.append("twitter IS NOT NULL AND twitter != ''")
+        if request.has_github:
+            where_conditions.append("github IS NOT NULL AND github != ''")
 
         # Quality score filter
         if request.min_quality_score is not None:

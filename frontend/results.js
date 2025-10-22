@@ -70,6 +70,18 @@ async function executeSearch() {
             currentParams.skills.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => params.append('skills', skill));
         }
 
+        // Job Title and Company filters
+        if (currentParams.job_title) params.set('job_title', currentParams.job_title);
+        if (currentParams.company) params.set('company', currentParams.company);
+
+        // Contact information filters (boolean checkboxes)
+        if (currentParams.has_linkedin) params.set('has_linkedin', 'true');
+        if (currentParams.has_email) params.set('has_email', 'true');
+        if (currentParams.has_phone) params.set('has_phone', 'true');
+        if (currentParams.has_website) params.set('has_website', 'true');
+        if (currentParams.has_twitter) params.set('has_twitter', 'true');
+        if (currentParams.has_github) params.set('has_github', 'true');
+
         const response = await fetch(`${API_BASE_URL}/search?${params.toString()}`);
 
         if (!response.ok) {

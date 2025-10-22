@@ -97,7 +97,33 @@
                             <small>Select one or more industries</small>
                         </div>
 
-                        <!-- Filters Row 2 -->
+                        <!-- Job Title Filter -->
+                        <div class="form-group">
+                            <label for="job_title">Job Title</label>
+                            <input
+                                type="text"
+                                id="job_title"
+                                name="job_title"
+                                placeholder="e.g. Software Engineer, Product Manager"
+                                class="form-control"
+                            >
+                            <small>Search for specific job titles</small>
+                        </div>
+
+                        <!-- Company Filter -->
+                        <div class="form-group">
+                            <label for="company">Company</label>
+                            <input
+                                type="text"
+                                id="company"
+                                name="company"
+                                placeholder="e.g. Google, Microsoft, Amazon"
+                                class="form-control"
+                            >
+                            <small>Search for specific companies</small>
+                        </div>
+
+                        <!-- Experience Range -->
                         <div class="filters-row">
                             <div class="form-group">
                                 <label for="min_experience">Min Experience (years)</label>
@@ -137,6 +163,38 @@
                                 class="form-control"
                             >
                             <small>Comma-separated skills (AND logic)</small>
+                        </div>
+
+                        <!-- Contact Information Filters -->
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 12px; color: var(--text-primary); font-weight: 500;">Contact Information</label>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_linkedin" name="has_linkedin">
+                                    <span>Has LinkedIn Profile</span>
+                                </label>
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_email" name="has_email">
+                                    <span>Has Email</span>
+                                </label>
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_phone" name="has_phone">
+                                    <span>Has Phone</span>
+                                </label>
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_website" name="has_website">
+                                    <span>Has Website/Domain</span>
+                                </label>
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_twitter" name="has_twitter">
+                                    <span>Has Twitter</span>
+                                </label>
+                                <label class="checkbox-filter">
+                                    <input type="checkbox" id="has_github" name="has_github">
+                                    <span>Has GitHub</span>
+                                </label>
+                            </div>
+                            <small>Select profiles that have specific contact information</small>
                         </div>
                     </div>
                 </details>

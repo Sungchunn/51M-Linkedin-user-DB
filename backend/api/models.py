@@ -50,6 +50,18 @@ class SearchRequest(BaseModel):
     industry: Optional[str] = Field(None, description="Filter by single industry (deprecated - use industries)")
     industries: Optional[List[str]] = Field(None, description="Filter by multiple industries (OR logic)")
 
+    # Job and company filters
+    job_title: Optional[str] = Field(None, description="Filter by job title (partial match)")
+    company: Optional[str] = Field(None, description="Filter by company name (partial match)")
+
+    # Contact information filters
+    has_linkedin: Optional[bool] = Field(None, description="Filter profiles with LinkedIn URL")
+    has_email: Optional[bool] = Field(None, description="Filter profiles with email")
+    has_phone: Optional[bool] = Field(None, description="Filter profiles with phone")
+    has_website: Optional[bool] = Field(None, description="Filter profiles with website")
+    has_twitter: Optional[bool] = Field(None, description="Filter profiles with Twitter")
+    has_github: Optional[bool] = Field(None, description="Filter profiles with GitHub")
+
     min_quality_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum quality score")
     min_data_completeness: Optional[int] = Field(None, ge=0, le=100, description="Minimum data completeness percentage")
 

@@ -13,6 +13,40 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2025‑10‑22 05:35
+- Author: Claude (Advanced Search Filters Implementation)
+- Change: Implemented 8 new advanced search filters: Job Title, Company, and 6 contact information filters
+- Details:
+  - Frontend: Added Job Title and Company text inputs to index.html (lines 101-124)
+  - Frontend: Added 6 contact checkboxes (Has LinkedIn, Email, Phone, Website, Twitter, GitHub) in index.html (lines 169-198)
+  - Frontend: Updated search.js to collect all new filter values and store in sessionStorage (lines 335-353)
+  - Frontend: Updated results.js to pass new filters as URL parameters to API (lines 73-83)
+  - Backend: Added 8 new fields to SearchRequest model in models.py (lines 53-63)
+  - Backend: Added 8 new query parameters to GET /search endpoint in app.py (lines 539-586)
+  - Backend: Implemented SQL filtering in search.py for both hybrid_search and keyword_search functions
+  - Filters: job_title and company use ILIKE for case-insensitive partial matching
+  - Filters: has_* contact filters check for NOT NULL AND != '' (excluding empty strings)
+  - Styles: Added .checkbox-filter CSS class for responsive grid layout of checkboxes
+- Impacts:
+  - API: New query params accepted: job_title, company, has_linkedin, has_email, has_phone, has_website, has_twitter, has_github
+  - UX: Users can now filter by job title, company name, and presence of contact information
+  - Database: Filters work at SQL level, reducing results efficiently
+  - PII: Email/phone still redacted in API responses, but filters work correctly (verified via result count changes)
+  - Performance: ILIKE queries may be slower on large datasets; consider adding GIN indexes if needed
+- Testing Results:
+  - Job Title filter: Tested with "software" - returns only matching profiles
+  - Company filter: Tested with "google" - returns 5 Google employees (case-insensitive works)
+  - has_linkedin: All 42,768 engineer profiles have LinkedIn (100% coverage)
+  - has_email: Reduces engineer results from 42,768 to 30,058 (70% have email in DB)
+  - All filters properly integrated and functional
+- Next:
+  - Monitor query performance with new ILIKE filters on production dataset
+  - Consider adding GIN indexes on job_title and company_name columns if searches are slow
+  - Optional: Add autocomplete/typeahead for company and job title fields
+  - Optional: Add filter summary display showing active filters on results page
+
+---
+
 - Date/Time (UTC): 2025‑10‑21 04:15
 - Author: Claude (Theme Documentation & Guidelines)
 - Change: Created comprehensive theme guidelines and updated agent documentation

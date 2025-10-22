@@ -436,6 +436,44 @@ header h1 a {
     font-weight: 500;
 }
 
+/* Contact Information Checkboxes */
+.checkbox-filter {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkbox-filter:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+}
+
+.checkbox-filter input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 10px;
+    cursor: pointer;
+    accent-color: var(--text-primary);
+}
+
+.checkbox-filter span {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-filter input[type="checkbox"]:checked ~ span {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
 /* === Buttons === */
 .btn-primary,
 .btn-secondary {

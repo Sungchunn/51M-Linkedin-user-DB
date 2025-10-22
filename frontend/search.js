@@ -332,6 +332,26 @@ function setupFormHandler() {
                 params.states = selectedStates;  // Array
             }
 
+            // Collect contact information checkboxes
+            if (document.getElementById('has_linkedin')?.checked) {
+                params.has_linkedin = true;
+            }
+            if (document.getElementById('has_email')?.checked) {
+                params.has_email = true;
+            }
+            if (document.getElementById('has_phone')?.checked) {
+                params.has_phone = true;
+            }
+            if (document.getElementById('has_website')?.checked) {
+                params.has_website = true;
+            }
+            if (document.getElementById('has_twitter')?.checked) {
+                params.has_twitter = true;
+            }
+            if (document.getElementById('has_github')?.checked) {
+                params.has_github = true;
+            }
+
             // Add offset and limit
             params.offset = 0;
             params.limit = 100;  // API max is 100
