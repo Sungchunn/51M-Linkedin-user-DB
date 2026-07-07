@@ -1,7 +1,8 @@
 // PROSPECTIQ - Authentication JavaScript
 // Handles login, registration, and authentication state
 
-const API_BASE_URL = 'http://localhost:8000';
+// API Base URL is now loaded from config.js
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:8000';
 
 // Check if already logged in
 if (window.location.pathname === '/login.html') {

@@ -1,7 +1,8 @@
 // PROSPECTIQ - Search Page JavaScript
 // Handles search form, filter loading, and stats
 
-const API_BASE_URL = 'http://localhost:8000';
+// API Base URL is now loaded from config.js
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || 'http://localhost:8000';
 
 // === Initialize Page ===
 document.addEventListener('DOMContentLoaded', async () => {
