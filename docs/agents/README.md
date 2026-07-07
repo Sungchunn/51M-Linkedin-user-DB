@@ -11,6 +11,7 @@
 
 Prompt snippet you can paste into any session:
 
+```text
 Use agent.md (project root) as the authoritative agent spec.
 If docs/claude.md is present, treat it as local-only context.
 When there is any conflict, agent.md takes precedence.
@@ -32,4 +33,5 @@ When there is any conflict, agent.md takes precedence.
 - Use the template in `Handoff.md` and place newest entries at the top (reverse‑chronological).
 
 Commit message hint:
+
 - Add a trailer `Handoff: brief-summary-here` to surface the entry in git history.
