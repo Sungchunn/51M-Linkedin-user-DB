@@ -94,6 +94,14 @@ The dividing line is the first push: local history is yours to rewrite, publishe
 6. **Merge PRs with a merge commit or GitHub's server-side "Rebase and merge".** Avoid squash-merging multi-commit PRs — it destroys the per-commit traceability the Commit Strategy exists to create.
 7. **Keep PRs small and single-purpose**, with conventional-commit-formatted titles (e.g., `feat(api): ...`).
 
+### PR Preparation Workflow (Agents)
+
+When work on a non-main branch is ready for review, follow the `prepare-pr` skill (`.claude/skills/prepare-pr/SKILL.md`). In short:
+
+1. **Sync with main first**: rebase onto `origin/main` if the branch has never been pushed; if it has, merge `main` in instead (rebasing a pushed branch would require a force push — forbidden).
+2. **Write the PR description from the actual branch diff**: a plain-English summary, the main structural changes grouped by area with the "why" for each, the commit list, and an honest verification section. Add tables or Mermaid diagrams when they genuinely clarify (architecture, data flow, schema/API changes). Save it to `.tmp/pr-description.md`.
+3. **The human publishes**: the agent prints the description for review and hands over the exact `git push` + `gh pr create --body-file` commands. Agents never push or open the PR themselves.
+
 ### DO NOT COMMIT
 
 - **claude.md** (local-only helper) - MUST be in .gitignore
