@@ -13,6 +13,19 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2026-07-07 14:05
+- Author: Claude (deployment prep commit batch)
+- Change: Committed all pending deployment/scaling work in 10 scoped commits; moved agent.md to project root
+- Details:
+  - Canonical agent spec relocated to /agent.md; all live doc references updated
+  - Deployment track: Dockerfile + .dockerignore, Procfile/fly.toml/render.yaml, .env.production.example, env-aware CORS in backend/api/app.py, frontend config.js API-base autodetection
+  - Scaling track: migration 009 (10M perf optimizations), quality-ranked 1M/10M extraction scripts, six deployment/scaling guides
+  - Fixed consFole typo in search.js; local pre-commit hook now exempts .example env templates from the .env filename block
+- Impacts: No API contract changes; CORS tightens only when ENVIRONMENT=production with CORS_ORIGINS set
+- Next: Generate embeddings (still 0 embedded); consider moving root-level deployment .md guides under docs/
+
+---
+
 - Date/Time (UTC): 2025‑10‑22 05:35
 - Author: Claude (Advanced Search Filters Implementation)
 - Change: Implemented 8 new advanced search filters: Job Title, Company, and 6 contact information filters
