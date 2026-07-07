@@ -792,8 +792,8 @@ WebApplication/
 │   ├── PHASE_STATUS.md          # Implementation status
 │   ├── THEME_GUIDELINES.md      # 🆕 UI/theme styling standards
 │   └── agents/
-│       ├── agent.md             # 🆕 AI agent instructions
 │       └── HANDOFF.md           # 🆕 Handoff log for collaboration
+├── agent.md                     # 🆕 AI agent instructions (canonical)
 ├── infrastructure/
 │   └── terraform/               # AWS infrastructure as code
 │       ├── main.tf
@@ -953,7 +953,7 @@ See [docs/SECURITY.md](./docs/SECURITY.md) for comprehensive security guide.
 | **[docs/SCALING_PLAN.md](./docs/SCALING_PLAN.md)** | Cloud deployment strategy |
 | **[docs/PHASE_STATUS.md](./docs/PHASE_STATUS.md)** | Implementation roadmap |
 | **[docs/THEME_GUIDELINES.md](./docs/THEME_GUIDELINES.md)** | 🆕 UI/theme styling standards |
-| **[docs/agents/agent.md](./docs/agents/agent.md)** | 🆕 AI agent instructions |
+| **[agent.md](./agent.md)** | 🆕 AI agent instructions |
 | **[docs/SECURITY.md](./docs/SECURITY.md)** | Security best practices |
 
 ---
