@@ -86,6 +86,7 @@ app = FastAPI(
 
 # Add CORS middleware
 import os
+environment = os.getenv("ENVIRONMENT", "development")
 allowed_origins_env = os.getenv(
     "CORS_ORIGINS",
     "http://localhost:5500,http://127.0.0.1:5500"
@@ -96,15 +97,29 @@ allow_origin_regex = os.getenv(
     "CORS_ORIGIN_REGEX",
     r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\\d+)?$"
 )
-# For local dev and to match previously working behavior, default to wide-open CORS.
-# You can tighten by setting CORS_ORIGINS explicitly in .env.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
+
+# CORS Configuration
+# - Development: Allow all origins for testing
+# - Production: Use specific origins from CORS_ORIGINS env variable
+if environment == "production" and "CORS_ORIGINS" in os.environ:
+    logger.info(f"🔒 CORS configured for production: {allowed_origins}")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+    )
+else:
+    # Development mode: Allow all origins
+    logger.info("🌐 CORS configured for development: Allow all origins")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"]
+    )
 
 # Include authentication router
 from backend.api.auth_routes import router as auth_router
