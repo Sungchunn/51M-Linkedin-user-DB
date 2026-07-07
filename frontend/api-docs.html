@@ -1,0 +1,1577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Documentation - PROSPECTIQ</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            width: 280px;
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 32px 0;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 0 24px 24px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 24px;
+        }
+
+        .sidebar-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .sidebar-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 24px 8px;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 8px 24px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.2s;
+            border-left: 2px solid transparent;
+        }
+
+        .nav-link:hover {
+            color: var(--text-primary);
+            background: var(--surface-hover);
+            border-left-color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            color: var(--text-primary);
+            background: var(--surface-hover);
+            border-left-color: var(--text-primary);
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 280px;
+            flex: 1;
+            padding: 40px 60px;
+            max-width: 1200px;
+        }
+
+        .page-header {
+            margin-bottom: 40px;
+        }
+
+        .page-title {
+            font-size: 36px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .page-description {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Sections */
+        .doc-section {
+            margin-bottom: 48px;
+            scroll-margin-top: 24px;
+        }
+
+        .section-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .section-description {
+            font-size: 15px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 24px;
+        }
+
+        /* Endpoint Card */
+        .endpoint {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .endpoint-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+        .method-get { background: rgba(16, 185, 129, 0.2); color: var(--success); }
+        .method-post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+        .method-delete { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+
+        .endpoint-path {
+            font-family: monospace;
+            font-size: 16px;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .endpoint-description {
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        /* Code Blocks */
+        pre {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+        }
+
+        code {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .inline-code {
+            background: var(--surface-hover);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th {
+            background: var(--background);
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 600;
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td:first-child {
+            color: var(--text-primary);
+            font-family: monospace;
+            font-weight: 500;
+        }
+
+        /* Info Boxes */
+        .info-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--success);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .info-box.warning {
+            border-left-color: #f59e0b;
+        }
+
+        .info-box-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .info-box-content {
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        /* Lists */
+        ul, ol {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        /* Quick Links */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        .quick-link-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .quick-link-card:hover {
+            border-color: var(--border-hover);
+            transform: translateY(-2px);
+        }
+
+        .quick-link-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .quick-link-description {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Back to top */
+        .back-to-top {
+            position: fixed;
+            bottom: 32px;
+            right: 32px;
+            background: var(--primary-color);
+            border: 1px solid var(--border-hover);
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .back-to-top:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .footer-links {
+            margin-top: 64px;
+            padding-top: 32px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+        }
+
+        .footer-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin: 0 16px;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--text-primary);
+        }
+    </style>
+</head>
+<body>
+    <div id="github-stars" style="position: fixed; top: 20px; right: 32px; z-index: 100;"></div>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title"><a href="index.html" style="color: inherit; text-decoration: none;">PROSPECTIQ API</a></div>
+            <div class="sidebar-subtitle">v1.0.0</div>
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px;">
+                <a href="index.html" style="color: #9aa6c7; text-decoration: none; display: block; margin-bottom: 8px;">← Search</a>
+                <a href="dashboard.html" style="color: #9aa6c7; text-decoration: none; display: block; margin-bottom: 8px;">API Keys</a>
+                <a href="login.html" onclick="window.authUtils.logout(); return false;" style="color: #9aa6c7; text-decoration: none; display: block;">Logout</a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Getting Started</div>
+            <a href="#introduction" class="nav-link">Introduction</a>
+            <a href="#authentication" class="nav-link">Authentication</a>
+            <a href="#rate-limits" class="nav-link">Rate Limits</a>
+            <a href="#quick-start" class="nav-link">Quick Start</a>
+            <a href="#curl-generator" class="nav-link">🔧 cURL Generator</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Endpoints</div>
+            <a href="#health" class="nav-link">Health Check</a>
+            <a href="#search" class="nav-link">Search Profiles</a>
+            <a href="#filters" class="nav-link">Filter Options</a>
+            <a href="#export" class="nav-link">Export Data</a>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Resources</div>
+            <a href="#pagination" class="nav-link">Pagination</a>
+            <a href="#examples" class="nav-link">Code Examples</a>
+            <a href="#errors" class="nav-link">Error Handling</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Header -->
+        <div class="page-header">
+            <h1 class="page-title">API Documentation</h1>
+            <p class="page-description">
+                Complete reference for the PROSPECTIQ API. Search 497K+ LinkedIn profiles with semantic search,
+                advanced filtering, and bulk export capabilities.
+            </p>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="quick-links">
+            <a href="#quick-start" class="quick-link-card">
+                <div class="quick-link-title">Quick Start</div>
+                <div class="quick-link-description">Get up and running in 5 minutes</div>
+            </a>
+            <a href="#search" class="quick-link-card">
+                <div class="quick-link-title">Search Endpoint</div>
+                <div class="quick-link-description">Semantic search with filters</div>
+            </a>
+            <a href="#examples" class="quick-link-card">
+                <div class="quick-link-title">Code Examples</div>
+                <div class="quick-link-description">cURL, JavaScript, Python</div>
+            </a>
+            <a href="dashboard.html" class="quick-link-card">
+                <div class="quick-link-title">Get API Key</div>
+                <div class="quick-link-description">Generate your API key</div>
+            </a>
+        </div>
+
+        <!-- Introduction -->
+        <section id="introduction" class="doc-section">
+            <h2 class="section-title">Introduction</h2>
+            <p class="section-description">
+                The PROSPECTIQ API provides programmatic access to semantic talent search across 497K+ LinkedIn profiles.
+                Our hybrid search combines vector embeddings (80%) with traditional lexical matching (20%) for optimal relevance.
+            </p>
+
+            <div class="info-box">
+                <div class="info-box-title">Base URL</div>
+                <div class="info-box-content">
+                    <code>http://localhost:8000</code>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Key Features</h3>
+            <ul>
+                <li><strong>Semantic Search:</strong> Natural language queries using OpenAI embeddings</li>
+                <li><strong>Advanced Filters:</strong> Location, skills, experience, industry, and more</li>
+                <li><strong>Bulk Export:</strong> CSV and NDJSON formats for CRM integration</li>
+                <li><strong>Real-time Performance:</strong> Sub-second query responses</li>
+                <li><strong>Flexible Authentication:</strong> API keys with custom scopes and rate limits</li>
+            </ul>
+        </section>
+
+        <!-- cURL Generator - MOVED TO TOP -->
+        <section id="curl-generator" class="doc-section">
+            <h2 class="section-title">🔧 cURL Command Generator</h2>
+            <p class="section-description">
+                Generate ready-to-use cURL commands with live data from the dataset. Select your filters and get a copy-paste ready command.
+            </p>
+
+            <div class="curl-generator-container" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-top: 20px;">
+
+                <!-- API Key Input -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        API Key (optional)
+                    </label>
+                    <input
+                        type="text"
+                        id="curlApiKey"
+                        placeholder="your-api-key-here"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-family: monospace; font-size: 13px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Leave empty for public access (limited features)</small>
+                </div>
+
+                <!-- Search Query -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Search Query
+                    </label>
+                    <input
+                        type="text"
+                        id="curlQuery"
+                        placeholder="e.g. senior software engineer, product manager, data scientist"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                </div>
+
+                <!-- Filters Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+
+                    <!-- Regions Filter -->
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            US States (multi-select)
+                            <span id="curlRegionsCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                        </label>
+                        <div style="position: relative;">
+                            <input
+                                type="text"
+                                id="curlRegionsSearch"
+                                placeholder="Search states..."
+                                style="width: 100%; padding: 8px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; margin-bottom: 8px;"
+                            >
+                        </div>
+                        <div id="curlRegionsContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--background);">
+                            <p style="color: var(--text-muted); padding: 8px;">Loading states...</p>
+                        </div>
+                    </div>
+
+                    <!-- Industries Filter -->
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Industries (multi-select)
+                            <span id="curlIndustriesCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                        </label>
+                        <div style="position: relative;">
+                            <input
+                                type="text"
+                                id="curlIndustriesSearch"
+                                placeholder="Search industries..."
+                                style="width: 100%; padding: 8px 12px; background: var(--background); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; margin-bottom: 8px;"
+                            >
+                        </div>
+                        <div id="curlIndustriesContainer" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; padding: 8px; background: var(--background);">
+                            <p style="color: var(--text-muted); padding: 8px;">Loading industries...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Experience Range -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Min Experience (years)
+                        </label>
+                        <input
+                            type="number"
+                            id="curlMinExp"
+                            min="0"
+                            max="80"
+                            placeholder="0"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Max Experience (years)
+                        </label>
+                        <input
+                            type="number"
+                            id="curlMaxExp"
+                            min="0"
+                            max="80"
+                            placeholder="80"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Limit
+                        </label>
+                        <input
+                            type="number"
+                            id="curlLimit"
+                            min="1"
+                            max="1000"
+                            value="20"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                            Offset
+                        </label>
+                        <input
+                            type="number"
+                            id="curlOffset"
+                            min="0"
+                            value="0"
+                            style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                        >
+                    </div>
+                </div>
+
+                <!-- Skills -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Skills (comma-separated)
+                    </label>
+                    <input
+                        type="text"
+                        id="curlSkills"
+                        placeholder="e.g. Python, JavaScript, React, SQL"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Profiles must have ALL listed skills (AND logic)</small>
+                </div>
+
+                <!-- Job Title Filter -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Job Title
+                    </label>
+                    <input
+                        type="text"
+                        id="curlJobTitle"
+                        placeholder="e.g. Software Engineer, Product Manager"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Search for specific job titles (partial match)</small>
+                </div>
+
+                <!-- Company Filter -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
+                        Company
+                    </label>
+                    <input
+                        type="text"
+                        id="curlCompany"
+                        placeholder="e.g. Google, Microsoft, Amazon"
+                        style="width: 100%; padding: 12px; background: var(--background); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px;"
+                    >
+                    <small style="color: var(--text-muted); font-size: 12px;">Search for specific companies (partial match)</small>
+                </div>
+
+                <!-- Contact Information Filters -->
+                <div class="form-group" style="margin-bottom: 20px;">
+                    <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 12px;">
+                        Contact Information Filters
+                    </label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasLinkedin" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has LinkedIn Profile</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasEmail" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Email</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasPhone" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Phone</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasWebsite" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Website/Domain</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasTwitter" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has Twitter</span>
+                        </label>
+                        <label style="display: flex; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
+                            <input type="checkbox" id="curlHasGithub" style="margin-right: 10px; cursor: pointer;">
+                            <span style="color: var(--text-secondary); font-size: 14px;">Has GitHub</span>
+                        </label>
+                    </div>
+                    <small style="color: var(--text-muted); font-size: 12px;">Filter profiles that have specific contact information</small>
+                </div>
+
+                <!-- Generate Button -->
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <button onclick="generateCurl()" style="padding: 14px 32px; background: var(--primary-color); border: 1px solid var(--border-hover); border-radius: 8px; color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);">
+                        🔧 Generate cURL Command
+                    </button>
+                </div>
+
+                <!-- Generated cURL Output -->
+                <div id="curlOutput" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h4 style="margin: 0; color: var(--text-primary); font-size: 16px;">Generated cURL Command</h4>
+                        <button onclick="copyCurlCommand()" style="padding: 8px 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 6px; color: var(--success); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                            📋 Copy to Clipboard
+                        </button>
+                    </div>
+                    <pre style="background: #0a0a0a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.6;"><code id="curlCommand" style="color: #f0f0f0;"></code></pre>
+
+                    <div style="margin-top: 16px; padding: 12px; background: rgba(96, 213, 255, 0.05); border: 1px solid rgba(96, 213, 255, 0.2); border-radius: 6px;">
+                        <strong style="color: var(--text-primary); font-size: 13px;">💡 Pro Tip:</strong>
+                        <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;">
+                            Add <code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 12px;">| jq</code> to pretty-print JSON output, or
+                            <code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 12px;">| jq '.results[] | {name: .full_name, title: .job_title}'</code> to extract specific fields.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Authentication -->
+        <section id="authentication" class="doc-section">
+            <h2 class="section-title">Authentication</h2>
+            <p class="section-description">
+                API keys are required for production usage. Include your API key in the <code class="inline-code">X-API-Key</code> header.
+            </p>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">API Key Tiers</h3>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tier</th>
+                        <th>Max Results</th>
+                        <th>Rate Limit</th>
+                        <th>Features</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Public</td>
+                        <td>50</td>
+                        <td>60/min</td>
+                        <td>Basic search, PII redacted</td>
+                    </tr>
+                    <tr>
+                        <td>Basic</td>
+                        <td>200</td>
+                        <td>200/min</td>
+                        <td>Search + Export (with scope)</td>
+                    </tr>
+                    <tr>
+                        <td>Trusted</td>
+                        <td>1000</td>
+                        <td>1000/min</td>
+                        <td>Full access + PII (with scope)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Scopes</h3>
+            <ul>
+                <li><code class="inline-code">search:read</code> - Basic search access (default)</li>
+                <li><code class="inline-code">export:read</code> - CSV/NDJSON export capabilities</li>
+                <li><code class="inline-code">pii:read</code> - Access to email, phone, LinkedIn URLs</li>
+            </ul>
+
+            <div class="info-box">
+                <div class="info-box-title">Example Request</div>
+                <div class="info-box-content">
+<pre><code>curl http://localhost:8000/search?q=engineer \
+  -H "X-API-Key: your-api-key-here"</code></pre>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rate Limits -->
+        <section id="rate-limits" class="doc-section">
+            <h2 class="section-title">Rate Limits</h2>
+            <p class="section-description">
+                Rate limits are enforced per IP address (for public) or per API key (for authenticated requests).
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Endpoint</th>
+                        <th>Limit</th>
+                        <th>Burst</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>/search</td>
+                        <td>60/min (public)<br>200/min (basic)<br>1000/min (trusted)</td>
+                        <td>120/min</td>
+                    </tr>
+                    <tr>
+                        <td>/export/*</td>
+                        <td>6/min</td>
+                        <td>10/min</td>
+                    </tr>
+                    <tr>
+                        <td>/filters</td>
+                        <td>No limit</td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Rate Limit Headers</div>
+                <div class="info-box-content">
+                    When rate limited, you'll receive a <code class="inline-code">429 Too Many Requests</code> response.
+                    Retry after the specified time in the <code class="inline-code">Retry-After</code> header.
+                </div>
+            </div>
+        </section>
+
+        <!-- Quick Start -->
+        <section id="quick-start" class="doc-section">
+            <h2 class="section-title">Quick Start</h2>
+            <p class="section-description">
+                Get started with the PROSPECTIQ API in 3 simple steps.
+            </p>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 1: Get an API Key</h3>
+            <ol>
+                <li>Go to the <a href="dashboard.html" style="color: var(--text-primary);">API Keys</a> page</li>
+                <li>Click "Create New Key"</li>
+                <li>Select scopes and tier</li>
+                <li>Copy your API key (shown only once!)</li>
+            </ol>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 2: Make Your First Request</h3>
+<pre><code>curl "http://localhost:8000/search?q=software+engineer&limit=5" \
+  -H "X-API-Key: your-api-key-here"</code></pre>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Step 3: Process the Response</h3>
+<pre><code>{
+  "results": [
+    {
+      "id": "uuid",
+      "full_name": "John Doe",
+      "job_title": "Senior Software Engineer",
+      "company_name": "Tech Corp",
+      "location": "San Francisco, CA",
+      "skills": ["Python", "React", "AWS"],
+      "score": 0.92
+    }
+  ],
+  "total_count": 1247,
+  "returned_count": 5,
+  "query_time_ms": 423
+}</code></pre>
+        </section>
+
+        <!-- Health Endpoint -->
+        <section id="health" class="doc-section">
+            <h2 class="section-title">Health Check</h2>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/health</span>
+                </div>
+                <p class="endpoint-description">
+                    Check the health status of the API and database connection.
+                </p>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Response</h4>
+<pre><code>{
+  "status": "healthy",
+  "timestamp": "2025-10-21T03:00:00Z",
+  "database": "connected",
+  "profiles_total": 497552,
+  "profiles_with_embeddings": 0
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- Search Endpoint -->
+        <section id="search" class="doc-section">
+            <h2 class="section-title">Search Profiles</h2>
+            <p class="section-description">
+                Semantic search with advanced filtering. Supports both GET (query params) and POST (JSON body).
+            </p>
+
+            <!-- GET Search -->
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/search</span>
+                </div>
+                <p class="endpoint-description">
+                    Search using URL query parameters. Ideal for simple integrations and HTTP request nodes.
+                </p>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Query Parameters</h4>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Default</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>q</td>
+                            <td>string</td>
+                            <td>Search query (natural language)</td>
+                            <td>""</td>
+                        </tr>
+                        <tr>
+                            <td>limit</td>
+                            <td>integer</td>
+                            <td>Results per page (1-1000)</td>
+                            <td>20</td>
+                        </tr>
+                        <tr>
+                            <td>offset</td>
+                            <td>integer</td>
+                            <td>Pagination offset</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td>location_country</td>
+                            <td>string</td>
+                            <td>Filter by country</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>regions</td>
+                            <td>array</td>
+                            <td>Filter by regions (repeat param)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>localities</td>
+                            <td>array</td>
+                            <td>Filter by cities (repeat param)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>industries</td>
+                            <td>array</td>
+                            <td>Filter by industries (OR logic)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>skills</td>
+                            <td>array</td>
+                            <td>Required skills (AND logic)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>min_years_experience</td>
+                            <td>integer</td>
+                            <td>Minimum years (0-80)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>max_years_experience</td>
+                            <td>integer</td>
+                            <td>Maximum years (0-80)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>job_title</td>
+                            <td>string</td>
+                            <td>Filter by job title (partial match, case-insensitive)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>company</td>
+                            <td>string</td>
+                            <td>Filter by company name (partial match, case-insensitive)</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_linkedin</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with LinkedIn URL</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_email</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with email address</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_phone</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with phone number</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_website</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with website/domain</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_twitter</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with Twitter handle</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>has_github</td>
+                            <td>boolean</td>
+                            <td>Filter profiles with GitHub username</td>
+                            <td>-</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Example Request</h4>
+<pre><code>GET /search?q=senior+python+engineer&location_country=united+states&regions=california&skills=python&skills=sql&job_title=software+engineer&has_email=true&limit=20</code></pre>
+            </div>
+
+            <!-- POST Search -->
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-post">POST</span>
+                    <span class="endpoint-path">/search</span>
+                </div>
+                <p class="endpoint-description">
+                    Search using JSON body. Better for complex filters and programmatic access.
+                </p>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Request Body</h4>
+<pre><code>{
+  "query": "senior python engineer",
+  "limit": 20,
+  "offset": 0,
+  "location_country": "united states",
+  "regions": ["california", "new york"],
+  "industries": ["Computer Software", "Internet"],
+  "skills": ["python", "sql"],
+  "min_years_experience": 5,
+  "max_years_experience": 15,
+  "job_title": "software engineer",
+  "company": "google",
+  "has_email": true,
+  "has_phone": true,
+  "has_linkedin": true
+}</code></pre>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Response</h4>
+<pre><code>{
+  "results": [...],
+  "total_count": 1247,
+  "returned_count": 20,
+  "offset": 0,
+  "limit": 20,
+  "query_time_ms": 542,
+  "query": "senior python engineer",
+  "filters_applied": {
+    "location_country": "united states",
+    "regions": ["california", "new york"],
+    "min_experience": 5
+  },
+  "next_page_token": "eyJxdWVyeSI6..."
+}</code></pre>
+            </div>
+        </section>
+
+        <!-- Filter Endpoints -->
+        <section id="filters" class="doc-section">
+            <h2 class="section-title">Filter Options</h2>
+            <p class="section-description">
+                Get available filter values for countries, regions, cities, and industries. All filter endpoints are cached for 10 minutes.
+            </p>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/countries</span>
+                </div>
+                <p class="endpoint-description">List all countries in the database.</p>
+<pre><code>{"countries": ["united states", "canada", ...]}</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/regions</span>
+                </div>
+                <p class="endpoint-description">List regions/states, optionally filtered by country.</p>
+<pre><code>GET /regions?country=united+states
+
+{
+  "regions": [
+    {"region": "california", "count": 12345},
+    {"region": "new york", "count": 8765}
+  ]
+}</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/localities</span>
+                </div>
+                <p class="endpoint-description">List cities, optionally filtered by country and region.</p>
+<pre><code>GET /localities?country=united+states&region=california
+
+{
+  "localities": [
+    {"locality": "san francisco", "count": 2345},
+    {"locality": "los angeles", "count": 1876}
+  ]
+}</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/industries</span>
+                </div>
+                <p class="endpoint-description">List all industries.</p>
+<pre><code>{"industries": ["Computer Software", "Internet", "Financial Services", ...]}</code></pre>
+            </div>
+        </section>
+
+        <!-- Export Endpoints -->
+        <section id="export" class="doc-section">
+            <h2 class="section-title">Export Data</h2>
+            <p class="section-description">
+                Bulk export search results in CSV or NDJSON format. Requires <code class="inline-code">export:read</code> scope.
+            </p>
+
+            <div class="info-box warning">
+                <div class="info-box-title">⚠️ Export Requirements</div>
+                <div class="info-box-content">
+                    Export endpoints require:
+                    <ul style="margin: 8px 0 0 0;">
+                        <li>API key with <code class="inline-code">export:read</code> scope</li>
+                        <li>Non-empty query (<code class="inline-code">q</code>) OR at least one filter</li>
+                        <li>Maximum 1000 results per request</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/export/csv</span>
+                </div>
+                <p class="endpoint-description">
+                    Export search results as CSV. PII fields redacted unless key has <code class="inline-code">pii:read</code> scope.
+                </p>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Example Request</h4>
+<pre><code>GET /export/csv?q=python&limit=1000&regions=california
+Content-Type: text/csv; charset=utf-8
+Content-Disposition: attachment; filename="export.csv"
+
+id,full_name,job_title,company_name,industry,location,skills,score
+uuid,John Doe,Senior Engineer,Tech Corp,Software,"San Francisco, CA","[Python, SQL]",0.92
+...</code></pre>
+            </div>
+
+            <div class="endpoint">
+                <div class="endpoint-header">
+                    <span class="method-badge method-get">GET</span>
+                    <span class="endpoint-path">/export/ndjson</span>
+                </div>
+                <p class="endpoint-description">
+                    Export search results as NDJSON (newline-delimited JSON). One JSON object per line.
+                </p>
+
+                <h4 style="margin-top: 16px; color: var(--text-primary);">Example Response</h4>
+<pre><code>{"id":"uuid","full_name":"John Doe","job_title":"Senior Engineer",...}
+{"id":"uuid","full_name":"Jane Smith","job_title":"Staff Engineer",...}
+{"id":"uuid","full_name":"Bob Wilson","job_title":"Principal Engineer",...}</code></pre>
+            </div>
+        </section>
+
+        <!-- Pagination -->
+        <section id="pagination" class="doc-section">
+            <h2 class="section-title">Pagination</h2>
+            <p class="section-description">
+                Use offset-based pagination or opaque page tokens for efficient result navigation.
+            </p>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Offset-Based Pagination</h3>
+<pre><code>// Page 1
+GET /search?q=engineer&limit=20&offset=0
+
+// Page 2
+GET /search?q=engineer&limit=20&offset=20
+
+// Page 3
+GET /search?q=engineer&limit=20&offset=40</code></pre>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Token-Based Pagination</h3>
+            <p class="section-description">
+                Use <code class="inline-code">next_page_token</code> for easier pagination without managing offsets.
+            </p>
+<pre><code>// First request
+GET /search?q=python&limit=100
+
+{
+  "results": [...],
+  "next_page_token": "eyJxdWVyeSI6..."
+}
+
+// Next page
+GET /search?page_token=eyJxdWVyeSI6...</code></pre>
+        </section>
+
+        <!-- Examples -->
+        <section id="examples" class="doc-section">
+            <h2 class="section-title">Code Examples</h2>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">cURL</h3>
+<pre><code>curl -G "http://localhost:8000/search" \
+  -H "X-API-Key: your-api-key" \
+  --data-urlencode "q=senior software engineer" \
+  --data-urlencode "location_country=united states" \
+  --data-urlencode "regions=california" \
+  --data-urlencode "skills=python" \
+  --data-urlencode "job_title=software engineer" \
+  --data-urlencode "has_email=true" \
+  --data-urlencode "limit=50"</code></pre>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">JavaScript (fetch)</h3>
+<pre><code>const response = await fetch('http://localhost:8000/search', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'X-API-Key': 'your-api-key'
+  },
+  body: JSON.stringify({
+    query: 'senior software engineer',
+    location_country: 'united states',
+    regions: ['california'],
+    skills: ['python', 'react'],
+    job_title: 'software engineer',
+    has_email: true,
+    has_linkedin: true,
+    limit: 50
+  })
+});
+
+const data = await response.json();
+console.log(`Found ${data.total_count} results`);
+console.log(data.results);</code></pre>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Python (requests)</h3>
+<pre><code>import requests
+
+response = requests.post('http://localhost:8000/search',
+    headers={'X-API-Key': 'your-api-key'},
+    json={
+        'query': 'senior software engineer',
+        'location_country': 'united states',
+        'regions': ['california'],
+        'skills': ['python', 'react'],
+        'job_title': 'software engineer',
+        'has_email': True,
+        'has_linkedin': True,
+        'limit': 50
+    }
+)
+
+data = response.json()
+print(f"Found {data['total_count']} results")
+for profile in data['results']:
+    print(f"{profile['full_name']} - {profile['job_title']}")</code></pre>
+        </section>
+
+        <!-- Error Handling -->
+        <section id="errors" class="doc-section">
+            <h2 class="section-title">Error Handling</h2>
+            <p class="section-description">
+                The API uses standard HTTP status codes. All error responses include a JSON body with details.
+            </p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Status Code</th>
+                        <th>Meaning</th>
+                        <th>Common Causes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>400</td>
+                        <td>Bad Request</td>
+                        <td>Invalid parameters, malformed JSON</td>
+                    </tr>
+                    <tr>
+                        <td>401</td>
+                        <td>Unauthorized</td>
+                        <td>Missing or invalid API key</td>
+                    </tr>
+                    <tr>
+                        <td>403</td>
+                        <td>Forbidden</td>
+                        <td>Insufficient scopes or tier</td>
+                    </tr>
+                    <tr>
+                        <td>422</td>
+                        <td>Unprocessable Entity</td>
+                        <td>Validation errors, offset too high</td>
+                    </tr>
+                    <tr>
+                        <td>429</td>
+                        <td>Too Many Requests</td>
+                        <td>Rate limit exceeded</td>
+                    </tr>
+                    <tr>
+                        <td>500</td>
+                        <td>Internal Server Error</td>
+                        <td>Server-side error</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin-top: 24px; font-size: 20px; color: var(--text-primary);">Error Response Format</h3>
+<pre><code>{
+  "error": "Invalid query parameter",
+  "detail": "limit must be between 1 and 1000",
+  "timestamp": "2025-10-21T03:00:00Z"
+}</code></pre>
+        </section>
+
+        <!-- Footer -->
+        <div class="footer-links">
+            <a href="index.html">← Back to Search</a>
+            <a href="dashboard.html">API Keys</a>
+            <a href="login.html">Login</a>
+        </div>
+    </main>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <span style="color: var(--text-primary);">↑</span>
+    </button>
+
+    <script>
+        // cURL Generator - Global variables
+        const API_BASE_URL = 'http://localhost:8000';
+        let curlAllRegions = [];
+        let curlAllIndustries = [];
+
+        // Load filter data on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCurlFilters();
+        });
+
+        // Load regions and industries for cURL generator
+        async function loadCurlFilters() {
+            try {
+                // Load regions and industries in parallel
+                const [regionsRes, industriesRes] = await Promise.all([
+                    fetch(`${API_BASE_URL}/regions?country=united+states`),
+                    fetch(`${API_BASE_URL}/industries`)
+                ]);
+
+                if (regionsRes.ok) {
+                    const data = await regionsRes.json();
+                    curlAllRegions = data.regions.map(r => r.region).sort();
+                    renderCurlCheckboxes('curlRegionsContainer', curlAllRegions, 'curlRegions');
+
+                    // Setup search
+                    document.getElementById('curlRegionsSearch').addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        const filtered = curlAllRegions.filter(r => r.toLowerCase().includes(term));
+                        renderCurlCheckboxes('curlRegionsContainer', filtered, 'curlRegions');
+                    });
+                } else {
+                    document.getElementById('curlRegionsContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Failed to load states</p>';
+                }
+
+                if (industriesRes.ok) {
+                    const data = await industriesRes.json();
+                    curlAllIndustries = data.industries.sort();
+                    renderCurlCheckboxes('curlIndustriesContainer', curlAllIndustries, 'curlIndustries');
+
+                    // Setup search
+                    document.getElementById('curlIndustriesSearch').addEventListener('input', (e) => {
+                        const term = e.target.value.toLowerCase();
+                        const filtered = curlAllIndustries.filter(i => i.toLowerCase().includes(term));
+                        renderCurlCheckboxes('curlIndustriesContainer', filtered, 'curlIndustries');
+                    });
+                } else {
+                    document.getElementById('curlIndustriesContainer').innerHTML = '<p style="color: var(--error); padding: 8px;">Failed to load industries</p>';
+                }
+            } catch (error) {
+                console.error('Failed to load curl filters:', error);
+            }
+        }
+
+        // Render checkboxes for cURL generator
+        function renderCurlCheckboxes(containerId, items, prefix) {
+            const container = document.getElementById(containerId);
+            const currentSelected = getCurlSelectedValues(containerId, prefix);
+
+            container.innerHTML = '';
+
+            if (items.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); padding: 8px;">No items found</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.style.cssText = 'display: flex; align-items: center; padding: 6px 8px; cursor: pointer; transition: background 0.2s;';
+                div.onmouseover = () => div.style.background = 'var(--surface-hover)';
+                div.onmouseout = () => div.style.background = 'transparent';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `${prefix}_${item.replace(/\s+/g, '_')}`;
+                checkbox.value = item;
+                checkbox.checked = currentSelected.includes(item);
+                checkbox.style.marginRight = '8px';
+                checkbox.addEventListener('change', () => updateCurlFilterCount(containerId, prefix));
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = item;
+                label.style.cssText = 'cursor: pointer; flex: 1; color: var(--text-secondary); font-size: 13px;';
+
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+
+            updateCurlFilterCount(containerId, prefix);
+        }
+
+        // Get selected values for cURL generator
+        function getCurlSelectedValues(containerId, prefix) {
+            const checkboxes = document.querySelectorAll(`#${containerId} input[type="checkbox"]:checked`);
+            return Array.from(checkboxes).map(cb => cb.value);
+        }
+
+        // Update filter count
+        function updateCurlFilterCount(containerId, prefix) {
+            const count = getCurlSelectedValues(containerId, prefix).length;
+            let countElement;
+
+            if (prefix === 'curlRegions') {
+                countElement = document.getElementById('curlRegionsCount');
+            } else if (prefix === 'curlIndustries') {
+                countElement = document.getElementById('curlIndustriesCount');
+            }
+
+            if (countElement) {
+                countElement.textContent = count > 0 ? `(${count} selected)` : '';
+            }
+        }
+
+        // Generate cURL command
+        function generateCurl() {
+            const baseUrl = API_BASE_URL;
+            const apiKey = document.getElementById('curlApiKey').value.trim();
+            const query = document.getElementById('curlQuery').value.trim();
+            const regions = getCurlSelectedValues('curlRegionsContainer', 'curlRegions');
+            const industries = getCurlSelectedValues('curlIndustriesContainer', 'curlIndustries');
+            const minExp = document.getElementById('curlMinExp').value;
+            const maxExp = document.getElementById('curlMaxExp').value;
+            const limit = document.getElementById('curlLimit').value || '20';
+            const offset = document.getElementById('curlOffset').value || '0';
+            const skills = document.getElementById('curlSkills').value.trim();
+            const jobTitle = document.getElementById('curlJobTitle').value.trim();
+            const company = document.getElementById('curlCompany').value.trim();
+            const hasLinkedin = document.getElementById('curlHasLinkedin').checked;
+            const hasEmail = document.getElementById('curlHasEmail').checked;
+            const hasPhone = document.getElementById('curlHasPhone').checked;
+            const hasWebsite = document.getElementById('curlHasWebsite').checked;
+            const hasTwitter = document.getElementById('curlHasTwitter').checked;
+            const hasGithub = document.getElementById('curlHasGithub').checked;
+
+            // Build URL with query params
+            const params = new URLSearchParams();
+
+            if (query) params.set('q', query);
+            params.set('limit', limit);
+            params.set('offset', offset);
+            params.set('location_country', 'united states');
+
+            regions.forEach(r => params.append('regions', r));
+            industries.forEach(i => params.append('industries', i));
+
+            if (minExp) params.set('min_years_experience', minExp);
+            if (maxExp) params.set('max_years_experience', maxExp);
+
+            if (skills) {
+                skills.split(',').map(s => s.trim()).filter(Boolean).forEach(skill => {
+                    params.append('skills', skill);
+                });
+            }
+
+            // Job title and company filters
+            if (jobTitle) params.set('job_title', jobTitle);
+            if (company) params.set('company', company);
+
+            // Contact information filters
+            if (hasLinkedin) params.set('has_linkedin', 'true');
+            if (hasEmail) params.set('has_email', 'true');
+            if (hasPhone) params.set('has_phone', 'true');
+            if (hasWebsite) params.set('has_website', 'true');
+            if (hasTwitter) params.set('has_twitter', 'true');
+            if (hasGithub) params.set('has_github', 'true');
+
+            const url = `${baseUrl}/search?${params.toString()}`;
+
+            // Build cURL command
+            let curlCommand = `curl -X GET "${url}"`;
+
+            if (apiKey) {
+                curlCommand += ` \\\n  -H "X-API-Key: ${apiKey}"`;
+            }
+
+            curlCommand += ` \\\n  -H "Accept: application/json"`;
+
+            // Display the command
+            document.getElementById('curlCommand').textContent = curlCommand;
+            document.getElementById('curlOutput').style.display = 'block';
+
+            // Scroll to output
+            document.getElementById('curlOutput').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        // Copy cURL command to clipboard
+        function copyCurlCommand() {
+            const command = document.getElementById('curlCommand').textContent;
+
+            navigator.clipboard.writeText(command).then(() => {
+                const btn = event.target;
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.style.background = 'rgba(16, 185, 129, 0.2)';
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = 'rgba(16, 185, 129, 0.1)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy to clipboard. Please copy manually.');
+            });
+        }
+
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+
+                    // Update active nav link
+                    document.querySelectorAll('.nav-link').forEach(link => {
+                        link.classList.remove('active');
+                    });
+                    this.classList.add('active');
+                }
+            });
+        });
+
+        // Back to top button visibility
+        const backToTop = document.querySelector('.back-to-top');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+        });
+
+        // Highlight active section in nav
+        const sections = document.querySelectorAll('.doc-section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop;
+                const sectionHeight = section.clientHeight;
+                if (scrollY >= sectionTop - 100) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === `#${current}`) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+
+    <script src="github-stars.js"></script>
+    <script src="auth.js"></script>
+    <script>
+        // Check authentication before allowing access
+        if (!window.authUtils.isAuthenticated()) {
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>

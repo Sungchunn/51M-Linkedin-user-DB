@@ -1,0 +1,100 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: profiles_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: profiles
+    ports:
+      - "5433:5432"  # Use 5433 externally to avoid conflict
+    volumes:
+      # Named volume (avoids iCloud/Dropbox sync)
+      - postgres_data:/var/lib/postgresql/data
+      # SQL scripts
+      - ./sql:/sql
+    command:
+      # M2 MacBook Air optimized settings (Docker with 8GB RAM)
+      - postgres
+      - -c
+      - shared_buffers=2GB                  # 25% of Docker RAM
+      - -c
+      - effective_cache_size=8GB            # 50% of Docker RAM
+      - -c
+      - maintenance_work_mem=2GB            # For index builds
+      - -c
+      - work_mem=64MB                       # Per operation
+      - -c
+      - max_wal_size=4GB
+      - -c
+      - wal_compression=on
+      - -c
+      - random_page_cost=1.1                # SSD optimized
+      - -c
+      - effective_io_concurrency=200        # SSD
+      - -c
+      - max_worker_processes=8
+      - -c
+      - max_parallel_workers_per_gather=4
+      - -c
+      - max_parallel_workers=8
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - min_wal_size=1GB
+      - -c
+      - log_min_duration_statement=1000     # Log slow queries (>1s)
+      - -c
+      - "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: profiles_redis
+    ports:
+      - "6379:6379"
+    command:
+      - redis-server
+      - --maxmemory
+      - 2gb                                 # Cache limit
+      - --maxmemory-policy
+      - allkeys-lru                         # Evict least recently used
+      - --save
+      - ""                                  # Disable persistence (cache only)
+      - --appendonly
+      - "no"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: profiles_pgweb
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/profiles?sslmode=disable
+    depends_on:
+      - postgres
+    profiles:
+      - tools  # Optional: start with `docker-compose --profile tools up`
+
+volumes:
+  postgres_data:
+    name: profiles_postgres_data
+  redis_data:
+    name: profiles_redis_data
+
+networks:
+  default:
+    name: profiles_network

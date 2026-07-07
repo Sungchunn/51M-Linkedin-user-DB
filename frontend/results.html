@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - PROSPECTIQ</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-inner">
+            <div>
+                <h1><a href="index.html">PROSPECTIQ</a></h1>
+                <p class="subtitle">Intelligence-Driven Prospecting</p>
+            </div>
+            <div class="header-right">
+                <a href="dashboard.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Keys</a>
+                <a href="api-docs.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Docs</a>
+                <span id="github-stars-inline"></span>
+                <a href="login.html" onclick="window.authUtils.logout(); return false;" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">Logout</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Results Container -->
+    <div class="results-container">
+        <!-- Results Summary -->
+        <div class="results-summary" id="resultsSummary">
+            <div class="summary-header">
+                <div>
+                    <div class="summary-stats">
+                        <h2 id="resultsCount">Loading...</h2>
+                        <span class="query-time" id="queryTime"></span>
+                    </div>
+                    <p class="summary-query" id="searchQuery"></p>
+                </div>
+                <div class="summary-actions">
+                    <button onclick="window.print()" class="btn-secondary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 17H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-1"/>
+                            <path d="M5 21h14a2 2 0 0 0 2-2v-5H3v5a2 2 0 0 0 2 2Z"/>
+                        </svg>
+                        Save
+                    </button>
+                    <button onclick="exportToCSV()" class="btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export
+                    </button>
+                </div>
+            </div>
+            <div id="filtersApplied" style="display: none;"></div>
+        </div>
+
+        <!-- Results Table -->
+        <div class="table-container">
+            <table id="resultsTable">
+                <thead>
+                    <tr>
+                        <th>FIRST NAME</th>
+                        <th>LAST NAME</th>
+                        <th>JOB TITLE</th>
+                        <th>COMPANY</th>
+                        <th>INDUSTRY</th>
+                        <th>LOCATION</th>
+                        <th>EXPERIENCE</th>
+                        <th>SUMMARY</th>
+                        <th>LINKEDIN</th>
+                        <th>EMAIL</th>
+                        <th>PHONE</th>
+                        <th>WEBSITE</th>
+                        <th>TWITTER</th>
+                        <th>GITHUB</th>
+                        <th>SKILLS</th>
+                    </tr>
+                </thead>
+                <tbody id="resultsBody">
+                    <!-- Populated by JavaScript -->
+                </tbody>
+            </table>
+
+            <!-- Loading State -->
+            <div id="loadingState" class="loading-state">
+                <div class="spinner"></div>
+                <p>Searching profiles...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <p style="font-size: 3rem; margin-bottom: 16px;">🔍</p>
+                <p style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">No results found</p>
+                <p style="color: var(--text-muted);">Try adjusting your filters or search terms</p>
+                <button onclick="goBack()" class="btn-primary" style="margin-top: 24px;">Back to Search</button>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState" class="error-state" style="display: none;">
+                <p style="font-size: 3rem; margin-bottom: 16px;">⚠️</p>
+                <p style="font-size: 1.25rem; color: var(--text-primary); margin-bottom: 8px;">Search failed</p>
+                <p id="errorMessage" style="color: var(--text-muted);"></p>
+                <button onclick="goBack()" class="btn-primary" style="margin-top: 24px;">Back to Search</button>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination" id="pagination">
+            <div class="pagination-info">
+                <span>Rows per page</span>
+                <select id="limitSelect" class="form-control" style="width: 80px; padding: 8px 12px; font-size: 0.875rem;">
+                    <option value="15">15</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100" selected>100</option>
+                </select>
+                <span id="rowsInfo" style="color: var(--text-subtle);">1-100 of 1000</span>
+            </div>
+
+            <div class="pagination-controls">
+                <button id="prevBtn" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                    Previous
+                </button>
+                <button id="nextBtn">
+                    Next
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6"/>
+                    </svg>
+                </button>
+            </div>
+
+            <span id="pageInfo">1 / 10</span>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
+    </footer>
+
+    <!-- Load config first for API URL detection -->
+    <script src="config.js"></script>
+    <script src="squares-bg.js"></script>
+    <script src="github-stars.js"></script>
+    <script src="results.js?v=20251022"></script>
+</body>
+</html>
