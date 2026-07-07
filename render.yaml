@@ -1,0 +1,63 @@
+# Render.com deployment configuration
+services:
+  - type: web
+    name: prospectiq-api
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11
+      - key: POETRY_VERSION
+        value: 1.7.1
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: API_PORT
+        sync: false
+        value: 8000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: prospectiq-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: prospectiq-redis
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: JWT_SECRET_KEY
+        generateValue: true
+        sync: false
+      - key: ADMIN_PASSWORD
+        generateValue: true
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+        value: https://your-domain.com
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+    plan: standard
+    region: oregon
+    buildCommand: poetry install --no-dev
+    startCommand: uvicorn backend.api.app:app --host 0.0.0.0 --port $PORT --workers 4
+
+databases:
+  - name: prospectiq-db
+    databaseName: profiles
+    plan: standard
+    region: oregon
+    postgresMajorVersion: 17
+    extensions:
+      - pgvector
+
+# Optional: Redis for caching
+# services:
+#   - type: redis
+#     name: prospectiq-redis
+#     plan: standard
+#     region: oregon
+#     maxmemoryPolicy: allkeys-lru
