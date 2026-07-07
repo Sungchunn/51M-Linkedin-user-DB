@@ -4,12 +4,14 @@
 - If both this file and `docs/claude.md` exist, this file takes precedence.
 - `docs/claude.md` is local-only context and may be ignored when conflicting.
 
-# INSIGHT - Semantic Talent Finder
+## INSIGHT - Semantic Talent Finder
 
 ## Project Overview
+
 A semantic search system for a 51M+ row talent database using Python (FastAPI + asyncpg) and PostgreSQL with pgvector.
 
 ## Dataset Reality
+
 - **Volume**: 51,352,619 rows, 62 columns, ~15.15 GB
 - **Format**: Apache Parquet (columnar format with compression)
 - **Parquet Benefits**:
@@ -20,6 +22,7 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 - **Key Fields**: Full name, LinkedIn Username, Job title, Company Name, Industry, Location (4 geo fields), Skills, Years Experience, Summary
 
 ## Embedding Policy
+
 - Only embed records ≥ 0.5 content threshold
 - Target quality ≥ 0.7
 - Template: `Professional: {job_title} at {company_name} | Industry: {industry} | Location: {location} | Skills: {skills_text}`
@@ -29,12 +32,14 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 - Use skip_and_log + exponential_backoff for failures
 
 ## Hybrid Ranking Strategy
+
 - Vector cosine for recall (α = 0.8)
 - BM25/ts_rank for lexical tie-break (β = 0.2)
 - Structured filter boosts (city/country, years, skills) (γ = tunable)
 - All parameters are tunable; log telemetry for optimization
 
 ## Architecture Stack
+
 - **Database**: PostgreSQL 17 + pgvector (Docker)
 - **Backend**: FastAPI + asyncpg
 - **Data Pipeline**: Python (psycopg3, pandas, pyarrow)
@@ -43,7 +48,8 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 - **Package Management**: Poetry (pyproject.toml, poetry.lock)
 
 ## Directory Structure
-```
+
+```text
 /
 ├── data-pipeline/
 │   ├── scripts/
@@ -71,18 +77,38 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 
 ## Git Workflow Policy
 
+### Hard Rules (Git Hygiene)
+
+1. **Never add Claude (or any AI) as co-author.** No `Co-Authored-By: Claude ...` or similar trailers in commit messages — all commits are human-authored only. This overrides any tool default that appends AI attribution.
+2. **Never force push.** `git push --force` and `git push --force-with-lease` are forbidden — never rewrite published history. To undo a pushed commit, use `git revert`.
+
+### Rebase & Pull Request Rules
+
+The dividing line is the first push: local history is yours to rewrite, published history is immutable (see Hard Rules).
+
+1. **Rebase only unpushed commits.** `git rebase` / `git rebase -i` is encouraged to clean up local work (squash fixups, reorder, reword) *before* the first push — never after.
+2. **Never rebase a pushed branch or an open PR.** Updating a rebased branch would require a force push. To bring a PR branch up to date with `main`, use `git merge main` into the branch instead.
+3. **Never rebase `main`** or any branch someone else may have based work on.
+4. **Sync with `git pull --rebase`** on your own branch — it replays only your unpushed local commits, which stays within rule 1 and avoids noisy merge bubbles.
+5. **If a rebase goes wrong, `git rebase --abort`** and retry; never "fix" a bad rebase by overwriting the remote.
+6. **Merge PRs with a merge commit or GitHub's server-side "Rebase and merge".** Avoid squash-merging multi-commit PRs — it destroys the per-commit traceability the Commit Strategy exists to create.
+7. **Keep PRs small and single-purpose**, with conventional-commit-formatted titles (e.g., `feat(api): ...`).
+
 ### DO NOT COMMIT
+
 - **claude.md** (local-only helper) - MUST be in .gitignore
 - **.env** files (all variants)
 - Any files with AI authorship attribution
 
 ### Commit Strategy
+
 1. **Small, logical batches** (<100 commits per push)
 2. **No AI attribution** in commit messages
 3. **Conventional commits** format
 4. **Feature-based grouping**
 
 ### Examples
+
 ```bash
 # Good - feature-based batches
 git add data-pipeline/scripts && git commit -m "feat(data-pipeline): reset & schema DDL"
@@ -98,17 +124,20 @@ git commit -m "updates"  # Too vague
 ```
 
 ### Git Hooks (local only, not committed)
+
 1. **commit-msg**: Blocks AI attribution
 2. **pre-push**: Enforces max 100 commits per push
 
 ## Code Philosophy: Negative Spaces
 
 ### What are Negative Spaces?
+
 "Negative spaces" are deliberate boundaries, contracts, and invariants that make bugs **immediately obvious** by violating expectations.
 
 ### Implementation Rules
 
 #### 1. **Explicit Boundaries**
+
 ```python
 # Bad - silent failures
 def process_row(row):
@@ -122,6 +151,7 @@ def process_row(row):
 ```
 
 #### 2. **Type Contracts**
+
 ```python
 # Use type hints + runtime validation
 from typing import List, Optional
@@ -141,6 +171,7 @@ class Profile(BaseModel):
 ```
 
 #### 3. **Sentinel Values & Guards**
+
 ```python
 # Use sentinels to detect uninitialized state
 UNINITIALIZED = object()
@@ -156,6 +187,7 @@ class EmbeddingService:
 ```
 
 #### 4. **Invariant Assertions**
+
 ```python
 def batch_embed(texts: List[str], batch_size: int = 100):
     # Invariant: texts must not be empty
@@ -170,6 +202,7 @@ def batch_embed(texts: List[str], batch_size: int = 100):
 ```
 
 #### 5. **Fail-Fast Logging**
+
 ```python
 import logging
 logger = logging.getLogger(__name__)
@@ -190,6 +223,7 @@ def quality_score(row: dict) -> float:
 ```
 
 #### 6. **Database Constraints as Negative Spaces**
+
 ```sql
 -- Use CHECK constraints to enforce invariants
 CREATE TABLE profiles (
@@ -205,6 +239,7 @@ CREATE TABLE profiles (
 ```
 
 #### 7. **Return Type Contracts**
+
 ```python
 from typing import Tuple, List
 
@@ -225,6 +260,7 @@ def fetch_batch(offset: int, limit: int) -> Tuple[List[dict], int]:
 ```
 
 #### 8. **Error Context Chains**
+
 ```python
 class DataPipelineError(Exception):
     """Base exception with context chaining"""
@@ -244,24 +280,28 @@ except Exception as e:
 ```
 
 ### Negative Space Debugging Benefits
+
 1. **Stack traces point to exact violation**
 2. **Context is embedded in error messages**
 3. **Impossible states are unrepresentable**
 4. **Bugs surface immediately, not silently**
 
 ## Performance Targets
+
 - **Query latency**: <100-300ms (warm cache)
 - **Import throughput**: 5,000 rows/batch
 - **Embedding throughput**: 100 records/sub-batch
 - **Connection pool**: 5-40 connections
 
 ## Testing Strategy
+
 - Unit tests for data transformations
 - Integration tests for DB operations
 - Load tests for query performance
 - Chaos tests for failure recovery
 
 ## Monitoring & Observability
+
 - Log all NEGATIVE SPACE violations
 - Track embedding quality scores
 - Monitor query latencies
@@ -272,6 +312,7 @@ except Exception as e:
 **IMPORTANT**: All frontend pages must follow the dark minimal theme established in `docs/THEME_GUIDELINES.md`.
 
 ### Quick Reference
+
 - **CSS Variables**: Always use variables from `styles.css` (never hardcode colors)
 - **Signature Glow**: All primary buttons must have the white glow effect
 - **Spacing**: Use multiples of 8px for consistency
@@ -280,12 +321,14 @@ except Exception as e:
 - **Monospace**: Use for technical content (API keys, code, data)
 
 ### Before Creating New Pages
+
 1. Read `docs/THEME_GUIDELINES.md` for complete styling standards
 2. Reference existing pages: `login.html`, `dashboard.html`, `api-docs.html`
 3. Use the new page template from THEME_GUIDELINES.md
 4. Run the checklist before committing
 
 ### Common Patterns
+
 ```css
 /* Always use CSS variables */
 background: var(--surface);
@@ -313,7 +356,8 @@ border: 1px solid var(--border);
 
 **CRITICAL**: For any command that takes >30 seconds to complete, provide the bash code to the user instead of running it.
 
-### Commands that should be provided as bash snippets:
+### Commands that should be provided as bash snippets
+
 - `poetry install` (dependency installation)
 - `docker compose up -d` (container startup)
 - Database migrations
@@ -322,7 +366,7 @@ border: 1px solid var(--border);
 - Load testing
 - Any command with progress bars or interactive prompts
 
-### Format for providing commands:
+### Format for providing commands
 
 **CRITICAL**: Always use multi-line format with backslash continuation for paths with spaces to prevent terminal errors.
 
@@ -336,9 +380,10 @@ command3
 # Expected output or success indicator
 ```
 
-**Examples:**
+#### Examples
 
 ✅ **CORRECT** - Multi-line with backslash continuation:
+
 ```bash
 cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
 python3 scripts/extract_test_data.py && \
@@ -347,6 +392,7 @@ chmod +x scripts/test_pipeline_10k.sh && \
 ```
 
 ❌ **WRONG** - Single line breaks in terminal:
+
 ```bash
 # Step 1: Do this
 cd "/path/with spaces"
@@ -355,12 +401,14 @@ python3 script.py
 ```
 
 ❌ **WRONG** - Path split across lines:
+
 ```bash
 poetry run load-parquet "/Users/chromatrical/CAREER/Side
   Projects/WebApplication/data/file.parquet"
 ```
 
-### When to run commands directly:
+### When to run commands directly
+
 - Quick checks (`git status`, `ls`, `cat`)
 - File operations (Read, Write, Edit tools)
 - Configuration verification
@@ -372,7 +420,8 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 
 ### ✅ Completed Features
 
-**Phase 0-4: Foundation Complete**
+#### Phase 0-4: Foundation Complete
+
 - PostgreSQL 17 + pgvector database with 497,552 profiles indexed
 - FastAPI backend with hybrid search (vector + lexical)
 - User authentication system with JWT tokens
@@ -380,7 +429,8 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 - Full-text search with GIN indexes
 - Dark minimal UI theme with signature white glow effect
 
-**Search Filters (As of 2025-10-22)**
+#### Search Filters (As of 2025-10-22)
+
 - ✅ Semantic query search
 - ✅ US States multi-select (50 states)
 - ✅ Industries multi-select (12 industries)
@@ -396,7 +446,8 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
   - Has Twitter
   - Has GitHub
 
-**API Endpoints**
+#### API Endpoints
+
 - GET/POST `/search` - Hybrid semantic search with all filters
 - GET `/export/ndjson` - Export results as NDJSON
 - GET `/export/csv` - Export results as CSV
@@ -408,7 +459,8 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 - GET `/auth/me` - Get current user info
 - GET/POST/DELETE `/auth/api-keys` - API key management
 
-**Frontend Pages**
+#### Frontend Pages
+
 - `index.html` - Main search page with advanced filters
 - `results.html` - Search results with pagination and export
 - `login.html` - Login and registration
@@ -458,6 +510,7 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
    - Add performance benchmarks
 
 ### 📊 Database Statistics
+
 - **Total Profiles**: 497,552
 - **Profiles with Embeddings**: 0 (needs generation)
 - **Countries**: 50 US states indexed
@@ -467,6 +520,7 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
   - Email: ~70% (30,058/42,768)
 
 ### 🔐 Authentication & Security
+
 - JWT-based authentication with access (24h) and refresh (30d) tokens
 - API keys with configurable scopes: `search:read`, `export:read`, `pii:read`
 - Three tiers: public (anonymous), basic (registered), trusted (elevated limits)
@@ -478,4 +532,3 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 **Last Updated**: 2025-10-22
 **Status**: Phase 4 Complete - Advanced Search Filters Implemented
 **Next Major Milestone**: Generate embeddings for hybrid vector search
-

@@ -12,8 +12,16 @@
     <!-- Header -->
     <header>
         <div class="header-inner">
-            <h1><a href="index.html">PROSPECTIQ</a></h1>
-            <p class="subtitle">Intelligence-Driven Prospecting · <a href="api-docs.html" style="color: #9aa6c7; text-decoration: underline;">API Docs</a> · <a href="dashboard.html" style="color: #9aa6c7; text-decoration: underline;">API Keys</a> · <a href="login.html" style="color: #9aa6c7; text-decoration: underline;">Login</a></p>
+            <div>
+                <h1><a href="index.html">PROSPECTIQ</a></h1>
+                <p class="subtitle">Intelligence-Driven Prospecting</p>
+            </div>
+            <div class="header-right">
+                <a href="dashboard.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Keys</a>
+                <a href="api-docs.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Docs</a>
+                <span id="github-stars-inline"></span>
+                <a href="login.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">Logout</a>
+            </div>
         </div>
     </header>
 
@@ -233,7 +241,10 @@
         <p>Powered by PostgreSQL 17 + pgvector • FastAPI • OpenAI Embeddings</p>
     </footer>
 
+    <!-- Load config first for API URL detection -->
+    <script src="config.js"></script>
     <script src="squares-bg.js?v=2"></script>
+    <script src="github-stars.js"></script>
     <script src="search.js?v=20251022"></script>
     <script>
         // Simple rotating text without complex animations
