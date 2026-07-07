@@ -82,6 +82,18 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 1. **Never add Claude (or any AI) as co-author.** No `Co-Authored-By: Claude ...` or similar trailers in commit messages — all commits are human-authored only. This overrides any tool default that appends AI attribution.
 2. **Never force push.** `git push --force` and `git push --force-with-lease` are forbidden — never rewrite published history. To undo a pushed commit, use `git revert`.
 
+### Rebase & Pull Request Rules
+
+The dividing line is the first push: local history is yours to rewrite, published history is immutable (see Hard Rules).
+
+1. **Rebase only unpushed commits.** `git rebase` / `git rebase -i` is encouraged to clean up local work (squash fixups, reorder, reword) *before* the first push — never after.
+2. **Never rebase a pushed branch or an open PR.** Updating a rebased branch would require a force push. To bring a PR branch up to date with `main`, use `git merge main` into the branch instead.
+3. **Never rebase `main`** or any branch someone else may have based work on.
+4. **Sync with `git pull --rebase`** on your own branch — it replays only your unpushed local commits, which stays within rule 1 and avoids noisy merge bubbles.
+5. **If a rebase goes wrong, `git rebase --abort`** and retry; never "fix" a bad rebase by overwriting the remote.
+6. **Merge PRs with a merge commit or GitHub's server-side "Rebase and merge".** Avoid squash-merging multi-commit PRs — it destroys the per-commit traceability the Commit Strategy exists to create.
+7. **Keep PRs small and single-purpose**, with conventional-commit-formatted titles (e.g., `feat(api): ...`).
+
 ### DO NOT COMMIT
 
 - **claude.md** (local-only helper) - MUST be in .gitignore
