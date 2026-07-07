@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Data files (too large for Docker image)
+data/*.parquet
+data/*.csv
+data/*.json
+embeddings/
+jobs/
+.tmp/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+docs/
+*.md
+README.md
+LICENSE
+
+# Frontend (not needed in backend container)
+frontend/
+
+# Testing
+backend/tests/
+pytest.ini
+
+# Poetry
+poetry.lock
+
+# Logs
+*.log
+logs/
+
+# Terraform
+infrastructure/
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Database
+*.db
+*.sqlite
+postgres_data/
