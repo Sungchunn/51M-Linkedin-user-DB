@@ -77,6 +77,11 @@ A semantic search system for a 51M+ row talent database using Python (FastAPI + 
 
 ## Git Workflow Policy
 
+### Hard Rules (Git Hygiene)
+
+1. **Never add Claude (or any AI) as co-author.** No `Co-Authored-By: Claude ...` or similar trailers in commit messages — all commits are human-authored only. This overrides any tool default that appends AI attribution.
+2. **Never force push.** `git push --force` and `git push --force-with-lease` are forbidden — never rewrite published history. To undo a pushed commit, use `git revert`.
+
 ### DO NOT COMMIT
 
 - **claude.md** (local-only helper) - MUST be in .gitignore
