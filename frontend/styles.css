@@ -62,6 +62,112 @@ header .header-inner {
     align-items: center;
 }
 
+header .header-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+/* Header Right Section */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+/* GitHub Badge */
+.github-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #111;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 9999px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', system-ui, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 12px;
+    text-decoration: none;
+    transition: all 0.2s;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.github-badge:hover {
+    background: #1a1a1a;
+    border-color: #555;
+}
+
+.github-badge svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.github-badge .github-text {
+    color: #fff;
+    font-weight: 600;
+}
+
+.github-badge .star-icon {
+    color: #fff;
+    font-size: 12px;
+    margin-left: 4px;
+}
+
+.github-badge .count {
+    color: #ddd;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+}
+
+/* GitHub Star Counter (for floating version) */
+#github-stars {
+    display: none;
+}
+
+.github-star-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.github-star-link:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.github-star-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    transition: color 0.2s;
+}
+
+.github-star-link:hover .github-star-icon {
+    color: var(--text-primary);
+}
+
+.github-star-count {
+    font-family: 'SF Mono', monospace;
+    font-size: 0.875rem;
+}
+
 header h1 {
     font-size: 1.25rem;
     font-weight: 600;

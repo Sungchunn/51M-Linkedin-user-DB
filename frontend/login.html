@@ -231,6 +231,7 @@
     </style>
 </head>
 <body>
+    <div id="github-stars" style="position: fixed; top: 20px; right: 20px; z-index: 100;"></div>
     <div class="login-container">
         <div class="login-card">
             <div class="login-header">
@@ -283,7 +284,10 @@
         </div>
     </div>
 
+    <!-- Load config first for API URL detection -->
+    <script src="config.js"></script>
     <script src="squares-bg.js"></script>
+    <script src="github-stars.js"></script>
     <script src="auth.js?v=20251022b"></script>
 </body>
 </html>
