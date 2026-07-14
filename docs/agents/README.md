@@ -30,7 +30,8 @@ When there is any conflict, agent.md takes precedence.
   - Rationale: why this approach
   - Impacts: API/UX/limits/security
   - Next: what you expect the other agent to do next
-- Use the template in `Handoff.md` and place newest entries at the top (reverse‑chronological).
+- Use the template at the top of `HANDOFF.md` and place newest entries at the top (reverse‑chronological).
+- Historical one-off handoff documents live in `docs/archive/` (e.g. `CODEX_HANDOFF_2025-10-22.md`); the rolling log here is the source of truth.
 
 Commit message hint:
 

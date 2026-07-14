@@ -785,14 +785,13 @@ WebApplication/
 │   ├── run_all_tests.sh         # Test suite runner
 │   ├── run_api_bg.sh            # 🆕 Start API in background
 │   └── serve_frontend_bg.sh     # 🆕 Start frontend server
-├── docs/
-│   ├── ARCHITECTURE.md          # System architecture
-│   ├── INGESTION_ARCHITECTURE.md # Data pipeline details
-│   ├── SCALING_PLAN.md          # Cloud deployment guide
-│   ├── PHASE_STATUS.md          # Implementation status
-│   ├── THEME_GUIDELINES.md      # 🆕 UI/theme styling standards
-│   └── agents/
-│       └── HANDOFF.md           # 🆕 Handoff log for collaboration
+├── docs/                        # All documentation (see docs/README.md)
+│   ├── architecture/            # System design (ARCHITECTURE.md, roadmap, hybrid track)
+│   ├── database/                # Schema & index reports
+│   ├── deployment/              # Deployment & scaling guides
+│   ├── guides/                  # Quick start, theme, security, coding philosophy
+│   ├── agents/                  # HANDOFF.md log + agent protocol
+│   └── archive/                 # Superseded plans (historical)
 ├── agent.md                     # 🆕 AI agent instructions (canonical)
 ├── infrastructure/
 │   └── terraform/               # AWS infrastructure as code
@@ -938,23 +937,26 @@ This dataset contains scraped LinkedIn data. Before deploying to production:
 - [ ] Automated security scanning (Snyk/Dependabot)
 - [x] Audit logs enabled (audit_log table) ✅
 
-See [docs/SECURITY.md](./docs/SECURITY.md) for comprehensive security guide.
+See [docs/guides/SECURITY.md](./docs/guides/SECURITY.md) for comprehensive security guide.
 
 ---
 
 ## 📚 Documentation
 
+Full index: **[docs/README.md](./docs/README.md)**
+
 | Document | Description |
 |----------|-------------|
-| **[QUICK_START.md](./QUICK_START.md)** | 5-minute setup guide |
-| **[HYBRID_SETUP.md](./HYBRID_SETUP.md)** | Complete architecture setup |
-| **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)** | System design & patterns |
-| **[docs/INGESTION_ARCHITECTURE.md](./docs/INGESTION_ARCHITECTURE.md)** | Three-tier data pipeline |
-| **[docs/SCALING_PLAN.md](./docs/SCALING_PLAN.md)** | Cloud deployment strategy |
-| **[docs/PHASE_STATUS.md](./docs/PHASE_STATUS.md)** | Implementation roadmap |
-| **[docs/THEME_GUIDELINES.md](./docs/THEME_GUIDELINES.md)** | 🆕 UI/theme styling standards |
-| **[agent.md](./agent.md)** | 🆕 AI agent instructions |
-| **[docs/SECURITY.md](./docs/SECURITY.md)** | Security best practices |
+| **[docs/architecture/ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md)** | Current system architecture |
+| **[docs/architecture/NEXT_STEPS_ARCHITECTURE.md](./docs/architecture/NEXT_STEPS_ARCHITECTURE.md)** | Active roadmap: tiered warehouse + NL search agent |
+| **[docs/architecture/HYBRID_SETUP.md](./docs/architecture/HYBRID_SETUP.md)** | Hybrid track setup (Postgres hot tier + Redis + DuckDB) |
+| **[docs/architecture/INGESTION_ARCHITECTURE.md](./docs/architecture/INGESTION_ARCHITECTURE.md)** | Three-tier data pipeline |
+| **[docs/guides/QUICK_START.md](./docs/guides/QUICK_START.md)** | Quick start (DuckDB browse API) |
+| **[docs/deployment/DEPLOYMENT_GUIDE.md](./docs/deployment/DEPLOYMENT_GUIDE.md)** | Deploying to Railway/Render/Fly.io |
+| **[docs/deployment/SCALING_TO_51M_GUIDE.md](./docs/deployment/SCALING_TO_51M_GUIDE.md)** | Scaling strategy to 51M profiles |
+| **[docs/guides/THEME_GUIDELINES.md](./docs/guides/THEME_GUIDELINES.md)** | UI/theme styling standards |
+| **[docs/guides/SECURITY.md](./docs/guides/SECURITY.md)** | Security best practices |
+| **[agent.md](./agent.md)** | AI agent instructions (canonical spec) |
 
 ---
 

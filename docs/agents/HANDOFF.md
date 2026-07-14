@@ -13,6 +13,33 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2026-07-14 (docs reorganization)
+- Author: Claude (docs cleanup)
+- Change: Reorganized all documentation into docs/{architecture,database,deployment,guides,agents,archive}; updated or removed outdated docs
+- Details:
+  - Moved root-level guides into docs/ (DEPLOYMENT_*, SCALING_*, QUICK_SCALE_REFERENCE, QUICK_START, HYBRID_SETUP, REBUILD_SUMMARY, README_local_dev) — completes the "move root .md guides under docs/" item from 2026-07-07
+  - Rewrote docs/architecture/ARCHITECTURE.md to current state (three FastAPI apps, migrations 001–009, two auth systems, 0 embeddings/FTS fallback, S3/Athena state-partitioned cold tier); rewrote docs/README.md as the index; rewrote guides/SECURITY.md (removed one-time incident content)
+  - Added status headers: NEXT_STEPS_ARCHITECTURE (Step 1 done, partitioned by state not country/industry), INGESTION_ARCHITECTURE (Tier 3 superseded by tiered warehouse), SCHEMA_REPORT (005–009 addendum), INDEX_REPORT
+  - Archived (docs/archive/): PROJECT_PHASES, API_DESIGN_PROPOSAL (never implemented), CODEX_HANDOFF_2025-10-22. Deleted: ARCHITECTURE_VISUAL (abandoned Vue proposal), PHASE_STATUS, CRITICAL_ISSUES_AND_DEPLOYMENT_PLAN (fixed in 70bfdb0), MIGRATION_GUIDE, SCALING_PLAN (all recoverable from git)
+  - Fixed stale "Side Projects/WebApplication" paths in agent.md, docs, and scripts; updated all cross-references (agent.md, README.md, CLAUDE.md, scripts)
+- Impacts: Docs only — no code/API changes. All moves via git mv (history preserved); moves are staged, not committed
+- Next: Commit as docs: batch; new docs go in the matching docs/ subfolder per docs/README.md conventions
+
+---
+
+- Date/Time (UTC): 2026-07-07 15:50
+- Author: Claude (Athena cold-tier reshape)
+- Change: Partitioned the full 51.35M-row S3 parquet into a state-partitioned Athena/Parquet warehouse (cold tier foundation)
+- Details:
+  - Source `s3://sungchunn-linkedin-db/USA_filtered.parquet` (15.2GB, 51,352,619 rows) is 99.9% US; profiling showed `Region`(state) is the clean partition key (2.3% null, even spread) vs `Company Industry` (49% null) — chose partition-by-state, not the doc's country/industry
+  - Reshape run 100% in AWS via Athena CTAS (server-side copy → `raw/` prefix; external table `insight.profiles_raw` uses REAL parquet names in backticks + name mapping, NOT position mapping which mis-aligned; DML uses double-quoted identifiers). Output: `s3://sungchunn-linkedin-db/curated/usa_profiles/state=<state>/` = 52 partitions (50 states+DC+`other`); row count exact, cost ~$0.08, ~1min
+  - Cleaning in CTAS: 56 cols → snake_case (dropped dot-named `Last Updated.1`), `years_experience`→int (out-of-range→null), `Region`→US-state whitelist else `other`. Data is dirty (CSV quote-bleed garbage in country/region)
+  - Helper + SQL in session scratchpad (`athena.sh`, `create_raw_v2.sql`, `ctas.sql`); design context in `docs/NEXT_STEPS_ARCHITECTURE.md`
+- Impacts: New cold-tier dataset on S3; no app/API wiring yet. IAM user `insight-s3-reader` has inline policy `insight-athena-reshape` (Athena+Glue+S3 rw on the bucket)
+- Next: (1) USER must add `glue:GetPartition`+`glue:BatchGetPartition` to the inline policy so partition-pruned `WHERE state=` queries work (only plural `GetPartitions` granted). (2) Optional: delete redundant root `USA_filtered.parquet`; compact small-state partitions. (3) Then: precompute aggregates/dropdowns, wire DuckDB/Athena cold path into query router
+
+---
+
 - Date/Time (UTC): 2026-07-07 14:05
 - Author: Claude (deployment prep commit batch)
 - Change: Committed all pending deployment/scaling work in 10 scoped commits; moved agent.md to project root

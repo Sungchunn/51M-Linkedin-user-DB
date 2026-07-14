@@ -197,7 +197,7 @@ npm install -g @railway/cli
 
 # Login and init
 railway login
-cd /path/to/WebApplication
+cd "/path/to/51M-Linkedin-user-DB"
 railway init
 
 # Add database
@@ -228,7 +228,7 @@ curl -L https://fly.io/install.sh | sh
 
 # Login and launch
 fly auth login
-cd /path/to/WebApplication
+cd "/path/to/51M-Linkedin-user-DB"
 fly launch --no-deploy
 
 # Create database

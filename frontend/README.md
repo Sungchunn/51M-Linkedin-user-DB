@@ -16,7 +16,7 @@ Clean, modern web interface for browsing 51M+ LinkedIn profiles using DuckDB + S
 ### 1. Start the API Server
 
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication"
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB"
 ./start_duckdb_api.sh
 ```
 

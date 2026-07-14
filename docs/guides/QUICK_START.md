@@ -5,7 +5,7 @@
 ### Step 1: Start the API Server
 
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB" && \
 ./start_duckdb_api.sh
 ```
 
@@ -40,7 +40,7 @@ open frontend/index.html
 
 In a NEW terminal:
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication/frontend" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/frontend" && \
 python3 -m http.server 3000
 ```
 
@@ -211,7 +211,7 @@ AWS_SECRET_ACCESS_KEY=...
 AWS_REGION=ap-southeast-2
 ```
 
-2. Rotate credentials if they were exposed (see `docs/SECURITY.md`)
+2. Rotate credentials if they were exposed (see `SECURITY.md` (same folder))
 
 3. Test S3 connection:
 ```bash
@@ -223,7 +223,7 @@ AWS_REGION=ap-southeast-2
 ## 📁 Project Structure
 
 ```
-WebApplication/
+51M-Linkedin-user-DB/
 ├── backend/
 │   ├── api/
 │   │   └── duckdb_app.py      ← API server
@@ -287,8 +287,8 @@ WebApplication/
 ## 📖 More Documentation
 
 - **Frontend Details:** `frontend/README.md`
-- **Security Guide:** `docs/SECURITY.md`
-- **Migration Guide:** `docs/MIGRATION_GUIDE.md`
+- **Security Guide:** `SECURITY.md` (same folder)
+- **Migration Guide:** `../architecture/HYBRID_SETUP.md`
 - **API Docs:** http://localhost:8000/docs (when running)
 
 ---

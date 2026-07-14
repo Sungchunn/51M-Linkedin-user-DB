@@ -1,8 +1,12 @@
 # INSIGHT Database Schema Report
 
 **Phase 1: Database Schema Design**
-**Status**: ✅ Complete
-**Date**: 2025-10-07
+**Status**: ✅ Complete — original design report (migrations 001–004)
+**Date**: 2025-10-07 (addendum for migrations 005–009: 2026-07-14)
+
+> **Note (2026-07-14):** This report documents the original core schema. Five
+> migrations have landed since — see the [Addendum](#addendum-migrations-005009)
+> at the bottom for what they added.
 
 ---
 
@@ -412,15 +416,24 @@ postgres=# \dx
 
 ---
 
-## Next Steps
+## Addendum: Migrations 005–009
 
-- **Phase 2**: Implement Parquet → staging → core ingestion pipeline
-- **Phase 3**: Generate embeddings (batch OpenAI API calls)
-- **Phase 4**: Build FastAPI search endpoint with hybrid ranking
+Added after this report was written (see `migrations/` for full SQL):
+
+| Migration | What it adds |
+|-----------|--------------|
+| `005_data_completeness.sql` | `data_completeness_pct` (0–100) column + partial index — powers "completeness" filtering/ranking |
+| `006_optimize_filter_indexes.sql` | Tuned B-tree/partial indexes for the most common filter combinations |
+| `007_add_search_vector.sql` | Persisted `search_vector` tsvector column + GIN index (replaces on-the-fly `to_tsvector` in queries) |
+| `008_users_and_api_keys.sql` | Auth schema: `users`, `api_keys` (SHA-256-hashed keys, scopes, tiers), `refresh_tokens`, `audit_log` |
+| `009_performance_optimizations_10m.sql` | 10M-scale prep, including a `profiles_partitioned` LIST-partition-by-state experiment (top-10 states + default partition) |
+
+Current loaded state: **497,552 profiles**, 0 embeddings generated (embedding column
+exists; hybrid search falls back to full-text until embeddings are populated).
 
 ---
 
-**Report Generated**: 2025-10-07
+**Report Generated**: 2025-10-07 (addendum 2026-07-14)
 **Database Version**: PostgreSQL 17.0
 **pgvector Version**: 0.8.1
-**Schema Version**: 1.0.0
+**Schema Version**: 1.0.0 + migrations 005–009

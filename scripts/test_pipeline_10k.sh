@@ -3,7 +3,7 @@
 
 set -e  # Exit on error
 
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication"
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB"
 
 echo "================================================"
 echo "INSIGHT - Pipeline Test (10,000 rows)"
@@ -18,7 +18,7 @@ echo ""
 echo "================================================"
 echo "Step 2: Loading test_10000_rows.parquet..."
 echo "================================================"
-poetry run load-parquet "/Users/chromatrical/CAREER/Side Projects/WebApplication/data/test_10000_rows.parquet"
+poetry run load-parquet "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data/test_10000_rows.parquet"
 
 echo ""
 echo "================================================"

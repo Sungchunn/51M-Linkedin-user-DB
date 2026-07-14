@@ -1,8 +1,14 @@
 # INSIGHT Index Strategy Report
 
 **Phase 1: Database Indexing**
-**Status**: ✅ Complete
+**Status**: ✅ Complete — original index design (migration 004)
 **Date**: 2025-10-07
+
+> **Note (2026-07-14):** This is the design rationale for the Phase-1 indexes.
+> Later migrations refined them: `006` tuned filter indexes, `007` added a persisted
+> `search_vector` tsvector + GIN index, `009` added 10M-scale optimizations.
+> HNSW vector-search figures below are design targets — no embeddings have been
+> generated yet, so all production queries currently run through the FTS/B-tree paths.
 
 ---
 

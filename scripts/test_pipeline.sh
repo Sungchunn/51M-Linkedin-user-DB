@@ -20,7 +20,7 @@ echo ""
 echo "================================================"
 echo "Step 2: Loading Parquet to staging..."
 echo "================================================"
-poetry run load-parquet "/Users/chromatrical/CAREER/Side Projects/WebApplication/data/batches/batch_0000.parquet"
+poetry run load-parquet "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data/batches/batch_0000.parquet"
 
 echo ""
 echo "================================================"

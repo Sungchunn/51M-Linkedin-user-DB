@@ -48,7 +48,7 @@
 ### Step 1: Extract Top 500K Profiles (15 minutes)
 
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB" && \
 poetry run python3 scripts/extract_top_500k.py
 ```
 
@@ -69,7 +69,7 @@ poetry run python3 scripts/extract_top_500k.py
 ### Step 2: Load to PostgreSQL (5 minutes)
 
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB" && \
 poetry run load-parquet data/top_500k_profiles.parquet
 ```
 
@@ -351,7 +351,7 @@ If you need more profiles:
 
 ⚠️ **Don't forget to rotate your AWS credentials!**
 
-See: `docs/SECURITY.md`
+See: `../guides/SECURITY.md`
 
 ---
 

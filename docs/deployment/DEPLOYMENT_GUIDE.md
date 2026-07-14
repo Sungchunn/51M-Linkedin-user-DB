@@ -38,7 +38,7 @@ railway login
 
 #### Step 2: Create New Project
 ```bash
-cd /path/to/WebApplication
+cd "/path/to/51M-Linkedin-user-DB"
 railway init
 ```
 
@@ -184,7 +184,7 @@ fly auth login
 
 #### Step 2: Create App
 ```bash
-cd /path/to/WebApplication
+cd "/path/to/51M-Linkedin-user-DB"
 fly launch --no-deploy
 ```
 

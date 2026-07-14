@@ -1,5 +1,13 @@
 # INSIGHT - Scalable Data Ingestion Architecture
 
+> **Status (2026-07-14):** Tiers 1 and 2 exist and were used to load the current 497K
+> profiles (`load_incremental.py`, `load_optimized.py`). Tier 3 (`cloud_worker.py`) is
+> code-complete but was never deployed — the bulk-load-into-RDS strategy it implements
+> has been superseded by the tiered hot/cold warehouse plan in
+> [NEXT_STEPS_ARCHITECTURE.md](./NEXT_STEPS_ARCHITECTURE.md), where the full 51M rows
+> stay in partitioned Parquet on S3 and only a curated ~1M slice is promoted into
+> Postgres. The Tier 1/2 sections below remain accurate for local loading.
+
 ## Problem Statement
 
 The current ingestion pipeline has these limitations:

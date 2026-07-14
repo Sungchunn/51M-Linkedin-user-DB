@@ -7,7 +7,7 @@ import pandas as pd
 import pyarrow.parquet as pq
 from pathlib import Path
 
-parquet_file = Path("/Users/chromatrical/CAREER/Side Projects/WebApplication/data/USA_filtered.parquet")
+parquet_file = Path("/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data/USA_filtered.parquet")
 
 print("=" * 80)
 print("INSPECTING: USA_filtered.parquet")
@@ -58,7 +58,7 @@ print(null_counts[null_counts > 0])
 print()
 
 # Save to smaller Parquet file for testing
-output_file = Path("/Users/chromatrical/CAREER/Side Projects/WebApplication/data/test_500_rows.parquet")
+output_file = Path("/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data/test_500_rows.parquet")
 df_head.to_parquet(output_file, engine='pyarrow', index=False)
 
 print("=" * 80)

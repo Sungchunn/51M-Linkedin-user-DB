@@ -8,8 +8,8 @@ import pyarrow.parquet as pq
 from pathlib import Path
 import sys
 
-parquet_file = Path("/Users/chromatrical/CAREER/Side Projects/WebApplication/data/USA_filtered.parquet")
-output_dir = Path("/Users/chromatrical/CAREER/Side Projects/WebApplication/data")
+parquet_file = Path("/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data/USA_filtered.parquet")
+output_dir = Path("/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/data")
 
 # Test dataset sizes
 test_sizes = [5000, 10000]

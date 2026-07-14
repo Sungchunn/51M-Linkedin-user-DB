@@ -317,7 +317,7 @@ except Exception as e:
 
 ## UI/Theme Guidelines
 
-**IMPORTANT**: All frontend pages must follow the dark minimal theme established in `docs/THEME_GUIDELINES.md`.
+**IMPORTANT**: All frontend pages must follow the dark minimal theme established in `docs/guides/THEME_GUIDELINES.md`.
 
 ### Quick Reference
 
@@ -330,7 +330,7 @@ except Exception as e:
 
 ### Before Creating New Pages
 
-1. Read `docs/THEME_GUIDELINES.md` for complete styling standards
+1. Read `docs/guides/THEME_GUIDELINES.md` for complete styling standards
 2. Reference existing pages: `login.html`, `dashboard.html`, `api-docs.html`
 3. Use the new page template from THEME_GUIDELINES.md
 4. Run the checklist before committing
@@ -358,7 +358,7 @@ border: 1px solid var(--border);
 }
 ```
 
-**See**: `docs/THEME_GUIDELINES.md` for complete documentation
+**See**: `docs/guides/THEME_GUIDELINES.md` for complete documentation
 
 ## Long-Running Commands Policy
 
@@ -380,7 +380,7 @@ border: 1px solid var(--border);
 
 ```bash
 # Description of what this does and why
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB" && \
 command1 && \
 command2 && \
 command3
@@ -388,12 +388,12 @@ command3
 # Expected output or success indicator
 ```
 
-#### Examples
+#### Command Examples
 
 ✅ **CORRECT** - Multi-line with backslash continuation:
 
 ```bash
-cd "/Users/chromatrical/CAREER/Side Projects/WebApplication" && \
+cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB" && \
 python3 scripts/extract_test_data.py && \
 chmod +x scripts/test_pipeline_10k.sh && \
 ./scripts/test_pipeline_10k.sh
@@ -412,7 +412,7 @@ python3 script.py
 
 ```bash
 poetry run load-parquet "/Users/chromatrical/CAREER/Side
-  Projects/WebApplication/data/file.parquet"
+  Projects/51M-Linkedin-user-DB/data/file.parquet"
 ```
 
 ### When to run commands directly
