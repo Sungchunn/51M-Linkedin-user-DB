@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>API Documentation - PROSPECTIQ</title>
+    <meta name="color-scheme" content="dark light">
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="styles.css">
     <style>
         body {
@@ -145,9 +147,9 @@
             font-family: monospace;
         }
 
-        .method-get { background: rgba(16, 185, 129, 0.2); color: var(--success); }
-        .method-post { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-        .method-delete { background: rgba(239, 68, 68, 0.2); color: var(--error); }
+        .method-get { background: var(--success-tint-strong); color: var(--success); }
+        .method-post { background: var(--info-tint); color: var(--info); }
+        .method-delete { background: var(--error-tint-strong); color: var(--error); }
 
         .endpoint-path {
             font-family: monospace;
@@ -237,7 +239,7 @@
         }
 
         .info-box.warning {
-            border-left-color: #f59e0b;
+            border-left-color: var(--warning-accent);
         }
 
         .info-box-title {
@@ -351,12 +353,20 @@
     <!-- Sidebar -->
     <nav class="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-title"><a href="index.html" style="color: inherit; text-decoration: none;">PROSPECTIQ API</a></div>
-            <div class="sidebar-subtitle">v1.0.0</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;">
+                <div>
+                    <div class="sidebar-title"><a href="index.html" style="color: inherit; text-decoration: none;">PROSPECTIQ API</a></div>
+                    <div class="sidebar-subtitle">v1.0.0</div>
+                </div>
+                <button class="theme-toggle" type="button" aria-label="Switch theme">
+                    <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+            </div>
             <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px;">
-                <a href="index.html" style="color: #9aa6c7; text-decoration: none; display: block; margin-bottom: 8px;">← Search</a>
-                <a href="dashboard.html" style="color: #9aa6c7; text-decoration: none; display: block; margin-bottom: 8px;">API Keys</a>
-                <a href="login.html" onclick="window.authUtils.logout(); return false;" style="color: #9aa6c7; text-decoration: none; display: block;">Logout</a>
+                <a href="index.html" style="color: var(--nav-link); text-decoration: none; display: block; margin-bottom: 8px;">← Search</a>
+                <a href="dashboard.html" style="color: var(--nav-link); text-decoration: none; display: block; margin-bottom: 8px;">API Keys</a>
+                <a href="login.html" onclick="window.authUtils.logout(); return false;" style="color: var(--nav-link); text-decoration: none; display: block;">Logout</a>
             </div>
         </div>
 
@@ -484,7 +494,7 @@
                     <div class="form-group">
                         <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
                             US States (multi-select)
-                            <span id="curlRegionsCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                            <span id="curlRegionsCount" style="color: var(--link-accent); font-size: 12px; margin-left: 8px;"></span>
                         </label>
                         <div style="position: relative;">
                             <input
@@ -503,7 +513,7 @@
                     <div class="form-group">
                         <label style="display: block; color: var(--text-secondary); font-size: 14px; font-weight: 500; margin-bottom: 8px;">
                             Industries (multi-select)
-                            <span id="curlIndustriesCount" style="color: var(--primary-color); font-size: 12px; margin-left: 8px;"></span>
+                            <span id="curlIndustriesCount" style="color: var(--link-accent); font-size: 12px; margin-left: 8px;"></span>
                         </label>
                         <div style="position: relative;">
                             <input
@@ -655,7 +665,7 @@
 
                 <!-- Generate Button -->
                 <div style="text-align: center; margin-bottom: 24px;">
-                    <button onclick="generateCurl()" style="padding: 14px 32px; background: var(--primary-color); border: 1px solid var(--border-hover); border-radius: 8px; color: var(--text-primary); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);">
+                    <button onclick="generateCurl()" style="padding: 14px 32px; background: var(--primary-color); border: 1px solid var(--border-hover); border-radius: 8px; color: var(--text-on-primary); font-weight: 600; font-size: 15px; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-sm);">
                         🔧 Generate cURL Command
                     </button>
                 </div>
@@ -664,13 +674,13 @@
                 <div id="curlOutput" style="display: none;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                         <h4 style="margin: 0; color: var(--text-primary); font-size: 16px;">Generated cURL Command</h4>
-                        <button onclick="copyCurlCommand()" style="padding: 8px 16px; background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); border-radius: 6px; color: var(--success); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
+                        <button onclick="copyCurlCommand()" style="padding: 8px 16px; background: var(--success-tint); border: 1px solid var(--success); border-radius: 6px; color: var(--success); cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.2s;">
                             📋 Copy to Clipboard
                         </button>
                     </div>
-                    <pre style="background: #0a0a0a; border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.6;"><code id="curlCommand" style="color: #f0f0f0;"></code></pre>
+                    <pre style="background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 16px; overflow-x: auto; font-size: 13px; line-height: 1.6;"><code id="curlCommand" style="color: var(--code-text);"></code></pre>
 
-                    <div style="margin-top: 16px; padding: 12px; background: rgba(96, 213, 255, 0.05); border: 1px solid rgba(96, 213, 255, 0.2); border-radius: 6px;">
+                    <div style="margin-top: 16px; padding: 12px; background: var(--link-accent-tint); border: 1px solid var(--link-accent-border); border-radius: 6px;">
                         <strong style="color: var(--text-primary); font-size: 13px;">💡 Pro Tip:</strong>
                         <p style="margin: 4px 0 0 0; color: var(--text-secondary); font-size: 13px;">
                             Add <code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 12px;">| jq</code> to pretty-print JSON output, or
@@ -1305,7 +1315,7 @@ for profile in data['results']:
 
     <!-- Back to Top Button -->
     <button class="back-to-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
-        <span style="color: var(--text-primary);">↑</span>
+        <span style="color: var(--text-on-primary);">↑</span>
     </button>
 
     <script>
@@ -1503,11 +1513,11 @@ for profile in data['results']:
                 const btn = event.target;
                 const originalText = btn.textContent;
                 btn.textContent = '✅ Copied!';
-                btn.style.background = 'rgba(16, 185, 129, 0.2)';
+                btn.classList.add('btn-copied');
 
                 setTimeout(() => {
                     btn.textContent = originalText;
-                    btn.style.background = 'rgba(16, 185, 129, 0.1)';
+                    btn.classList.remove('btn-copied');
                 }, 2000);
             }).catch(err => {
                 console.error('Failed to copy:', err);
