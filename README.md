@@ -136,18 +136,18 @@ cp .env.example .env
 ### **3. Open Web Interface**
 
 ```bash
-# Serve frontend (recommended)
-python3 -m http.server 5500 --directory frontend
+# Serve frontend (Next.js dev server)
+cd frontend && npm install && npm run dev
 
-# Or open directly in browser
-open http://localhost:5500/index.html
+# Then open in browser
+open http://localhost:5500
 ```
 
 ### **4. Create Account & API Key**
 
 ```bash
 # Open login page
-open http://localhost:5500/login.html
+open http://localhost:5500/login
 
 # 1. Register a new account
 # 2. Login to access dashboard

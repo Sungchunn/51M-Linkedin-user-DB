@@ -13,36 +13,30 @@ PROSPECTIQ uses a **dark minimal aesthetic** with subtle luxury touches, plus a 
 
 ## Theming System (light/dark)
 
-Dark is the baseline theme, defined on `:root` in `styles.css`. Light mode is a
-`[data-theme="light"]` override block that re-declares every token. The attribute
-lives on `<html>` and is managed by `frontend/theme.js`.
+Dark is the baseline theme, defined on `:root` in `frontend/app/globals.css`. Light
+mode is a `[data-theme="light"]` override block that re-declares every token. The
+attribute lives on `<html>` and is set **before first paint** by an inline bootstrap
+script in `frontend/app/layout.js` (no flash of the wrong theme), then managed by
+`frontend/lib/theme.js`.
 
-**Every page must:**
-
-1. Load `theme.js` synchronously in `<head>` **before** the `styles.css` link, so the
-   theme attribute is set before first paint (no flash of the wrong theme):
-   ```html
-   <meta name="color-scheme" content="dark light">
-   <script src="theme.js"></script>
-   <link rel="stylesheet" href="styles.css">
-   ```
-2. Include a `.theme-toggle` button (sun/moon SVGs, `stroke="currentColor"`) somewhere
-   in its chrome — see `index.html` (header), `login.html` (floating top-right), or
-   `api-docs.html` (sidebar header) for the markup. `theme.js` wires every
-   `.theme-toggle` on the page automatically.
+**Every page must** include the shared `<ThemeToggle />` component
+(`frontend/components/ThemeToggle.js`) somewhere in its chrome — see `app/page.js`
+(header via `components/Header.js`), `app/login/page.js` (floating top-right), or
+`app/api-docs/page.js` (sidebar header).
 
 **Resolution order:** a stored `localStorage.theme` choice wins; otherwise the OS
 `prefers-color-scheme` applies (and tracks live OS changes until the user toggles).
 
-**JS API:** `window.themeUtils = { get(), set(theme), toggle() }`. Every change
-dispatches a `themechange` CustomEvent on `window` (detail: `{ theme }`) — canvas
-code like `squares-bg.js` listens to it and re-reads the `--canvas-*` tokens.
+**JS API:** `import { getTheme, setTheme, toggleTheme } from '@/lib/theme'`. Every
+change dispatches a `themechange` CustomEvent on `window` (detail: `{ theme }`) —
+canvas code like `lib/squares-background.js` listens to it and re-reads the
+`--canvas-*` tokens.
 
 ## Color Palette
 
 ### CSS Variables (Use These!)
 
-All pages must use CSS variables defined in `styles.css`. Never hardcode colors.
+All pages must use CSS variables defined in `app/globals.css`. Never hardcode colors.
 **New colors must be added as a token pair — a dark value in `:root` and a light value
 in `[data-theme="light"]` — never as a literal in page styles or JS.**
 
@@ -66,7 +60,7 @@ Core tokens, both themes (contrast ratios are against `--background`):
 | `--nav-link` | `#9aa6c7` | `#475569` | 7.3:1 AAA |
 | `--link-accent` | `#60d5ff` | `#0e7490` | 5.1:1 AA |
 
-Supporting tokens (see `styles.css` for values in both themes): tints
+Supporting tokens (see `app/globals.css` for values in both themes): tints
 (`--success-tint`, `--success-tint-strong`, `--error-tint`, `--error-tint-strong`,
 `--info-tint`, `--link-accent-tint`/`-border`), warning box
 (`--warning-bg`/`-text`/`-border`/`-accent`), effects (`--glow-1/2/3`, `--ripple`,
@@ -627,71 +621,70 @@ placeholders (~2.5:1) and `--success`/`--error` text on `--surface` (~3–4:1).
 
 ## File Structure
 
-When creating new pages:
+When creating new pages (Next.js App Router):
 
 ```
 frontend/
-├── index.html          # Main search page
-├── login.html          # Authentication
-├── dashboard.html      # User dashboard
-├── api-docs.html       # API documentation
-├── styles.css          # Global stylesheet — owns ALL token definitions
-├── theme.js            # Light/dark switching (load first in every <head>)
-├── auth.js             # Authentication utilities
-└── [new-page].html     # Your new page
+├── app/
+│   ├── layout.js            # Root layout: metadata + pre-paint theme bootstrap
+│   ├── globals.css          # Global stylesheet — owns ALL token definitions
+│   ├── page.js              # Main search page (/)
+│   ├── login/page.js        # Authentication (/login)
+│   ├── dashboard/page.js    # API key dashboard (/dashboard)
+│   ├── api-docs/page.js     # API documentation (/api-docs)
+│   └── [new-page]/
+│       ├── page.js          # Your new page
+│       └── [new-page].module.css   # Page-specific styles (CSS Module)
+├── components/              # ThemeToggle, Header, Footer, GitHubStars, SquaresBackground
+└── lib/                     # config, auth, theme, squares-background
 ```
 
-`styles.css` owns the token definitions. Extend it by adding tokens as a
+`app/globals.css` owns the token definitions. Extend it by adding tokens as a
 dark + light pair (`:root` and `[data-theme="light"]`) — don't scatter color
 values into page styles.
 
 ### New Page Template
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Name - PROSPECTIQ</title>
-    <meta name="color-scheme" content="dark light">
-    <script src="theme.js"></script>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Page-specific styles using CSS variables */
-        .page-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+```jsx
+// app/my-page/page.js
+'use client';
 
-        /* Always use var(--variable-name) for colors */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 32px;
-        }
-    </style>
-</head>
-<body>
-    <div class="page-container">
-        <!-- Content here -->
-    </div>
+import ThemeToggle from '@/components/ThemeToggle';
+import styles from './my-page.module.css';
 
-    <script src="auth.js"></script>
-    <script src="your-script.js"></script>
-</body>
-</html>
+export default function MyPage() {
+    return (
+        <div className={styles.pageContainer}>
+            {/* include <ThemeToggle /> in the page chrome */}
+            {/* Content here */}
+        </div>
+    );
+}
+```
+
+```css
+/* app/my-page/my-page.module.css — page-specific styles using CSS variables */
+.pageContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* Always use var(--variable-name) for colors */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+}
 ```
 
 ## Checklist for New Pages
 
 Before committing a new page, verify:
 
-- [ ] Uses `<link rel="stylesheet" href="styles.css">`
-- [ ] Loads `theme.js` in `<head>` before the stylesheet, plus `<meta name="color-scheme" content="dark light">`
-- [ ] Includes a `.theme-toggle` button in the page chrome
+- [ ] Page-specific styles live in a CSS Module next to `page.js` (globals only in `app/globals.css`)
+- [ ] Includes the `<ThemeToggle />` component in the page chrome
 - [ ] All colors use CSS variables (no hardcoded hex values)
 - [ ] Page reviewed in BOTH themes (toggle + hard reload)
 - [ ] Text on `--primary-color` chips uses `--text-on-primary`
@@ -763,17 +756,17 @@ padding: 12px; /* GOOD (exception for specific sizes) */
 ## Examples
 
 See these files for reference implementations:
-- **Glow buttons**: `frontend/login.html` (line 96-162)
-- **Sidebar layout**: `frontend/api-docs.html` (line 25-90)
-- **Form elements**: `frontend/dashboard.html` (line 240-273)
-- **Cards with hover**: `frontend/dashboard.html` (line 132-145)
-- **Badges**: `frontend/api-docs.html` (line 156-183)
-- **Alerts**: `frontend/login.html` (line 187-205)
+- **Glow buttons**: `frontend/app/login/login.module.css` (`.loginButton`)
+- **Sidebar layout**: `frontend/app/api-docs/api-docs.module.css`
+- **Form elements**: `frontend/app/dashboard/dashboard.module.css` (`.formInput`, `.formSelect`)
+- **Cards with hover**: `frontend/app/dashboard/dashboard.module.css` (`.apiKeyCard`)
+- **Badges**: `frontend/app/api-docs/api-docs.module.css` (method badges)
+- **Alerts**: `frontend/app/login/login.module.css` (`.alert*`)
 
 ## Questions?
 
 If you're unsure about styling:
-1. Check `styles.css` for available CSS variables
-2. Reference existing pages (login.html, dashboard.html, api-docs.html)
+1. Check `app/globals.css` for available CSS variables
+2. Reference existing pages (`app/login`, `app/dashboard`, `app/api-docs`)
 3. Follow the patterns in this document
 4. When in doubt, keep it minimal and use CSS variables
