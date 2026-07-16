@@ -13,6 +13,18 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2026-07-16 15:10
+- Author: Claude (light mode implementation)
+- Change: Added a light theme with WCAG-AA contrast and a sun/moon toggle to all 6 frontend pages (branch `feat/light-mode`, 8 commits)
+- Details:
+  - `styles.css`: ~28 new tokens on `:root` (dark values = old literals, zero visual change) + a `[data-theme="light"]` override block; all hardcoded colors in styles.css/page `<style>` blocks/inline styles/JS-generated markup migrated to tokens; new shared components `.theme-toggle`, `.nav-link`, `.link-accent`, `.warning-box`, `.btn-copied`
+  - New `frontend/theme.js` loads synchronously in `<head>` before styles.css (no FOUC): localStorage choice wins, else OS `prefers-color-scheme` (tracked live until user toggles); exposes `window.themeUtils`, dispatches `themechange`; `squares-bg.js` re-reads `--canvas-*` tokens on that event (also fixed its vignette inner-stop mismatch)
+  - Light palette AA-verified (ratios documented in `docs/guides/THEME_GUIDELINES.md`): success/error/info/link accents darkened to 700-shades; buttons stay dark chips with new `--text-on-primary` (also fixed api-docs back-to-top/generate-button and count spans that would have been invisible); `test-api-key.html` now links styles.css instead of duplicating drifted hex
+- Impacts: UX only — no API changes. Dark mode remains the default and is pixel-identical except intentional fixes noted above
+- Next: Visual pass in both themes on all 6 pages (serve frontend on :5500), then prepare-pr for `feat/light-mode`
+
+---
+
 - Date/Time (UTC): 2026-07-14 (docs reorganization)
 - Author: Claude (docs cleanup)
 - Change: Reorganized all documentation into docs/{architecture,database,deployment,guides,agents,archive}; updated or removed outdated docs
