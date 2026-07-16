@@ -266,13 +266,13 @@ async function loadStats() {
     } catch (error) {
         console.error('Failed to load stats:', error);
         statsSection.innerHTML = `
-            <div style="padding: 20px; background: #fef3c7; border-radius: 8px; color: #92400e;">
+            <div class="warning-box" style="padding: 20px;">
                 <strong>⚠️ Stats Loading Timed Out</strong>
                 <p style="margin-top: 8px;">
                     DuckDB is downloading 15GB from S3 (takes 10-15 minutes).
                     You can still search without stats, or wait for them to load.
                 </p>
-                <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px; background: white; border: 1px solid #d97706; border-radius: 6px; cursor: pointer;">
+                <button onclick="location.reload()" style="margin-top: 12px; padding: 8px 16px;">
                     Retry
                 </button>
             </div>
