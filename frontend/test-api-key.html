@@ -4,50 +4,60 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Test API Key Creation</title>
+    <meta name="color-scheme" content="dark light">
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             font-family: monospace;
-            background: #0a0a0a;
-            color: #fafafa;
+            background: var(--background);
+            color: var(--text-primary);
             padding: 20px;
         }
         .section {
-            background: #151515;
-            border: 1px solid #2a2a2a;
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
         }
         button {
             padding: 10px 20px;
-            background: #262626;
-            border: 1px solid #404040;
-            color: #fafafa;
+            background: var(--primary-color);
+            border: 1px solid var(--border-hover);
+            color: var(--text-on-primary);
             cursor: pointer;
             border-radius: 4px;
         }
         button:hover {
-            background: #2d2d2d;
+            background: var(--primary-hover);
         }
         input {
             padding: 8px;
-            background: #0a0a0a;
-            border: 1px solid #2a2a2a;
-            color: #fafafa;
+            background: var(--background);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
             width: 300px;
             border-radius: 4px;
         }
         pre {
-            background: #0a0a0a;
+            background: var(--code-bg);
+            color: var(--code-text);
             padding: 10px;
             border-radius: 4px;
             overflow-x: auto;
         }
-        .success { color: #10b981; }
-        .error { color: #ef4444; }
+        .success { color: var(--success); }
+        .error { color: var(--error); }
     </style>
 </head>
 <body>
+    <div style="position: fixed; top: 20px; right: 20px; z-index: 100;">
+        <button class="theme-toggle" type="button" aria-label="Switch theme">
+            <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        </button>
+    </div>
     <h1>API Key Creation Test</h1>
 
     <div class="section">
@@ -143,8 +153,8 @@
                     resultDiv.innerHTML = `
                         <p class="success">✅ API Key created!</p>
                         <pre>${JSON.stringify(data, null, 2)}</pre>
-                        <p style="color: #ff6b6b;">⚠️ Save this key! It won't be shown again:</p>
-                        <p style="background: #0a0a0a; padding: 10px; border-radius: 4px; word-break: break-all;">${data.api_key}</p>
+                        <p style="color: var(--error);">⚠️ Save this key! It won't be shown again:</p>
+                        <p style="background: var(--code-bg); color: var(--code-text); padding: 10px; border-radius: 4px; word-break: break-all;">${data.api_key}</p>
                     `;
                 } else {
                     resultDiv.innerHTML = `
