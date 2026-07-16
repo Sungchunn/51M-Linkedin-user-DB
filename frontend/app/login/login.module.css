@@ -1,0 +1,221 @@
+.loginContainer {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background);
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.loginContainer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, var(--background), var(--surface), var(--background));
+    opacity: 0.8;
+}
+
+.loginCard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    z-index: 1;
+}
+
+.loginHeader {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.loginLogo {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.loginSubtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formLabel {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.formInput {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 15px;
+    transition: all 0.2s;
+    box-sizing: border-box;
+}
+
+.formInput:hover {
+    border-color: var(--border-hover);
+}
+
+.formInput:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.formInput::placeholder {
+    color: var(--text-muted);
+}
+
+.loginButton {
+    width: 100%;
+    padding: 14px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    color: var(--text-on-primary);
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 24px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.loginButton::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: var(--ripple);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+    z-index: 0;
+}
+
+.loginButton:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.loginButton:hover {
+    background: var(--primary-hover);
+    box-shadow:
+        0 0 40px var(--glow-1),
+        0 0 80px var(--glow-2),
+        0 0 120px var(--glow-3),
+        var(--shadow-md);
+    border-color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.loginButton:active {
+    transform: translateY(1px);
+}
+
+.loginButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--shadow-sm);
+}
+
+.loginButton:disabled:hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+    border-color: var(--border-hover);
+}
+
+.loginButton:disabled::before {
+    display: none;
+}
+
+.formFooter {
+    text-align: center;
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+}
+
+.formFooterText {
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.formFooterLink {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.formFooterLink:hover {
+    color: var(--text-primary);
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.alertError {
+    background: var(--error-tint);
+    border: 1px solid var(--error);
+    color: var(--error);
+}
+
+.alertSuccess {
+    background: var(--success-tint);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.toggleMode {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.toggleButton {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s;
+    padding: 8px 16px;
+    border-radius: 6px;
+}
+
+.toggleButton:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+}
+
+.toggleButton strong {
+    color: var(--text-primary);
+}

@@ -9,9 +9,13 @@ mkdir -p ../.tmp
 LOG_FILE="../.tmp/frontend_http.log"
 PID_FILE="../.tmp/frontend_http.pid"
 
-echo "Serving frontend at http://localhost:5500 (from $(pwd))"
-nohup python3 -m http.server 5500 > "$LOG_FILE" 2>&1 &
+if [ ! -d node_modules ]; then
+    echo "node_modules missing — run 'npm install' in frontend/ first." >&2
+    exit 1
+fi
+
+echo "Serving frontend (Next.js dev) at http://localhost:5500 (from $(pwd))"
+nohup npm run dev > "$LOG_FILE" 2>&1 &
 HTTP_PID=$!
 echo "$HTTP_PID" > "$PID_FILE"
 echo "Frontend server started with PID $HTTP_PID. Logs: $LOG_FILE"
-

@@ -4,46 +4,70 @@ This document establishes the visual design standards for PROSPECTIQ to ensure c
 
 ## Design Philosophy
 
-PROSPECTIQ uses a **dark minimal aesthetic** with subtle luxury touches. The interface emphasizes:
+PROSPECTIQ uses a **dark minimal aesthetic** with subtle luxury touches, plus a **light theme** that users can switch to. The interface emphasizes:
 - Clean, spacious layouts with generous padding
 - Subtle borders and shadows for depth
-- Signature white glow effects on interactive elements
+- Signature glow effects on interactive elements (white glow in dark mode, soft dark halo in light mode)
 - Professional monospace fonts for technical content
 - Smooth transitions and hover states
+
+## Theming System (light/dark)
+
+Dark is the baseline theme, defined on `:root` in `frontend/app/globals.css`. Light
+mode is a `[data-theme="light"]` override block that re-declares every token. The
+attribute lives on `<html>` and is set **before first paint** by an inline bootstrap
+script in `frontend/app/layout.js` (no flash of the wrong theme), then managed by
+`frontend/lib/theme.js`.
+
+**Every page must** include the shared `<ThemeToggle />` component
+(`frontend/components/ThemeToggle.js`) somewhere in its chrome — see `app/page.js`
+(header via `components/Header.js`), `app/login/page.js` (floating top-right), or
+`app/api-docs/page.js` (sidebar header).
+
+**Resolution order:** a stored `localStorage.theme` choice wins; otherwise the OS
+`prefers-color-scheme` applies (and tracks live OS changes until the user toggles).
+
+**JS API:** `import { getTheme, setTheme, toggleTheme } from '@/lib/theme'`. Every
+change dispatches a `themechange` CustomEvent on `window` (detail: `{ theme }`) —
+canvas code like `lib/squares-background.js` listens to it and re-reads the
+`--canvas-*` tokens.
 
 ## Color Palette
 
 ### CSS Variables (Use These!)
 
-All pages must use CSS variables defined in `styles.css`. Never hardcode colors.
+All pages must use CSS variables defined in `app/globals.css`. Never hardcode colors.
+**New colors must be added as a token pair — a dark value in `:root` and a light value
+in `[data-theme="light"]` — never as a literal in page styles or JS.**
 
-```css
-/* Background Colors */
---background: #0a0a0a;        /* Main page background */
---surface: #151515;           /* Card/panel backgrounds */
---surface-hover: #1a1a1a;     /* Hover state for surfaces */
+Core tokens, both themes (contrast ratios are against `--background`):
 
-/* Border Colors */
---border: #2a2a2a;            /* Default borders */
---border-hover: #404040;      /* Hover state borders */
---border-focus: #505050;      /* Focus state borders */
+| Token | Dark | Light | Light contrast |
+|---|---|---|---|
+| `--background` | `#0a0a0a` | `#fafafa` | — |
+| `--surface` | `#171717` | `#ffffff` | — |
+| `--surface-hover` | `#262626` | `#f5f5f5` | — |
+| `--border` / `--border-hover` / `--border-focus` | `#262626` / `#404040` / `#525252` | `#e5e5e5` / `#d4d4d4` / `#a3a3a3` | decorative |
+| `--text-primary` | `#fafafa` | `#171717` | 17.2:1 AAA |
+| `--text-secondary` | `#a3a3a3` | `#525252` | 7.5:1 AAA |
+| `--text-muted` | `#737373` | `#6b6b6b` | 5.1:1 AA |
+| `--text-subtle` | `#525252` | `#707070` | 4.7:1 AA |
+| `--primary-color` / `--primary-hover` | `#262626` / `#404040` | `#171717` / `#262626` | dark chip in both themes |
+| `--text-on-primary` | `#fafafa` | `#fafafa` | 17.2:1 on the chip |
+| `--success` | `#10b981` | `#047857` | 5.25:1 AA |
+| `--error` | `#ef4444` | `#b91c1c` | 6.2:1 AA |
+| `--info` | `#60a5fa` | `#1d4ed8` | 6.7:1 AA |
+| `--nav-link` | `#9aa6c7` | `#475569` | 7.3:1 AAA |
+| `--link-accent` | `#60d5ff` | `#0e7490` | 5.1:1 AA |
 
-/* Text Colors */
---text-primary: #fafafa;      /* Primary text (headings, important) */
---text-secondary: #d4d4d4;    /* Secondary text (labels, descriptions) */
---text-muted: #a3a3a3;        /* Muted text (hints, placeholders) */
-
-/* Accent Colors */
---primary-color: #262626;     /* Primary buttons, interactive elements */
---primary-hover: #2d2d2d;     /* Primary hover state */
---success: #10b981;           /* Success states, positive badges */
---error: #ef4444;             /* Error states, warnings, delete actions */
-
-/* Shadows */
---shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
---shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
---shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.5);
-```
+Supporting tokens (see `app/globals.css` for values in both themes): tints
+(`--success-tint`, `--success-tint-strong`, `--error-tint`, `--error-tint-strong`,
+`--info-tint`, `--link-accent-tint`/`-border`), warning box
+(`--warning-bg`/`-text`/`-border`/`-accent`), effects (`--glow-1/2/3`, `--ripple`,
+`--focus-ring`, `--overlay`), code (`--code-bg`, `--code-text`), GitHub badge
+(`--badge-*`), canvas background (`--canvas-line`, `--canvas-hover`,
+`--canvas-vignette-rgb`), and shadows (`--shadow-sm/md/lg`,
+`--shadow-inset-sm/md`).
 
 ### Color Usage Rules
 
@@ -51,6 +75,8 @@ All pages must use CSS variables defined in `styles.css`. Never hardcode colors.
 2. **Borders**: Use `--border` for default, `--border-hover` on hover, `--border-focus` on focus
 3. **Text**: Use `--text-primary` for headings, `--text-secondary` for labels, `--text-muted` for hints
 4. **Success/Error**: Use `--success` for positive actions (create, confirm), `--error` for negative actions (delete, revoke)
+5. **Buttons on `--primary-color`**: always pair with `--text-on-primary`, never `--text-primary` — the button stays a dark chip in light mode, where `--text-primary` flips to near-black and would vanish
+6. **Links**: `--nav-link` for chrome/navigation links, `--link-accent` for links inside content (result tables, tips)
 
 ## Typography
 
@@ -87,7 +113,7 @@ font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', monospace;
 
 ## Signature Glow Effect
 
-The **white glow effect** is a signature element of PROSPECTIQ. Use it on all primary interactive elements (buttons, links, hover states).
+The **glow effect** is a signature element of PROSPECTIQ. Use it on all primary interactive elements (buttons, links, hover states). It is token-driven: a white glow in dark mode, a soft dark elevation halo in light mode — same CSS either way.
 
 ### Implementation
 
@@ -97,7 +123,7 @@ The **white glow effect** is a signature element of PROSPECTIQ. Use it on all pr
     background: var(--primary-color);
     border: 1px solid var(--border-hover);
     border-radius: 8px;
-    color: var(--text-primary);
+    color: var(--text-on-primary);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -115,7 +141,7 @@ The **white glow effect** is a signature element of PROSPECTIQ. Use it on all pr
     width: 0;
     height: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--ripple);
     transform: translate(-50%, -50%);
     transition: width 0.6s ease-out, height 0.6s ease-out;
     z-index: 0;
@@ -130,9 +156,9 @@ The **white glow effect** is a signature element of PROSPECTIQ. Use it on all pr
 .btn-primary:hover {
     background: var(--primary-hover);
     box-shadow:
-        0 0 40px rgba(250, 250, 250, 0.4),
-        0 0 80px rgba(250, 250, 250, 0.2),
-        0 0 120px rgba(250, 250, 250, 0.1),
+        0 0 40px var(--glow-1),
+        0 0 80px var(--glow-2),
+        0 0 120px var(--glow-3),
         var(--shadow-md);
     border-color: var(--text-primary);
     transform: translateY(-2px);
@@ -310,7 +336,7 @@ See "Signature Glow Effect" section above.
 ```css
 .btn-danger {
     padding: 8px 16px;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--error-tint);
     border: 1px solid var(--error);
     border-radius: 6px;
     color: var(--error);
@@ -321,7 +347,7 @@ See "Signature Glow Effect" section above.
 }
 
 .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.2);
+    background: var(--error-tint-strong);
     transform: translateY(-1px);
 }
 ```
@@ -334,7 +360,7 @@ See "Signature Glow Effect" section above.
 .badge-success {
     font-size: 11px;
     padding: 4px 8px;
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--success-tint);
     border: 1px solid var(--success);
     border-radius: 4px;
     color: var(--success);
@@ -345,21 +371,18 @@ See "Signature Glow Effect" section above.
 
 ```css
 .badge-get {
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid #10b981;
-    color: #10b981;
+    background: var(--success-tint-strong);
+    color: var(--success);
 }
 
 .badge-post {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid #3b82f6;
-    color: #3b82f6;
+    background: var(--info-tint);
+    color: var(--info);
 }
 
 .badge-delete {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid #ef4444;
-    color: #ef4444;
+    background: var(--error-tint-strong);
+    color: var(--error);
 }
 ```
 
@@ -371,7 +394,7 @@ See "Signature Glow Effect" section above.
 .alert-error {
     padding: 12px 16px;
     border-radius: 8px;
-    background: rgba(239, 68, 68, 0.1);
+    background: var(--error-tint);
     border: 1px solid var(--error);
     color: var(--error);
     font-size: 14px;
@@ -384,7 +407,7 @@ See "Signature Glow Effect" section above.
 .alert-success {
     padding: 12px 16px;
     border-radius: 8px;
-    background: rgba(16, 185, 129, 0.1);
+    background: var(--success-tint);
     border: 1px solid var(--success);
     color: var(--success);
     font-size: 14px;
@@ -497,7 +520,7 @@ tr:hover td {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    background: var(--overlay);
     z-index: 1000;
     display: flex;
     align-items: center;
@@ -558,16 +581,19 @@ Always provide visible focus states:
 ```css
 :focus {
     outline: none;
-    box-shadow: 0 0 0 4px rgba(115, 115, 115, 0.08);
+    box-shadow: 0 0 0 4px var(--focus-ring);
 }
 ```
 
 ### Color Contrast
 
-Ensure text meets WCAG AA standards:
-- Primary text (#fafafa) on dark backgrounds: ✅ AAA
-- Secondary text (#d4d4d4) on dark backgrounds: ✅ AA
-- Muted text (#a3a3a3) on dark backgrounds: ✅ AA (large text)
+Text must meet WCAG AA (≥ 4.5:1 for normal text, ≥ 3:1 for large text/UI).
+The light-theme values were chosen to pass — ratios are in the token table above.
+Dark theme: `--text-primary` 17.9:1 AAA, `--text-secondary` 8.6:1 AAA,
+`--text-muted` 4.6:1 AA.
+
+Known dark-theme shortfalls (pre-existing, tracked as follow-up): `--text-subtle`
+placeholders (~2.5:1) and `--success`/`--error` text on `--surface` (~3–4:1).
 
 ## Responsive Design
 
@@ -595,63 +621,73 @@ Ensure text meets WCAG AA standards:
 
 ## File Structure
 
-When creating new pages:
+When creating new pages (Next.js App Router):
 
 ```
 frontend/
-├── index.html          # Main search page
-├── login.html          # Authentication
-├── dashboard.html      # User dashboard
-├── api-docs.html       # API documentation
-├── styles.css          # Global CSS variables (NEVER modify)
-├── auth.js             # Authentication utilities
-└── [new-page].html     # Your new page
+├── app/
+│   ├── layout.js            # Root layout: metadata + pre-paint theme bootstrap
+│   ├── globals.css          # Global stylesheet — owns ALL token definitions
+│   ├── page.js              # Main search page (/)
+│   ├── login/page.js        # Authentication (/login)
+│   ├── dashboard/page.js    # API key dashboard (/dashboard)
+│   ├── api-docs/page.js     # API documentation (/api-docs)
+│   └── [new-page]/
+│       ├── page.js          # Your new page
+│       └── [new-page].module.css   # Page-specific styles (CSS Module)
+├── components/              # ThemeToggle, Header, Footer, GitHubStars, SquaresBackground
+└── lib/                     # config, auth, theme, squares-background
 ```
+
+`app/globals.css` owns the token definitions. Extend it by adding tokens as a
+dark + light pair (`:root` and `[data-theme="light"]`) — don't scatter color
+values into page styles.
 
 ### New Page Template
 
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Name - PROSPECTIQ</title>
-    <link rel="stylesheet" href="styles.css">
-    <style>
-        /* Page-specific styles using CSS variables */
-        .page-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+```jsx
+// app/my-page/page.js
+'use client';
 
-        /* Always use var(--variable-name) for colors */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 32px;
-        }
-    </style>
-</head>
-<body>
-    <div class="page-container">
-        <!-- Content here -->
-    </div>
+import ThemeToggle from '@/components/ThemeToggle';
+import styles from './my-page.module.css';
 
-    <script src="auth.js"></script>
-    <script src="your-script.js"></script>
-</body>
-</html>
+export default function MyPage() {
+    return (
+        <div className={styles.pageContainer}>
+            {/* include <ThemeToggle /> in the page chrome */}
+            {/* Content here */}
+        </div>
+    );
+}
+```
+
+```css
+/* app/my-page/my-page.module.css — page-specific styles using CSS variables */
+.pageContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* Always use var(--variable-name) for colors */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+}
 ```
 
 ## Checklist for New Pages
 
 Before committing a new page, verify:
 
-- [ ] Uses `<link rel="stylesheet" href="styles.css">`
+- [ ] Page-specific styles live in a CSS Module next to `page.js` (globals only in `app/globals.css`)
+- [ ] Includes the `<ThemeToggle />` component in the page chrome
 - [ ] All colors use CSS variables (no hardcoded hex values)
+- [ ] Page reviewed in BOTH themes (toggle + hard reload)
+- [ ] Text on `--primary-color` chips uses `--text-on-primary`
 - [ ] Primary buttons have glow effect
 - [ ] Hover states on all interactive elements
 - [ ] Smooth transitions (transition: all 0.2s)
@@ -661,7 +697,7 @@ Before committing a new page, verify:
 - [ ] Focus states for accessibility
 - [ ] Responsive design tested on mobile
 - [ ] Navigation links to other pages
-- [ ] Matches dark minimal aesthetic
+- [ ] Matches the minimal aesthetic in both themes
 
 ## Common Mistakes to Avoid
 
@@ -692,7 +728,7 @@ background: var(--surface); /* GOOD */
 ❌ **DON'T**: Forget the ripple effect wrapper
 ```css
 .btn-primary:hover {
-    box-shadow: 0 0 40px rgba(250, 250, 250, 0.4);
+    box-shadow: 0 0 40px var(--glow-1);
 }
 ```
 
@@ -720,17 +756,17 @@ padding: 12px; /* GOOD (exception for specific sizes) */
 ## Examples
 
 See these files for reference implementations:
-- **Glow buttons**: `frontend/login.html` (line 96-162)
-- **Sidebar layout**: `frontend/api-docs.html` (line 25-90)
-- **Form elements**: `frontend/dashboard.html` (line 240-273)
-- **Cards with hover**: `frontend/dashboard.html` (line 132-145)
-- **Badges**: `frontend/api-docs.html` (line 156-183)
-- **Alerts**: `frontend/login.html` (line 187-205)
+- **Glow buttons**: `frontend/app/login/login.module.css` (`.loginButton`)
+- **Sidebar layout**: `frontend/app/api-docs/api-docs.module.css`
+- **Form elements**: `frontend/app/dashboard/dashboard.module.css` (`.formInput`, `.formSelect`)
+- **Cards with hover**: `frontend/app/dashboard/dashboard.module.css` (`.apiKeyCard`)
+- **Badges**: `frontend/app/api-docs/api-docs.module.css` (method badges)
+- **Alerts**: `frontend/app/login/login.module.css` (`.alert*`)
 
 ## Questions?
 
 If you're unsure about styling:
-1. Check `styles.css` for available CSS variables
-2. Reference existing pages (login.html, dashboard.html, api-docs.html)
+1. Check `app/globals.css` for available CSS variables
+2. Reference existing pages (`app/login`, `app/dashboard`, `app/api-docs`)
 3. Follow the patterns in this document
 4. When in doubt, keep it minimal and use CSS variables

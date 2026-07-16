@@ -321,7 +321,7 @@ except Exception as e:
 
 ### Quick Reference
 
-- **CSS Variables**: Always use variables from `styles.css` (never hardcode colors)
+- **CSS Variables**: Always use variables from `frontend/app/globals.css` (never hardcode colors)
 - **Signature Glow**: All primary buttons must have the white glow effect
 - **Spacing**: Use multiples of 8px for consistency
 - **Border Radius**: 12px for cards, 8px for buttons/inputs, 6px for small elements
@@ -331,7 +331,7 @@ except Exception as e:
 ### Before Creating New Pages
 
 1. Read `docs/guides/THEME_GUIDELINES.md` for complete styling standards
-2. Reference existing pages: `login.html`, `dashboard.html`, `api-docs.html`
+2. Reference existing pages: `app/login`, `app/dashboard`, `app/api-docs`
 3. Use the new page template from THEME_GUIDELINES.md
 4. Run the checklist before committing
 
@@ -469,11 +469,13 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 
 #### Frontend Pages
 
-- `index.html` - Main search page with advanced filters
-- `results.html` - Search results with pagination and export
-- `login.html` - Login and registration
-- `dashboard.html` - API key management dashboard
-- `api-docs.html` - Interactive API documentation with cURL generator
+The frontend is a Next.js app (App Router, plain JS) in `frontend/` — `npm run dev` serves it on :5500.
+
+- `/` - Main search page with advanced filters
+- `/results` - Search results with pagination and export
+- `/login` - Login and registration
+- `/dashboard` - API key management dashboard
+- `/api-docs` - Interactive API documentation with cURL generator
 
 ### 🔧 Known Limitations
 

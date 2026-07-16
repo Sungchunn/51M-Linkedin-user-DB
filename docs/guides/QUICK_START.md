@@ -31,20 +31,14 @@ Leave this terminal running.
 
 ### Step 2: Open the Frontend
 
-**Option A: Simple (File Protocol)**
-```bash
-open frontend/index.html
-```
-
-**Option B: Local Server (Recommended)**
-
 In a NEW terminal:
 ```bash
 cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/frontend" && \
-python3 -m http.server 3000
+npm install && \
+npm run dev
 ```
 
-Then open: http://localhost:3000
+Then open: http://localhost:5500
 
 ---
 

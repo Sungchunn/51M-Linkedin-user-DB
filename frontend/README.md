@@ -1,164 +1,74 @@
-# INSIGHT - Frontend
+# PROSPECTIQ - Frontend
 
-Clean, modern web interface for browsing 51M+ LinkedIn profiles using DuckDB + S3.
+Next.js (App Router) frontend for the PROSPECTIQ semantic talent-search platform.
 
-## Features
+## Stack
 
-✅ **Zero Local Storage** - Queries S3 directly via DuckDB
-✅ **Fast Keyword Search** - Search across all text fields
-✅ **Advanced Filters** - Country, industry, experience, skills
-✅ **Responsive Design** - Works on desktop and mobile
-✅ **Browser Navigation** - Full support for back button
-✅ **Pagination** - Browse results in pages
+- **Next.js 16** (App Router), plain JavaScript — no TypeScript
+- **Plain CSS**: global theme tokens in `app/globals.css` (dark default + light via `[data-theme="light"]`), page-specific styles in CSS Modules
+- **No component library / no Tailwind** — styling follows `docs/guides/THEME_GUIDELINES.md`
 
 ## Quick Start
 
-### 1. Start the API Server
-
-```bash
-cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB"
-./start_duckdb_api.sh
-```
-
-The API will start at `http://localhost:8000`
-
-### 2. Open Frontend
-
-Open `frontend/index.html` in your browser:
-
-**Option A: File Protocol (Simple)**
-```bash
-open frontend/index.html
-```
-
-**Option B: Local Server (Recommended)**
 ```bash
 cd frontend
-python3 -m http.server 3000
+npm install
+npm run dev        # http://localhost:5500
 ```
 
-Then visit: `http://localhost:3000`
+Or from the repo root: `scripts/serve_frontend_bg.sh` (background, logs to `.tmp/frontend_http.log`).
 
-## Pages
+The backend API must be running at `http://localhost:8000` (`./start_api.sh` from the repo root).
 
-### Search Page (`index.html`)
-- Keyword search across all fields
-- Filter dropdowns (auto-populated from dataset)
-- Experience range filters
-- Skills filter
-- Dataset statistics
+## Production
 
-### Results Page (`results.html`)
-- Scrollable results table
-- Shows 50 results per page
-- Pagination controls
-- Query time display
-- Active filters display
-- Browser back button returns to search
-
-## Architecture
-
-```
-Frontend (Static HTML/CSS/JS)
-    ↓
-API (FastAPI @ localhost:8000)
-    ↓
-DuckDB (In-Memory)
-    ↓
-S3 Parquet File (51M profiles)
+```bash
+npm run build
+npm run start      # serves the production build on :5500
 ```
 
-## Files
+## Routes
 
-- `index.html` - Search page
-- `results.html` - Results page
-- `styles.css` - Clean, modern styling
-- `search.js` - Search page logic
-- `results.js` - Results page logic
+| Route | Purpose |
+|-------|---------|
+| `/` | Search page (keyword + advanced filters) |
+| `/results` | Search results table with pagination + CSV export |
+| `/login` | Login / registration |
+| `/dashboard` | API key management (requires login) |
+| `/api-docs` | API documentation + cURL generator (requires login) |
+| `/test-api-key` | Dev utility: login / create key / list keys |
 
-## API Endpoints Used
+Legacy `*.html` URLs (e.g. `/login.html`) redirect to the new routes via `next.config.mjs`.
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /search` | Execute search with filters |
-| `GET /stats` | Get dataset statistics |
-| `GET /countries` | Get list of countries |
-| `GET /industries` | Get list of industries |
-| `GET /health` | Check API health |
+## Structure
 
-## Customization
-
-### Change Results Per Page
-Edit `search.js`:
-```javascript
-params.limit = 100; // Default is 50
+```
+frontend/
+├── app/                    # App Router pages
+│   ├── layout.js           # Root layout + pre-paint theme bootstrap
+│   ├── globals.css         # Theme tokens + shared styles (old styles.css)
+│   ├── page.js             # Search page
+│   ├── results/
+│   ├── login/
+│   ├── dashboard/
+│   ├── api-docs/
+│   └── test-api-key/
+├── components/             # Header, Footer, ThemeToggle, GitHubStars, SquaresBackground
+└── lib/                    # config (API base URL), auth (JWT), theme, squares-background
 ```
 
-### Change API URL
-Edit both `search.js` and `results.js`:
-```javascript
-const API_BASE_URL = 'http://your-api-url:8000';
-```
+## Configuration
 
-### Styling
-All styles in `styles.css` use CSS variables for easy theming:
-```css
-:root {
-    --primary-color: #2563eb;
-    --background: #f8fafc;
-    --surface: #ffffff;
-    /* etc... */
-}
-```
+API base URL resolution (see `lib/config.js`):
 
-## Browser Compatibility
+1. `NEXT_PUBLIC_API_URL` env var (set at build time)
+2. `localhost` / `127.0.0.1` → `http://localhost:8000`
+3. otherwise same origin
 
-- ✅ Chrome/Edge (Latest)
-- ✅ Firefox (Latest)
-- ✅ Safari (Latest)
-- ⚠️ IE11 (Not supported)
+## Theming
 
-## Performance
-
-- **Initial load:** ~500-1000ms (loads filters + stats)
-- **Search query:** ~500-2000ms (depends on filters)
-- **Pagination:** ~500-1000ms (cached filters)
-
-Query times depend on:
-- Number of matching results
-- S3 network latency
-- Filter complexity
-
-## Troubleshooting
-
-### CORS Errors
-Make sure the API is running at `http://localhost:8000`
-
-### No Results Loading
-1. Check API is running: `curl http://localhost:8000/health`
-2. Check browser console for errors (F12)
-3. Verify `.env` has correct AWS credentials
-
-### Slow Queries
-- Add more specific filters to reduce result set
-- Use country/industry filters (indexed in Parquet)
-- Avoid very broad keyword searches
-
-## Next Steps
-
-### Add Features:
-- Export results to CSV
-- Profile detail modal
-- Save search filters
-- Bookmark/favorite profiles
-- Share search URLs
-
-### Optimize:
-- Add result caching
-- Implement infinite scroll
-- Add search suggestions
-- Client-side result filtering
-
-## License
-
-Internal tool - not for public distribution
+The theme (dark/light) is applied before first paint by an inline script in
+`app/layout.js` (localStorage `theme` wins, otherwise OS preference). Components
+use `lib/theme.js`; a `themechange` CustomEvent fires on `window` so the canvas
+background can re-read the `--canvas-*` tokens. Always use CSS variables — never
+hardcode colors (see `docs/guides/THEME_GUIDELINES.md`).

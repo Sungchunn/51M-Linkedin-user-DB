@@ -13,6 +13,31 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2026-07-16 16:40
+- Author: Claude (Next.js migration)
+- Change: Migrated the entire frontend from static HTML/CSS/vanilla JS to Next.js 16 (App Router, plain JS, no Tailwind) on branch `feat/nextjs-migration` (10 commits, branched off `feat/light-mode`)
+- Details:
+  - All 6 pages ported as client components: `/` (search), `/results`, `/login`, `/dashboard`, `/api-docs`, `/test-api-key`; legacy `*.html` URLs 307-redirect via `next.config.mjs`; shared chrome in `components/` (Header, Footer, ThemeToggle, GitHubStars, SquaresBackground) and logic in `lib/` (config, auth, theme, squares-background)
+  - `styles.css` → `app/globals.css` verbatim (all dual-theme tokens intact); theme.js's pre-paint logic now an inline bootstrap in `app/layout.js` + `lib/theme.js` API; page `<style>` blocks → CSS Modules; `npm run dev`/`start` pinned to :5500 so existing CORS defaults keep working (`scripts/serve_frontend_bg.sh` updated, requires `npm install` in frontend/)
+  - Dead code dropped, not ported: RotatingText.js, ShapeBlur.js, three.js CDN tag, search.js `loadStats()`, results.js `convertToCSV()`; behavior preserved otherwise (sessionStorage search handoff, hybrid-weight query params, one-time API key display, cURL generator)
+  - `.gitignore`: Node section added with negations (`!frontend/lib/`, `!package-lock.json`, `!jsconfig.json`) because the Python-era `lib/` and `*.json` patterns would silently swallow app source
+- Impacts: UX/tooling only — no API changes. `npm run build` passes (all routes prerender); every route + redirect smoke-tested via curl on :5500. Frontend now needs Node/npm (was zero-build)
+- Next: Visual pass in a browser (both themes), then prepare-pr for `feat/nextjs-migration`; consider deleting stale `.tmp/frontend_http.pid`
+
+---
+
+- Date/Time (UTC): 2026-07-16 15:10
+- Author: Claude (light mode implementation)
+- Change: Added a light theme with WCAG-AA contrast and a sun/moon toggle to all 6 frontend pages (branch `feat/light-mode`, 8 commits)
+- Details:
+  - `styles.css`: ~28 new tokens on `:root` (dark values = old literals, zero visual change) + a `[data-theme="light"]` override block; all hardcoded colors in styles.css/page `<style>` blocks/inline styles/JS-generated markup migrated to tokens; new shared components `.theme-toggle`, `.nav-link`, `.link-accent`, `.warning-box`, `.btn-copied`
+  - New `frontend/theme.js` loads synchronously in `<head>` before styles.css (no FOUC): localStorage choice wins, else OS `prefers-color-scheme` (tracked live until user toggles); exposes `window.themeUtils`, dispatches `themechange`; `squares-bg.js` re-reads `--canvas-*` tokens on that event (also fixed its vignette inner-stop mismatch)
+  - Light palette AA-verified (ratios documented in `docs/guides/THEME_GUIDELINES.md`): success/error/info/link accents darkened to 700-shades; buttons stay dark chips with new `--text-on-primary` (also fixed api-docs back-to-top/generate-button and count spans that would have been invisible); `test-api-key.html` now links styles.css instead of duplicating drifted hex
+- Impacts: UX only — no API changes. Dark mode remains the default and is pixel-identical except intentional fixes noted above
+- Next: Visual pass in both themes on all 6 pages (serve frontend on :5500), then prepare-pr for `feat/light-mode`
+
+---
+
 - Date/Time (UTC): 2026-07-14 (docs reorganization)
 - Author: Claude (docs cleanup)
 - Change: Reorganized all documentation into docs/{architecture,database,deployment,guides,agents,archive}; updated or removed outdated docs
