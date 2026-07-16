@@ -1,0 +1,390 @@
+.dashboardContainer {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+    min-height: 100vh;
+}
+
+.dashboardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 40px;
+}
+
+.dashboardTitle {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.dashboardTitle a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.userMenu {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.userInfo {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.logoutBtn {
+    padding: 10px 20px;
+    background: var(--error-tint);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--error);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.logoutBtn:hover {
+    background: var(--error-tint-strong);
+    transform: translateY(-1px);
+}
+
+.dashboardSection {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 32px;
+    box-shadow: var(--shadow-sm);
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.sectionTitle {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.btnPrimary {
+    padding: 12px 24px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    color: var(--text-on-primary);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.btnPrimary::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: var(--ripple);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease-out, height 0.6s ease-out;
+    z-index: 0;
+}
+
+.btnPrimary:hover::before {
+    width: 400px;
+    height: 400px;
+}
+
+.btnPrimary:hover {
+    background: var(--primary-hover);
+    box-shadow:
+        0 0 40px var(--glow-1),
+        0 0 80px var(--glow-2),
+        0 0 120px var(--glow-3),
+        var(--shadow-md);
+    border-color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.btnPrimary span {
+    position: relative;
+    z-index: 1;
+}
+
+.apiKeysList {
+    display: grid;
+    gap: 16px;
+}
+
+.apiKeyCard {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.apiKeyCard:hover {
+    border-color: var(--border-hover);
+}
+
+.apiKeyInfo {
+    flex: 1;
+}
+
+.apiKeyName {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.apiKeyDetails {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.apiKeyPrefix {
+    font-family: monospace;
+    background: var(--surface-hover);
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: var(--text-secondary);
+}
+
+.apiKeyScopes {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.scopeBadge {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: var(--success-tint);
+    border: 1px solid var(--success);
+    border-radius: 4px;
+    color: var(--success);
+}
+
+.apiKeyActions {
+    display: flex;
+    gap: 12px;
+}
+
+.btnRevoke {
+    padding: 8px 16px;
+    background: var(--error-tint);
+    border: 1px solid var(--error);
+    border-radius: 6px;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btnRevoke:hover {
+    background: var(--error-tint-strong);
+    transform: translateY(-1px);
+}
+
+.modal {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--overlay);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modalContent {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    max-width: 600px;
+    width: 90%;
+    box-shadow: var(--shadow-lg);
+}
+
+.modalHeader {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 24px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.formLabel {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.formInput,
+.formSelect {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: all 0.2s;
+}
+
+.formInput:hover,
+.formSelect:hover {
+    border-color: var(--border-hover);
+}
+
+.formInput:focus,
+.formSelect:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.checkboxGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.checkboxLabel:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-hover);
+}
+
+.checkboxLabel input:checked + span {
+    color: var(--success);
+}
+
+.modalActions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.btnCancel {
+    padding: 12px 24px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btnCancel:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.apiKeyCreated {
+    background: var(--success-tint);
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 16px;
+}
+
+.apiKeyCreatedTitle {
+    color: var(--success);
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.apiKeyValue {
+    font-family: monospace;
+    background: var(--background);
+    padding: 12px;
+    border-radius: 6px;
+    color: var(--text-primary);
+    word-break: break-all;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+}
+
+.copyBtn {
+    padding: 8px 16px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 6px;
+    color: var(--text-on-primary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.copyBtn:hover {
+    background: var(--primary-hover);
+    border-color: var(--text-primary);
+    transform: translateY(-1px);
+}
+
+.emptyState {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+}
+
+.navLinks {
+    margin-top: 32px;
+    text-align: center;
+}
+
+.navLinks a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 0 16px;
+    transition: color 0.2s;
+    font-weight: 500;
+}
+
+.navLinks a:hover {
+    color: var(--text-primary);
+}
