@@ -8,12 +8,12 @@ class SquaresBackground {
     this.ctx = null;
     this.rafId = null;
 
+    // borderColor / hoverFillColor options win when provided; otherwise the
+    // colors come from the theme tokens (--canvas-*) and follow theme changes.
     this.options = {
       direction: options.direction || 'diagonal',
       speed: options.speed || 0.5,
-      borderColor: options.borderColor || 'rgba(150, 150, 150, 0.15)',
       squareSize: options.squareSize || 40,
-      hoverFillColor: options.hoverFillColor || 'rgba(100, 100, 100, 0.1)',
       ...options
     };
 
@@ -46,12 +46,30 @@ class SquaresBackground {
     this.handleResize = this.handleResize.bind(this);
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleMouseLeave = this.handleMouseLeave.bind(this);
+    this.handleThemeChange = this.handleThemeChange.bind(this);
     this.updateAnimation = this.updateAnimation.bind(this);
 
     // Setup
+    this.readThemeColors();
     this.resizeCanvas();
     this.setupEventListeners();
     this.start();
+  }
+
+  readThemeColors() {
+    const styles = getComputedStyle(document.documentElement);
+    const line = styles.getPropertyValue('--canvas-line').trim();
+    const hover = styles.getPropertyValue('--canvas-hover').trim();
+    const vignette = styles.getPropertyValue('--canvas-vignette-rgb').trim();
+
+    this.borderColor = this.options.borderColor || line || 'rgba(150, 150, 150, 0.08)';
+    this.hoverFillColor = this.options.hoverFillColor || hover || 'rgba(100, 100, 100, 0.05)';
+    this.vignetteRgb = vignette || '10, 10, 10';
+  }
+
+  handleThemeChange() {
+    // drawGrid runs every animation frame, so the next frame picks these up.
+    this.readThemeColors();
   }
 
   resizeCanvas() {
@@ -91,6 +109,7 @@ class SquaresBackground {
 
   setupEventListeners() {
     window.addEventListener('resize', this.handleResize);
+    window.addEventListener('themechange', this.handleThemeChange);
     this.container.addEventListener('mousemove', this.handleMouseMove);
     this.container.addEventListener('mouseleave', this.handleMouseLeave);
   }
@@ -113,12 +132,12 @@ class SquaresBackground {
           Math.floor((x - startX) / this.options.squareSize) === this.hoveredSquare.x &&
           Math.floor((y - startY) / this.options.squareSize) === this.hoveredSquare.y
         ) {
-          this.ctx.fillStyle = this.options.hoverFillColor;
+          this.ctx.fillStyle = this.hoverFillColor;
           this.ctx.fillRect(squareX, squareY, this.options.squareSize, this.options.squareSize);
         }
 
         // Draw border
-        this.ctx.strokeStyle = this.options.borderColor;
+        this.ctx.strokeStyle = this.borderColor;
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(squareX, squareY, this.options.squareSize, this.options.squareSize);
       }
@@ -133,8 +152,8 @@ class SquaresBackground {
       this.canvas.height / 2,
       Math.sqrt(this.canvas.width ** 2 + this.canvas.height ** 2) / 2
     );
-    gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
-    gradient.addColorStop(1, 'rgba(10, 10, 10, 0.8)');
+    gradient.addColorStop(0, `rgba(${this.vignetteRgb}, 0)`);
+    gradient.addColorStop(1, `rgba(${this.vignetteRgb}, 0.8)`);
 
     this.ctx.fillStyle = gradient;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -185,6 +204,7 @@ class SquaresBackground {
   dispose() {
     this.pause();
     window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('themechange', this.handleThemeChange);
     this.container.removeEventListener('mousemove', this.handleMouseMove);
     this.container.removeEventListener('mouseleave', this.handleMouseLeave);
 
@@ -209,9 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
     new SquaresBackground(container, {
       direction: 'diagonal',
       speed: 0.3,
-      borderColor: 'rgba(150, 150, 150, 0.08)',
-      squareSize: 50,
-      hoverFillColor: 'rgba(100, 100, 100, 0.05)'
+      squareSize: 50
     });
 
     container.dataset.squaresInitialized = 'true';
