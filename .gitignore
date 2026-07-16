@@ -106,3 +106,15 @@ credentials/
 *.pem
 *.key
 *.cert
+
+# === Node / Next.js (frontend) ===
+node_modules/
+!package-lock.json
+!jsconfig.json
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+*.tsbuildinfo
+# python patterns above (lib/, build/) must not swallow the Next.js app source
+!frontend/lib/
+!frontend/lib/**
