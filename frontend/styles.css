@@ -8,7 +8,9 @@
 }
 
 :root {
-    /* Dark theme color palette from B2B SaaS design */
+    /* Dark theme color palette from B2B SaaS design (default theme) */
+    color-scheme: dark;
+
     --background: #0a0a0a;
     --surface: #171717;
     --surface-hover: #262626;
@@ -23,13 +25,112 @@
 
     --primary-color: #262626;
     --primary-hover: #404040;
+    --text-on-primary: #fafafa;
 
     --success: #10b981;
+    --success-tint: rgba(16, 185, 129, 0.1);
+    --success-tint-strong: rgba(16, 185, 129, 0.2);
     --error: #ef4444;
+    --error-tint: rgba(239, 68, 68, 0.1);
+    --error-tint-strong: rgba(239, 68, 68, 0.2);
+    --info: #60a5fa;
+    --info-tint: rgba(59, 130, 246, 0.2);
+
+    --warning-bg: #fef3c7;
+    --warning-text: #92400e;
+    --warning-border: #d97706;
+    --warning-accent: #f59e0b;
+
+    --nav-link: #9aa6c7;
+    --link-accent: #60d5ff;
+    --link-accent-tint: rgba(96, 213, 255, 0.05);
+    --link-accent-border: rgba(96, 213, 255, 0.2);
+
+    --glow-1: rgba(250, 250, 250, 0.4);
+    --glow-2: rgba(250, 250, 250, 0.2);
+    --glow-3: rgba(250, 250, 250, 0.1);
+    --ripple: rgba(255, 255, 255, 0.15);
+    --focus-ring: rgba(115, 115, 115, 0.08);
+    --overlay: rgba(0, 0, 0, 0.8);
+
+    --code-bg: #0a0a0a;
+    --code-text: #f0f0f0;
+
+    --badge-bg: #111;
+    --badge-text: #fff;
+    --badge-border: #444;
+    --badge-bg-hover: #1a1a1a;
+    --badge-border-hover: #555;
+    --badge-count: #ddd;
+
+    --canvas-line: rgba(150, 150, 150, 0.08);
+    --canvas-hover: rgba(100, 100, 100, 0.05);
+    --canvas-vignette-rgb: 10, 10, 10;
 
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5);
+    --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-inset-md: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] {
+    /* Light theme — all text tokens verified WCAG AA+ against --background/--surface */
+    color-scheme: light;
+
+    --background: #fafafa;
+    --surface: #ffffff;
+    --surface-hover: #f5f5f5;
+    --border: #e5e5e5;
+    --border-hover: #d4d4d4;
+    --border-focus: #a3a3a3;
+
+    --text-primary: #171717;   /* 17.2:1 on #fafafa — AAA */
+    --text-secondary: #525252; /* 7.5:1 — AAA */
+    --text-muted: #6b6b6b;     /* 5.1:1 — AA */
+    --text-subtle: #707070;    /* 4.7:1 — AA */
+
+    /* Buttons stay dark chips in light mode; --text-on-primary keeps their label readable */
+    --primary-color: #171717;
+    --primary-hover: #262626;
+    --text-on-primary: #fafafa;
+
+    --success: #047857;        /* 5.25:1 — AA */
+    --error: #b91c1c;          /* 6.2:1 — AA */
+    --info: #1d4ed8;           /* 6.7:1 — AA */
+    --warning-accent: #b45309;
+
+    --nav-link: #475569;       /* 7.3:1 — AAA */
+    --link-accent: #0e7490;    /* 5.1:1 — AA */
+    --link-accent-tint: rgba(14, 116, 144, 0.05);
+    --link-accent-border: rgba(14, 116, 144, 0.25);
+
+    /* White glow is invisible on white — use a soft dark elevation halo instead */
+    --glow-1: rgba(23, 23, 23, 0.15);
+    --glow-2: rgba(23, 23, 23, 0.08);
+    --glow-3: rgba(23, 23, 23, 0.04);
+    --focus-ring: rgba(23, 23, 23, 0.10);
+    --overlay: rgba(0, 0, 0, 0.45);
+
+    --code-bg: #f5f5f5;
+    --code-text: #171717;
+
+    --badge-bg: #ffffff;
+    --badge-text: #171717;
+    --badge-border: #d4d4d4;
+    --badge-bg-hover: #f5f5f5;
+    --badge-border-hover: #a3a3a3;
+    --badge-count: #525252;
+
+    --canvas-line: rgba(115, 115, 115, 0.18);
+    --canvas-hover: rgba(115, 115, 115, 0.10);
+    --canvas-vignette-rgb: 250, 250, 250;
+
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.06);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.12);
+    --shadow-inset-sm: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-inset-md: inset 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 body {
@@ -80,9 +181,9 @@ header .header-left {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #111;
-    color: #fff;
-    border: 1px solid #444;
+    background: var(--badge-bg);
+    color: var(--badge-text);
+    border: 1px solid var(--badge-border);
     border-radius: 9999px;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', system-ui, sans-serif;
     font-size: 13px;
@@ -95,8 +196,8 @@ header .header-left {
 }
 
 .github-badge:hover {
-    background: #1a1a1a;
-    border-color: #555;
+    background: var(--badge-bg-hover);
+    border-color: var(--badge-border-hover);
 }
 
 .github-badge svg {
@@ -107,18 +208,18 @@ header .header-left {
 }
 
 .github-badge .github-text {
-    color: #fff;
+    color: var(--badge-text);
     font-weight: 600;
 }
 
 .github-badge .star-icon {
-    color: #fff;
+    color: var(--badge-text);
     font-size: 12px;
     margin-left: 4px;
 }
 
 .github-badge .count {
-    color: #ddd;
+    color: var(--badge-count);
     font-variant-numeric: tabular-nums;
     font-weight: 500;
 }
@@ -390,7 +491,7 @@ header h1 a {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-inset-sm);
 }
 
 .filters-row {
@@ -431,7 +532,7 @@ header h1 a {
     outline: none;
     border-color: var(--text-muted);
     background: var(--surface);
-    box-shadow: 0 0 0 4px rgba(115, 115, 115, 0.08);
+    box-shadow: 0 0 0 4px var(--focus-ring);
 }
 
 .search-filter-wrapper .filter-search-input::placeholder {
@@ -464,7 +565,7 @@ header h1 a {
     padding: 8px;
     background: var(--background);
     margin-bottom: 8px;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-inset-md);
 }
 
 /* Custom scrollbar for webkit browsers */
@@ -598,7 +699,7 @@ header h1 a {
 
 .btn-primary {
     background: var(--primary-color);
-    color: var(--text-primary);
+    color: var(--text-on-primary);
     border: 1px solid var(--border-hover);
     box-shadow: var(--shadow-sm);
     position: relative;
@@ -613,7 +714,7 @@ header h1 a {
     width: 0;
     height: 0;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--ripple);
     transform: translate(-50%, -50%);
     transition: width 0.6s ease-out, height 0.6s ease-out;
     z-index: 0;
@@ -627,9 +728,9 @@ header h1 a {
 .btn-primary:hover {
     background: var(--primary-hover);
     box-shadow:
-        0 0 40px rgba(250, 250, 250, 0.4),
-        0 0 80px rgba(250, 250, 250, 0.2),
-        0 0 120px rgba(250, 250, 250, 0.1),
+        0 0 40px var(--glow-1),
+        0 0 80px var(--glow-2),
+        0 0 120px var(--glow-3),
         var(--shadow-md);
     border-color: var(--text-primary);
     transform: translateY(-2px);
@@ -1046,4 +1147,90 @@ footer {
 
 .hidden {
     display: none !important;
+}
+
+/* === Theme Toggle === */
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+.theme-toggle .icon-moon {
+    display: none;
+}
+
+[data-theme="light"] .theme-toggle .icon-sun {
+    display: none;
+}
+
+[data-theme="light"] .theme-toggle .icon-moon {
+    display: block;
+}
+
+/* === Themed Links === */
+.nav-link {
+    color: var(--nav-link);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.nav-link:hover {
+    color: var(--text-primary);
+}
+
+.link-accent {
+    color: var(--link-accent);
+    text-decoration: none;
+}
+
+.link-accent:hover {
+    text-decoration: underline;
+}
+
+/* === Warning Box (backend-unavailable notice etc.) === */
+.warning-box {
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+    color: var(--warning-text);
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin: 12px 0;
+    font-size: 0.9rem;
+}
+
+.warning-box button {
+    background: var(--surface);
+    border: 1px solid var(--warning-border);
+    color: var(--warning-text);
+    padding: 4px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+/* === Copy-button success flash === */
+.btn-copied {
+    background: var(--success-tint-strong) !important;
 }
