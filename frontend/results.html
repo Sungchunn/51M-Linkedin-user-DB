@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results - PROSPECTIQ</title>
+    <meta name="color-scheme" content="dark light">
+    <script src="theme.js"></script>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -15,10 +17,14 @@
                 <p class="subtitle">Intelligence-Driven Prospecting</p>
             </div>
             <div class="header-right">
-                <a href="dashboard.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Keys</a>
-                <a href="api-docs.html" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">API Docs</a>
+                <a href="dashboard.html" class="nav-link" style="font-size: 0.9rem;">API Keys</a>
+                <a href="api-docs.html" class="nav-link" style="font-size: 0.9rem;">API Docs</a>
                 <span id="github-stars-inline"></span>
-                <a href="login.html" onclick="window.authUtils.logout(); return false;" style="color: #9aa6c7; text-decoration: none; font-size: 0.9rem;">Logout</a>
+                <button class="theme-toggle" type="button" aria-label="Switch theme">
+                    <svg class="icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                    <svg class="icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                </button>
+                <a href="login.html" onclick="window.authUtils.logout(); return false;" class="nav-link" style="font-size: 0.9rem;">Logout</a>
             </div>
         </div>
     </header>
