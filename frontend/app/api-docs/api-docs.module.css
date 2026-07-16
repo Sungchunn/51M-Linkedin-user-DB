@@ -1,0 +1,638 @@
+/*
+ * API docs page styles — ported from the <style> block of the legacy
+ * frontend/api-docs.html. The old `body { display: flex }` lives on
+ * .page since CSS modules cannot style body.
+ */
+
+.page {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Sidebar Navigation */
+.sidebar {
+    width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 32px 0;
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebarHeader {
+    padding: 0 24px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+}
+
+.sidebarTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.sidebarTitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.sidebarTitleLink {
+    color: inherit;
+    text-decoration: none;
+}
+
+.sidebarSubtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.sidebarLinks {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+.sidebarQuickLink {
+    color: var(--nav-link);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 8px;
+}
+
+.sidebarQuickLink:last-child {
+    margin-bottom: 0;
+}
+
+.navSection {
+    margin-bottom: 24px;
+}
+
+.navSectionTitle {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0 24px 8px;
+}
+
+/* Local navLink — intentionally NOT the global .nav-link class */
+.navLink {
+    display: block;
+    padding: 8px 24px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 14px;
+    transition: all 0.2s;
+    border-left: 2px solid transparent;
+}
+
+.navLink:hover {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+    border-left-color: var(--text-primary);
+}
+
+.navLink.active {
+    color: var(--text-primary);
+    background: var(--surface-hover);
+    border-left-color: var(--text-primary);
+}
+
+/* Main Content */
+.mainContent {
+    margin-left: 280px;
+    flex: 1;
+    padding: 40px 60px;
+    max-width: 1200px;
+}
+
+.pageHeader {
+    margin-bottom: 40px;
+}
+
+.pageTitle {
+    font-size: 36px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.pageDescription {
+    font-size: 16px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* Sections */
+.docSection {
+    margin-bottom: 48px;
+    scroll-margin-top: 24px;
+}
+
+.sectionTitle {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.sectionDescription {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+/* Repeated inline-style patterns from the old HTML */
+.subheading {
+    margin-top: 24px;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.blockTitle {
+    margin-top: 16px;
+    color: var(--text-primary);
+}
+
+/* Endpoint Card */
+.endpoint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.endpointHeader {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.methodBadge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.methodGet {
+    background: var(--success-tint-strong);
+    color: var(--success);
+}
+
+.methodPost {
+    background: var(--info-tint);
+    color: var(--info);
+}
+
+.methodDelete {
+    background: var(--error-tint-strong);
+    color: var(--error);
+}
+
+.endpointPath {
+    font-family: monospace;
+    font-size: 16px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.endpointDescription {
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+
+/* Code Blocks (scoped: CSS-module selectors must include a local class) */
+.mainContent pre {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 16px 0;
+}
+
+.mainContent code {
+    font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+
+.inlineCode {
+    background: var(--surface-hover);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+/* Tables */
+.mainContent table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.mainContent th {
+    background: var(--background);
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.mainContent td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.mainContent tr:last-child td {
+    border-bottom: none;
+}
+
+.mainContent td:first-child {
+    color: var(--text-primary);
+    font-family: monospace;
+    font-weight: 500;
+}
+
+/* Info Boxes */
+.infoBox {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--success);
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+}
+
+.infoBox.warning {
+    border-left-color: var(--warning-accent);
+}
+
+.infoBoxTitle {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.infoBoxContent {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* Lists */
+.mainContent ul,
+.mainContent ol {
+    color: var(--text-secondary);
+    line-height: 1.8;
+    margin: 12px 0;
+    padding-left: 24px;
+}
+
+.mainContent li {
+    margin-bottom: 8px;
+}
+
+/* After the list rules so the tighter margin wins the specificity tie
+   (was an inline style in the old HTML). */
+.infoBoxContent ul {
+    margin: 8px 0 0 0;
+}
+
+.docLink {
+    color: var(--text-primary);
+}
+
+/* Quick Links */
+.quickLinks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.quickLinkCard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.quickLinkCard:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.quickLinkTitle {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.quickLinkDescription {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* cURL Generator */
+.curlContainer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 20px;
+}
+
+.formGroup {
+    margin-bottom: 20px;
+}
+
+.fieldLabel {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.fieldLabelWide {
+    margin-bottom: 12px;
+}
+
+.textInput {
+    width: 100%;
+    padding: 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.monoInput {
+    font-family: monospace;
+    font-size: 13px;
+}
+
+.filterSearchInput {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.hint {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.selectedCount {
+    color: var(--link-accent);
+    font-size: 12px;
+    margin-left: 8px;
+}
+
+.filtersGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.rangeGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.checkboxList {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    background: var(--background);
+}
+
+.listPlaceholder {
+    color: var(--text-muted);
+    padding: 8px;
+}
+
+.listError {
+    color: var(--error);
+    padding: 8px;
+}
+
+.checkItem {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.checkItem:hover {
+    background: var(--surface-hover);
+}
+
+.checkItem input {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.checkItemLabel {
+    cursor: pointer;
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.checkGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.checkRow {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.checkRow input {
+    margin-right: 10px;
+    cursor: pointer;
+}
+
+.checkRowLabel {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.generateWrap {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.generateBtn {
+    padding: 14px 32px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 8px;
+    color: var(--text-on-primary);
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.curlOutputHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.curlOutputTitle {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 16px;
+}
+
+.copyBtn {
+    padding: 8px 16px;
+    background: var(--success-tint);
+    border: 1px solid var(--success);
+    border-radius: 6px;
+    color: var(--success);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.mainContent pre.curlPre {
+    background: var(--code-bg);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.curlPre code {
+    color: var(--code-text);
+}
+
+.proTip {
+    margin-top: 16px;
+    padding: 12px;
+    background: var(--link-accent-tint);
+    border: 1px solid var(--link-accent-border);
+    border-radius: 6px;
+}
+
+.proTip strong {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.proTip p {
+    margin: 4px 0 0 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.proTip code {
+    background: var(--background);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Back to top */
+.backToTop {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.backToTop.visible {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.backToTop:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.backToTop span {
+    color: var(--text-on-primary);
+}
+
+.footerLinks {
+    margin-top: 64px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.footerLinks a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 0 16px;
+    transition: color 0.2s;
+}
+
+.footerLinks a:hover {
+    color: var(--text-primary);
+}
