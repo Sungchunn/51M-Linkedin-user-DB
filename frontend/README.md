@@ -5,6 +5,7 @@ Next.js (App Router) frontend for the PROSPECTIQ semantic talent-search platform
 ## Stack
 
 - **Next.js 16** (App Router), plain JavaScript — no TypeScript
+- **Bun 1.3.9** for frontend package management and scripts (`bun.lock`)
 - **Plain CSS**: global theme tokens in `app/globals.css` (dark default + light via `[data-theme="light"]`), page-specific styles in CSS Modules
 - **No component library / no Tailwind** — styling follows `docs/guides/THEME_GUIDELINES.md`
 
@@ -12,8 +13,8 @@ Next.js (App Router) frontend for the PROSPECTIQ semantic talent-search platform
 
 ```bash
 cd frontend
-npm install
-npm run dev        # http://localhost:5500
+bun install
+bun run dev        # http://localhost:5500
 ```
 
 Or from the repo root: `scripts/serve_frontend_bg.sh` (background, logs to `.tmp/frontend_http.log`).
@@ -23,8 +24,8 @@ The backend API must be running at `http://localhost:8000` (`./start_api.sh` fro
 ## Production
 
 ```bash
-npm run build
-npm run start      # serves the production build on :5500
+bun run build
+bun run start      # serves the production build on :5500
 ```
 
 ## Routes

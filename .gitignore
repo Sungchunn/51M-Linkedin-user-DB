@@ -109,7 +109,7 @@ credentials/
 
 # === Node / Next.js (frontend) ===
 node_modules/
-!package-lock.json
+!bun.lock
 !jsconfig.json
 frontend/.next/
 frontend/out/

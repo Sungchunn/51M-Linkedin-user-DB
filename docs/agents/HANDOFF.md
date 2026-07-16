@@ -11,6 +11,16 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-16 23:32
+- Author: Codex
+- Change: Migrated frontend package management from npm to Bun
+- Details:
+  - Added `frontend/bun.lock` via `bun install` and pinned `packageManager` to `bun@1.3.9`
+  - Updated active setup docs and `scripts/serve_frontend_bg.sh` to use `bun install` / `bun run`
+  - Removed npm lockfile tracking in favor of Bun's lockfile
+- Impacts: Frontend dependencies and scripts should now be run with Bun; Next.js remains pinned to port :5500
+- Next: Use `bun run build` for frontend build verification before release
+
 ---
 
 - Date/Time (UTC): 2026-07-16 16:40

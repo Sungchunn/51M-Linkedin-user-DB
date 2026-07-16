@@ -137,7 +137,7 @@ cp .env.example .env
 
 ```bash
 # Serve frontend (Next.js dev server)
-cd frontend && npm install && npm run dev
+cd frontend && bun install && bun run dev
 
 # Then open in browser
 open http://localhost:5500

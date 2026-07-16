@@ -34,8 +34,8 @@ Leave this terminal running.
 In a NEW terminal:
 ```bash
 cd "/Users/chromatrical/CAREER/Side Projects/51M-Linkedin-user-DB/frontend" && \
-npm install && \
-npm run dev
+bun install && \
+bun run dev
 ```
 
 Then open: http://localhost:5500
