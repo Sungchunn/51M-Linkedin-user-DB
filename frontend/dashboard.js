@@ -178,11 +178,11 @@ function copyApiKey() {
         const btn = event.target;
         const originalText = btn.textContent;
         btn.textContent = 'Copied!';
-        btn.style.background = 'rgba(0, 255, 157, 0.2)';
+        btn.classList.add('btn-copied');
 
         setTimeout(() => {
             btn.textContent = originalText;
-            btn.style.background = '';
+            btn.classList.remove('btn-copied');
         }, 2000);
     });
 }
