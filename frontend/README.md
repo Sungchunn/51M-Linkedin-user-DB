@@ -31,7 +31,7 @@ bun run start      # serves the production build on :5500
 ## Routes
 
 | Route | Purpose |
-|-------|---------|
+| ------- | --------- |
 | `/` | Search page (keyword + advanced filters) |
 | `/results` | Search results table with pagination + CSV export |
 | `/login` | Login / registration |
@@ -43,7 +43,7 @@ Legacy `*.html` URLs (e.g. `/login.html`) redirect to the new routes via `next.c
 
 ## Structure
 
-```
+```text
 frontend/
 ├── app/                    # App Router pages
 │   ├── layout.js           # Root layout + pre-paint theme bootstrap

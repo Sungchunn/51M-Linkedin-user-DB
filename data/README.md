@@ -4,7 +4,7 @@ This directory contains the raw data files for the INSIGHT project.
 
 ## Structure
 
-```
+```text
 data/
 ├── USA_filtered.parquet       # Main dataset (15GB, 51M+ rows)
 ├── batches/                   # Processing batches (gitignored)
@@ -14,6 +14,7 @@ data/
 ## Files
 
 ### USA_filtered.parquet
+
 - **Size**: ~15.15 GB
 - **Rows**: 51,352,619
 - **Columns**: 62
