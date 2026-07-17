@@ -11,6 +11,16 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-17 03:40
+- Author: Claude (results table redesign)
+- Change: Restyled the `/results` summary/table/pagination to the app-shell design language (both themes) via a new `results.module.css`
+- Details:
+  - Summary card: "9,354 results" heading + mono query-time pill (success tint <1s), quoted keyword, filter chips, pill Save + dark glow Export CSV buttons; table card: 16px radius, internal scroll (`.tableScroll`), sticky compact headers, capitalized name/title/company cells, muted summary/skills; pagination: pill Previous/Next, styled rows-select, mono page info; First/Last name merged into one Name column (display only — API fields unchanged)
+  - Removed ~230 lines of legacy results globals from `globals.css` (`.results-*`, `.table-container`, bare `table/th/td` rules, old pagination/states) — all verified unused; the bare `td:nth-child(7) {text-align:center}` was leaking into the new table (centered Summary column) and `table {min-width:2700px}` leaked into api-docs tables
+  - api-docs is auth-gated (redirects to login when unauthenticated) and styles its tables via its own module — unaffected
+- Impacts: UX only. Verified via headless Chrome in both themes: live query renders, summary column left-aligned, experience centered, no page overflow, no console errors
+- Next: A logged-in visual pass of /api-docs and /dashboard tables to confirm the globals cleanup left them untouched
+
 - Date/Time (UTC): 2026-07-17 03:00
 - Author: Claude (results page shell)
 - Change: Extracted the new chrome into a shared `AppShell` component and applied it to `/results`
