@@ -292,6 +292,8 @@ export default function SearchPage() {
     const filteredStates = allStates.filter((s) => s.toLowerCase().includes(statesSearch.toLowerCase()));
     const filteredIndustries = allIndustries.filter((i) => i.toLowerCase().includes(industrySearch.toLowerCase()));
 
+    const allContactsSelected = contacts.size === CONTACT_FILTERS.length;
+
     // Contact requirements have their own selector + badge, so they don't count here
     const activeFilterCount =
         selectedStates.size +
@@ -458,6 +460,25 @@ export default function SearchPage() {
                                                 )}
                                             </div>
                                             <p className={styles.popoverHint}>Only include profiles that have:</p>
+                                            <button
+                                                type="button"
+                                                className={`${styles.popoverItem} ${styles.popoverItemAll}`}
+                                                aria-pressed={allContactsSelected}
+                                                onClick={() => setContacts(
+                                                    allContactsSelected
+                                                        ? new Set()
+                                                        : new Set(CONTACT_FILTERS.map(([key]) => key))
+                                                )}
+                                            >
+                                                <span
+                                                    className={`${styles.popoverCheck} ${allContactsSelected || contacts.size > 0 ? styles.popoverCheckActive : ''}`}
+                                                    aria-hidden="true"
+                                                >
+                                                    {allContactsSelected ? '✓' : contacts.size > 0 ? '–' : ''}
+                                                </span>
+                                                <span>Select all</span>
+                                            </button>
+                                            <div className={styles.popoverDivider} aria-hidden="true" />
                                             {CONTACT_FILTERS.map(([key, label]) => {
                                                 const active = contacts.has(key);
                                                 return (

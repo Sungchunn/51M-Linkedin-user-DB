@@ -617,6 +617,16 @@
     border-color: var(--accent-line);
 }
 
+.popoverItemAll {
+    font-weight: 600;
+}
+
+.popoverDivider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 6px;
+}
+
 /* === Suggestions === */
 .suggestions {
     width: 100%;
