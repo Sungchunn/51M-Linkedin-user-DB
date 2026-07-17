@@ -483,63 +483,15 @@
     color: var(--error);
 }
 
-/* Footer bar: contact toggles + apply */
+/* Footer bar: apply */
 .filtersFooter {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
-    flex-wrap: wrap;
     padding: 14px 20px;
     border-top: 1px solid var(--border);
     background: var(--background);
-}
-
-.contactGroup {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.contactLabel {
-    color: var(--text-muted);
-    font-family: 'SF Mono', Monaco, monospace;
-    font-size: 0.68rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin-right: 2px;
-}
-
-.togglePill {
-    padding: 6px 12px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text-secondary);
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.togglePill:hover {
-    border-color: var(--border-hover);
-    color: var(--text-primary);
-    background: var(--surface-hover);
-}
-
-.togglePillActive {
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
-    color: var(--link-accent);
-}
-
-.togglePillActive:hover {
-    background: var(--accent-soft);
-    border-color: var(--accent-line);
-    color: var(--link-accent);
 }
 
 .applyBtn {
@@ -564,6 +516,105 @@
 .applyBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* === Contact-info popover (own selector, outside the filter panel) === */
+.contactWrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.contactPopover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 30;
+    width: 220px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.popoverHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 2px;
+}
+
+.popoverTitle {
+    color: var(--text-muted);
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+
+.popoverClear {
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.popoverClear:hover {
+    color: var(--text-primary);
+}
+
+.popoverHint {
+    margin: 0;
+    padding: 2px 8px 8px;
+    color: var(--text-subtle);
+    font-size: 0.74rem;
+}
+
+.popoverItem {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 7px 8px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.popoverItem:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.popoverCheck {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--border-hover);
+    border-radius: 4px;
+    font-size: 0.65rem;
+    line-height: 1;
+    color: var(--link-accent);
+    flex-shrink: 0;
+    transition: all 0.15s;
+}
+
+.popoverCheckActive {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
 }
 
 /* === Suggestions === */

@@ -100,6 +100,12 @@ const ICONS = {
             <path d="m6 9 6 6 6-6" />
         </svg>
     ),
+    atSign: (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94" />
+        </svg>
+    ),
 };
 
 /** Searchable multi-select rendered as a chip cloud: selected accent chips
@@ -191,7 +197,26 @@ export default function SearchPage() {
     // UI state
     const [searching, setSearching] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);
+    const [contactOpen, setContactOpen] = useState(false);
     const [suggestionsHidden, setSuggestionsHidden] = useState(false);
+    const contactRef = useRef(null);
+
+    // Close the contact popover on outside click or Escape
+    useEffect(() => {
+        if (!contactOpen) return undefined;
+        const onDown = (e) => {
+            if (contactRef.current && !contactRef.current.contains(e.target)) setContactOpen(false);
+        };
+        const onKey = (e) => {
+            if (e.key === 'Escape') setContactOpen(false);
+        };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [contactOpen]);
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -267,10 +292,10 @@ export default function SearchPage() {
     const filteredStates = allStates.filter((s) => s.toLowerCase().includes(statesSearch.toLowerCase()));
     const filteredIndustries = allIndustries.filter((i) => i.toLowerCase().includes(industrySearch.toLowerCase()));
 
+    // Contact requirements have their own selector + badge, so they don't count here
     const activeFilterCount =
         selectedStates.size +
         selectedIndustries.size +
-        contacts.size +
         [jobTitle, company, skills, minExperience, maxExperience].filter((v) => v.trim() !== '').length;
 
     // Central submit path: every search (form, suggestion card) goes through
@@ -312,7 +337,8 @@ export default function SearchPage() {
         runSearch(buildParamsFromForm());
     };
 
-    // Clears the filter panel only; the keyword survives (used by "Clear all").
+    // Clears the filter panel only; keyword and contact requirements survive
+    // (contacts have their own selector with its own Clear).
     const clearFilters = () => {
         setJobTitle('');
         setCompany('');
@@ -321,19 +347,20 @@ export default function SearchPage() {
         setSkills('');
         setSelectedStates(new Set());
         setSelectedIndustries(new Set());
-        setContacts(new Set());
         setStatesSearch('');
         setIndustrySearch('');
     };
 
     const resetForm = () => {
         setKeyword('');
+        setContacts(new Set());
         clearFilters();
     };
 
     const handleNewSearch = () => {
         resetForm();
         setFiltersOpen(false);
+        setContactOpen(false);
         searchInputRef.current?.focus();
     };
 
@@ -401,6 +428,59 @@ export default function SearchPage() {
                                         {ICONS.chevronDown}
                                     </span>
                                 </button>
+
+                                <div className={styles.contactWrap} ref={contactRef}>
+                                    <button
+                                        type="button"
+                                        className={`${styles.toolbarBtn} ${contactOpen || contacts.size > 0 ? styles.toolbarBtnActive : ''}`}
+                                        onClick={() => setContactOpen((open) => !open)}
+                                        aria-expanded={contactOpen}
+                                        aria-haspopup="true"
+                                    >
+                                        {ICONS.atSign}
+                                        <span>Contact</span>
+                                        {contacts.size > 0 && (
+                                            <span className={styles.filterBadge}>{contacts.size}</span>
+                                        )}
+                                    </button>
+                                    {contactOpen && (
+                                        <div className={styles.contactPopover} role="group" aria-label="Required contact info">
+                                            <div className={styles.popoverHeader}>
+                                                <span className={styles.popoverTitle}>Contact info</span>
+                                                {contacts.size > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        className={styles.popoverClear}
+                                                        onClick={() => setContacts(new Set())}
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <p className={styles.popoverHint}>Only include profiles that have:</p>
+                                            {CONTACT_FILTERS.map(([key, label]) => {
+                                                const active = contacts.has(key);
+                                                return (
+                                                    <button
+                                                        type="button"
+                                                        key={key}
+                                                        className={styles.popoverItem}
+                                                        aria-pressed={active}
+                                                        onClick={() => toggleIn(setContacts)(key)}
+                                                    >
+                                                        <span
+                                                            className={`${styles.popoverCheck} ${active ? styles.popoverCheckActive : ''}`}
+                                                            aria-hidden="true"
+                                                        >
+                                                            {active ? '✓' : ''}
+                                                        </span>
+                                                        <span>{label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className={styles.toolbarRight}>
                                 <span className={styles.modeChip}>Hybrid search</span>
@@ -515,24 +595,6 @@ export default function SearchPage() {
                             </div>
 
                             <div className={styles.filtersFooter}>
-                                <div className={styles.contactGroup}>
-                                    <span className={styles.contactLabel}>Contact</span>
-                                    {CONTACT_FILTERS.map(([key, label]) => {
-                                        const active = contacts.has(key);
-                                        return (
-                                            <button
-                                                type="button"
-                                                key={key}
-                                                className={`${styles.togglePill} ${active ? styles.togglePillActive : ''}`}
-                                                aria-pressed={active}
-                                                onClick={() => toggleIn(setContacts)(key)}
-                                            >
-                                                {active && <span aria-hidden="true">✓ </span>}
-                                                {label}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
                                 <button type="submit" className={styles.applyBtn} disabled={searching}>
                                     Apply filters
                                 </button>
