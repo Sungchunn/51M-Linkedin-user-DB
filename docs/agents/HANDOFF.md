@@ -11,6 +11,38 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-17 02:20
+- Author: Claude (filters redesign)
+- Change: Complete redesign of the `/` filters panel — compact two-column grid replacing the old full-width vertical stack
+- Details:
+  - New layout in `home.module.css` + `app/page.js`: header row (Filters + active-count badge, Clear all, × close), grid sections Role & company / Experience & skills (min–max on one row) / US states / Industries / Has contact info; 1-column on ≤900px
+  - States/industries now use a `MultiSelectFilter` component: search box, removable selected chips (hover = red remove affordance), compact 148px option list with custom check squares — replaces the old 220px global-class checkbox containers (old globals.css classes untouched, page no longer uses them)
+  - Contact filters are now toggle pills (aria-pressed, dark chip when active) with short labels (LinkedIn/Email/…) instead of the 6-checkbox grid; identical search params emitted — `/results` contract unchanged
+- Impacts: UX only. Verified in both themes via headless-Chrome screenshots (panel opened, options toggled, chips/pills render)
+- Next: Consider persisting open/closed filter panel state; possible follow-up to reuse MultiSelectFilter on `/results` for filter editing
+
+- Date/Time (UTC): 2026-07-17 01:40
+- Author: Claude (rays background)
+- Change: Replaced the `/` page background (animated squares) with a WebGL SideRays light-ray effect, theme-aware in both modes
+- Details:
+  - New `components/SideRays.js` + `SideRays.module.css` — react-bits SideRays ported to plain JS (new dep: `ogl@1.0.11`); mounted full-viewport behind content via `.raysBackground` (fixed, z-index -1, pointer-events none) in `home.module.css`
+  - Ray colors/opacity are theme tokens (`--rays-color-1/2`, `--rays-opacity` in globals.css): dark = #eab308/#96c8ff at 1.0 (user-provided), light = deeper #ca8a04/#3b82f6 at 0.55 so additive rays read on white; page re-reads tokens on the `themechange` event, and SideRays updates its uniforms live on prop change
+  - Props per user spec: speed 2.5, intensity 2, spread 2, origin top-right, saturation 1.5, blend 0.75, falloff 1.6; `/results` still uses SquaresBackground (only `/` swapped)
+- Impacts: UX only; verified in both themes via headless-Chrome screenshots (canvas renders, no console errors). Frontend gains a WebGL dependency; rays pause offscreen via IntersectionObserver
+- Next: If the rays look right, consider swapping `/results` (and login/dashboard?) to SideRays for consistency, then retire SquaresBackground
+
+- Date/Time (UTC): 2026-07-17 00:50
+- Author: Claude (main page redesign)
+- Change: Redesigned `/` as a Perplexity-style app shell — collapsible search-history sidebar + centered hero with a glowing search box (branch `feat/main-page-filter-redesign`)
+- Details:
+  - New layout in `app/page.js` + `app/home.module.css`: sidebar (brand, New Search, filterable "Recent" history list, nav/GitHubStars/ThemeToggle at bottom; hideable on desktop via panel button — persisted in localStorage `sidebarCollapsed`, floating reopen button — and off-canvas slide-over on ≤900px) and main pane (classic hero kept per user preference: PROSPECTIQ badge + "Search 497K+ {rotating}" + GTM tagline, reusing globals `.hero-title`; rounded search box with toolbar — Filters toggle w/ active-count badge, circular glow submit — suggestion chips/cards, hide-suggestions toggle, stat line); Header/Footer no longer used on `/` but untouched for other pages; SquaresBackground kept
+  - Search history is localStorage-backed via new `lib/searchHistory.js` (capped at 50, dedupes identical params, `describeParams()` builds labels) — module is the single access point so the planned backend/DB persistence swaps in one place; clicking an entry re-runs it through the same `runSearch()` path as the form (sessionStorage → `/results`, unchanged contract)
+  - All existing filters preserved verbatim (states/industries multi-select, job title, company, experience range, skills, contact checkboxes) in a panel toggled from the search-box toolbar, plus a new "Clear all filters"; suggestion cards run preset searches, chips prefill the keyword
+- Impacts: UX only — no API changes; `/results` contract (sessionStorage `searchParams`) unchanged. `bun run build` passes; new-markup smoke-tested via curl on :5500. All colors via existing globals.css tokens (both themes)
+- Next: Visual pass in both themes (incl. mobile sidebar), then design the history persistence API (per-user, JWT-scoped) to replace localStorage
+
+---
+
 - Date/Time (UTC): 2026-07-16 23:32
 - Author: Codex
 - Change: Migrated frontend package management from npm to Bun
@@ -174,3 +206,15 @@ Template (copy/paste):
 - Impacts: Filters and exports behave as expected; baseline stable
 - Next: If enabling auth/keys/scopes again, apply incrementally with filter endpoints untouched
 
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Renamed default branch `clean-main` → `main` (local + GitHub)
+- Details:
+  - Local branch renamed and pushed; upstream tracking set to `origin/main`
+  - GitHub default branch switched to `main` via `gh repo edit`; remote `clean-main` deleted
+  - `origin/HEAD` updated; stale tracking refs pruned
+- Impacts: All future PRs target `main`; any local clones should run `git fetch --prune && git branch -m clean-main main && git branch -u origin/main main`
+- Next: Optionally delete stale branches (`feat/nextjs-migration` local, `codex/clean-main-into-main` remote)
