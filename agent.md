@@ -469,7 +469,7 @@ poetry run load-parquet "/Users/chromatrical/CAREER/Side
 
 #### Frontend Pages
 
-The frontend is a Next.js app (App Router, plain JS) in `frontend/` — `npm run dev` serves it on :5500.
+The frontend is a Next.js app (App Router, plain JS) in `frontend/` — `bun run dev` serves it on :5500.
 
 - `/` - Main search page with advanced filters
 - `/results` - Search results with pagination and export

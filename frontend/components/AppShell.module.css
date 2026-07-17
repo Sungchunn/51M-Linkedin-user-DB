@@ -1,0 +1,424 @@
+/* AppShell — shared chrome: rays background, collapsible history sidebar, main pane.
+   All colors come from globals.css tokens; works in both themes. */
+
+.shell {
+    --sidebar-width: 320px; /* desktop; mobile overrides below */
+    display: flex;
+    min-height: 100vh;
+}
+
+/* Full-viewport WebGL ray background; z-index -1 keeps it behind all content
+   while the page background color shows through the canvas's transparent areas. */
+.raysBackground {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* === Sidebar === */
+.sidebar {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    z-index: 40;
+    overflow: hidden;
+    transition: width 0.25s ease;
+}
+
+/* Desktop collapse: width animates to 0; inner blocks keep their width so
+   content slides out instead of reflowing. */
+.sidebarCollapsed {
+    width: 0;
+    border-right-color: transparent;
+}
+
+.sidebarTop,
+.sidebarBottom,
+.historySection {
+    width: var(--sidebar-width);
+}
+
+.sidebarTop {
+    padding: 24px 16px 16px;
+}
+
+.brandRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.brand {
+    display: block;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-primary);
+    text-decoration: none;
+    padding: 0 8px;
+}
+
+.collapseBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.collapseBtn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.collapseBtn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.brandSub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    padding: 0 8px;
+    margin-bottom: 20px;
+}
+
+.newSearchBtn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+}
+
+.newSearchBtn:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    box-shadow: 0 0 24px var(--glow-3);
+}
+
+.newSearchBtn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.historySearchWrapper {
+    position: relative;
+}
+
+.historySearchWrapper svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.historySearchInput {
+    width: 100%;
+    padding: 9px 12px 9px 34px;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.historySearchInput:hover {
+    border-color: var(--border-hover);
+}
+
+.historySearchInput:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.historySearchInput::placeholder {
+    color: var(--text-subtle);
+}
+
+/* === History list === */
+.historySection {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px 16px;
+}
+
+.historySection::-webkit-scrollbar {
+    width: 6px;
+}
+
+.historySection::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 8px;
+}
+
+.historyHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    margin-bottom: 4px;
+}
+
+.historyHeader span {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+}
+
+.historyClear {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.historyClear:hover {
+    color: var(--error);
+    background: var(--error-tint);
+}
+
+.historyList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.historyRow {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    transition: background 0.15s;
+}
+
+.historyRow:hover {
+    background: var(--surface-hover);
+}
+
+.historyItem {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 8px 28px 8px 8px;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.historyLabel {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.15s;
+}
+
+.historyRow:hover .historyLabel {
+    color: var(--text-primary);
+}
+
+.historyTime {
+    color: var(--text-subtle);
+    font-size: 0.72rem;
+}
+
+.historyDelete {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.historyRow:hover .historyDelete {
+    display: flex;
+}
+
+.historyDelete:hover {
+    color: var(--error);
+    background: var(--error-tint);
+}
+
+.historyEmpty {
+    padding: 16px 8px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+/* === Sidebar bottom === */
+.sidebarBottom {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+}
+
+.sidebarNav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-bottom: 12px;
+}
+
+.sidebarNav a {
+    display: block;
+    padding: 7px 8px;
+    border-radius: 6px;
+    color: var(--nav-link);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.sidebarNav a:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+.sidebarMeta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 8px;
+}
+
+/* === Main pane (pages append their own layout class via mainClassName) === */
+.main {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+/* === Mobile === */
+.menuBtn {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 50;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.menuBtn:hover {
+    background: var(--surface-hover);
+    color: var(--text-primary);
+}
+
+/* Desktop: only surfaces once the sidebar is collapsed */
+.menuBtnVisible {
+    display: inline-flex;
+}
+
+.menuBtn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.backdrop {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .shell {
+        --sidebar-width: 280px;
+    }
+
+    .menuBtn {
+        display: inline-flex;
+    }
+
+    /* Mobile uses the slide-over; the desktop collapsed state must not shrink it */
+    .sidebar,
+    .sidebarCollapsed {
+        width: var(--sidebar-width);
+        border-right: 1px solid var(--border);
+        position: fixed;
+        left: 0;
+        top: 0;
+        transform: translateX(-100%);
+        transition: transform 0.25s ease;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .sidebarOpen {
+        transform: translateX(0);
+    }
+
+    .backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: var(--overlay);
+        z-index: 30;
+    }
+}
+
+/* Placed after the media block so it wins at every breakpoint: the floating
+   button is redundant while the mobile drawer is open (it has its own close). */
+.menuBtnHidden {
+    display: none;
+}

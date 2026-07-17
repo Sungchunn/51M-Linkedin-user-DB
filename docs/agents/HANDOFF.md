@@ -11,6 +11,68 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-17 03:40
+- Author: Claude (results table redesign)
+- Change: Restyled the `/results` summary/table/pagination to the app-shell design language (both themes) via a new `results.module.css`
+- Details:
+  - Summary card: "9,354 results" heading + mono query-time pill (success tint <1s), quoted keyword, filter chips, pill Save + dark glow Export CSV buttons; table card: 16px radius, internal scroll (`.tableScroll`), sticky compact headers, capitalized name/title/company cells, muted summary/skills; pagination: pill Previous/Next, styled rows-select, mono page info; First/Last name merged into one Name column (display only — API fields unchanged)
+  - Removed ~230 lines of legacy results globals from `globals.css` (`.results-*`, `.table-container`, bare `table/th/td` rules, old pagination/states) — all verified unused; the bare `td:nth-child(7) {text-align:center}` was leaking into the new table (centered Summary column) and `table {min-width:2700px}` leaked into api-docs tables
+  - api-docs is auth-gated (redirects to login when unauthenticated) and styles its tables via its own module — unaffected
+- Impacts: UX only. Verified via headless Chrome in both themes: live query renders, summary column left-aligned, experience centered, no page overflow, no console errors
+- Next: A logged-in visual pass of /api-docs and /dashboard tables to confirm the globals cleanup left them untouched
+
+- Date/Time (UTC): 2026-07-17 03:00
+- Author: Claude (results page shell)
+- Change: Extracted the new chrome into a shared `AppShell` component and applied it to `/results`
+- Details:
+  - New `components/AppShell.js` + `AppShell.module.css`: rays background, collapsible history sidebar, main pane — moved verbatim from the home page; pages pass `mainClassName` for their own main-pane layout (home passes `.homeMain` centering) and optional `onNewSearch`; history rerun from `/results` reloads in place via sessionStorage
+  - `app/page.js`/`home.module.css` slimmed to content-only (hero, search box, filters, suggestions); `/results` now renders inside AppShell instead of Header/Footer/SquaresBackground (those components remain for login/dashboard)
+  - Fixed a real overflow bug the swap exposed: `.results-container`'s `margin: 0 auto` disables flex-stretch inside the shell's main, so it sized to its 1400px max-width and overflowed the viewport by 220px — added `width: 100%` (globals.css)
+- Impacts: UX only; `/results` data flow unchanged. Verified via headless Chrome: both pages screenshot correctly, live search renders 9,354 results, `scrollWidth === innerWidth` after the fix, no console errors
+- Next: Port login/dashboard/api-docs to AppShell (or intentionally keep them standalone), then retire Header/Footer/SquaresBackground
+
+- Date/Time (UTC): 2026-07-17 02:20
+- Author: Claude (filters redesign)
+- Change: Complete redesign of the `/` filters panel — compact two-column grid replacing the old full-width vertical stack
+- Details:
+  - New layout in `home.module.css` + `app/page.js`: header row (Filters + active-count badge, Clear all, × close), grid sections Role & company / Experience & skills (min–max on one row) / US states / Industries / Has contact info; 1-column on ≤900px
+  - States/industries now use a `MultiSelectFilter` component: search box, removable selected chips (hover = red remove affordance), compact 148px option list with custom check squares — replaces the old 220px global-class checkbox containers (old globals.css classes untouched, page no longer uses them)
+  - Contact filters are now toggle pills (aria-pressed, dark chip when active) with short labels (LinkedIn/Email/…) instead of the 6-checkbox grid; identical search params emitted — `/results` contract unchanged
+- Impacts: UX only. Verified in both themes via headless-Chrome screenshots (panel opened, options toggled, chips/pills render)
+- Next: Consider persisting open/closed filter panel state; possible follow-up to reuse MultiSelectFilter on `/results` for filter editing
+
+- Date/Time (UTC): 2026-07-17 01:40
+- Author: Claude (rays background)
+- Change: Replaced the `/` page background (animated squares) with a WebGL SideRays light-ray effect, theme-aware in both modes
+- Details:
+  - New `components/SideRays.js` + `SideRays.module.css` — react-bits SideRays ported to plain JS (new dep: `ogl@1.0.11`); mounted full-viewport behind content via `.raysBackground` (fixed, z-index -1, pointer-events none) in `home.module.css`
+  - Ray colors/opacity are theme tokens (`--rays-color-1/2`, `--rays-opacity` in globals.css): dark = #eab308/#96c8ff at 1.0 (user-provided), light = deeper #ca8a04/#3b82f6 at 0.55 so additive rays read on white; page re-reads tokens on the `themechange` event, and SideRays updates its uniforms live on prop change
+  - Props per user spec: speed 2.5, intensity 2, spread 2, origin top-right, saturation 1.5, blend 0.75, falloff 1.6; `/results` still uses SquaresBackground (only `/` swapped)
+- Impacts: UX only; verified in both themes via headless-Chrome screenshots (canvas renders, no console errors). Frontend gains a WebGL dependency; rays pause offscreen via IntersectionObserver
+- Next: If the rays look right, consider swapping `/results` (and login/dashboard?) to SideRays for consistency, then retire SquaresBackground
+
+- Date/Time (UTC): 2026-07-17 00:50
+- Author: Claude (main page redesign)
+- Change: Redesigned `/` as a Perplexity-style app shell — collapsible search-history sidebar + centered hero with a glowing search box (branch `feat/main-page-filter-redesign`)
+- Details:
+  - New layout in `app/page.js` + `app/home.module.css`: sidebar (brand, New Search, filterable "Recent" history list, nav/GitHubStars/ThemeToggle at bottom; hideable on desktop via panel button — persisted in localStorage `sidebarCollapsed`, floating reopen button — and off-canvas slide-over on ≤900px) and main pane (classic hero kept per user preference: PROSPECTIQ badge + "Search 497K+ {rotating}" + GTM tagline, reusing globals `.hero-title`; rounded search box with toolbar — Filters toggle w/ active-count badge, circular glow submit — suggestion chips/cards, hide-suggestions toggle, stat line); Header/Footer no longer used on `/` but untouched for other pages; SquaresBackground kept
+  - Search history is localStorage-backed via new `lib/searchHistory.js` (capped at 50, dedupes identical params, `describeParams()` builds labels) — module is the single access point so the planned backend/DB persistence swaps in one place; clicking an entry re-runs it through the same `runSearch()` path as the form (sessionStorage → `/results`, unchanged contract)
+  - All existing filters preserved verbatim (states/industries multi-select, job title, company, experience range, skills, contact checkboxes) in a panel toggled from the search-box toolbar, plus a new "Clear all filters"; suggestion cards run preset searches, chips prefill the keyword
+- Impacts: UX only — no API changes; `/results` contract (sessionStorage `searchParams`) unchanged. `bun run build` passes; new-markup smoke-tested via curl on :5500. All colors via existing globals.css tokens (both themes)
+- Next: Visual pass in both themes (incl. mobile sidebar), then design the history persistence API (per-user, JWT-scoped) to replace localStorage
+
+---
+
+- Date/Time (UTC): 2026-07-16 23:32
+- Author: Codex
+- Change: Migrated frontend package management from npm to Bun
+- Details:
+  - Added `frontend/bun.lock` via `bun install` and pinned `packageManager` to `bun@1.3.9`
+  - Updated active setup docs and `scripts/serve_frontend_bg.sh` to use `bun install` / `bun run`
+  - Removed npm lockfile tracking in favor of Bun's lockfile
+- Impacts: Frontend dependencies and scripts should now be run with Bun; Next.js remains pinned to port :5500
+- Next: Use `bun run build` for frontend build verification before release
+
 ---
 
 - Date/Time (UTC): 2026-07-16 16:40
@@ -164,3 +226,40 @@ Template (copy/paste):
 - Impacts: Filters and exports behave as expected; baseline stable
 - Next: If enabling auth/keys/scopes again, apply incrementally with filter endpoints untouched
 
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Renamed default branch `clean-main` → `main` (local + GitHub)
+- Details:
+  - Local branch renamed and pushed; upstream tracking set to `origin/main`
+  - GitHub default branch switched to `main` via `gh repo edit`; remote `clean-main` deleted
+  - `origin/HEAD` updated; stale tracking refs pruned
+- Impacts: All future PRs target `main`; any local clones should run `git fetch --prune && git branch -m clean-main main && git branch -u origin/main main`
+- Next: Optionally delete stale branches (`feat/nextjs-migration` local, `codex/clean-main-into-main` remote)
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Applied user-designed redesign — search filter panel, results table, and contact detail slide-over
+- Details:
+  - Home filter panel: animated collapse (grid-rows 0fr→1fr), header with Clear all (filters only, keyword survives), states/industries as chip clouds (selected accent chips + "+ option" quick-add, capped at 8, search narrows), contact toggles moved to a footer bar with an "Apply filters" submit button; Filters toggle gets accent active state + rotating chevron
+  - Results page: summary card replaced by a page header (count + query-time mono chip + Edit search/Save/Export CSV); active filters render as removable accent chips built from searchParams (removal persists to sessionStorage and re-runs from page 1; "location: United States" is fixed)
+  - Results table: 14-column <table> replaced by a 6-column grid (Name & role with initials avatar, Company, Location, Exp, 2-line-clamped Summary, row actions LinkedIn/copy-contact); rows are keyboard-accessible buttons; pagination moved into the card footer
+  - Contact detail slide-over: clicking a row opens a right drawer (min(560px, 92vw), scrim, Escape/scrim-click closes, body scroll locked) with identity band, LinkedIn/copy-email actions, Summary, Experience, Contact rows (linkedin/email/phone/website/twitter/github), Skills chips, and Details — fields dropped from the table remain reachable here
+  - Theme: new token pair --accent-soft/--accent-line (both themes) for chip surfaces; SideRays kept on both pages with contrast raised slightly (intensity 2→2.4, light-mode --rays-opacity 0.55→0.62)
+- Impacts: UX only — search request/response contracts unchanged; CSV export untouched; per-row PII columns (email/phone) moved from the table into the drawer
+- Next: Verify drawer + chip-removal flows in the browser (Chrome extension was disconnected; verified via dev-server compile + API shape checks); consider restoring form state on "Edit search"
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Moved contact requirements out of the filter panel into a standalone popover selector
+- Details:
+  - New "Contact" button in the search toolbar (next to Filters) with its own count badge; opens a compact 220px popover with tickable rows for LinkedIn/Email/Phone/Website/Twitter/GitHub plus a Clear action
+  - Popover closes on outside click or Escape; hint text "Only include profiles that have:" keeps the has_* filter semantics clear
+  - Filter panel footer now holds only "Apply filters"; panel "Clear all" no longer touches contacts (popover has its own Clear; New Search still resets everything); contacts excluded from the Filters badge count
+- Impacts: UX only — search params (has_*) unchanged; results-page "has: X" chips unaffected
+- Next: Same as previous entry — browser-verify the interactive flows
