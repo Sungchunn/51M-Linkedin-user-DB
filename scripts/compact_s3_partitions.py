@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# pyright: reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
 """
 Compact the state-partitioned parquet warehouse on S3.
 
@@ -33,28 +34,48 @@ Uses the aws CLI for uploads/deletes and DuckDB httpfs for reads.
 
 import argparse
 import json
+import logging
 import os
 import subprocess
 import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 import duckdb
 from dotenv import load_dotenv
 
 DEFAULT_BUCKET = "sungchunn-linkedin-db"
 DEFAULT_PREFIX = "curated/usa_profiles"
+DEFAULT_LOG_FILE = Path(__file__).resolve().parent.parent / ".tmp" / "compact_s3_partitions.log"
 COMPACT_BASENAME = "compact"  # output files: compact_0.parquet, compact_1.parquet, ...
 DELETE_BATCH_SIZE = 1000  # S3 DeleteObjects hard limit
 
+logger = logging.getLogger("compact_s3")
+
+
+def setup_logging(log_file: Path) -> None:
+    """Console (HH:MM:SS) + append-mode log file (full timestamps) so long runs can be tailed."""
+    console = logging.StreamHandler(sys.stdout)
+    console.setFormatter(logging.Formatter("%(asctime)s %(message)s", datefmt="%H:%M:%S"))
+
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(message)s"))
+
+    logger.setLevel(logging.INFO)
+    logger.addHandler(console)
+    logger.addHandler(file_handler)
+    logger.info(f"Logging to {log_file}")
+
 
 def fail(message: str) -> None:
-    print(f"❌ {message}", file=sys.stderr)
+    logger.error(f"❌ {message}")
     sys.exit(1)
 
 
-def aws(args: list) -> str:
+def aws(args: list[str]) -> str:
     """Run an aws CLI command (list-args, no shell) and return stdout."""
     result = subprocess.run(["aws"] + args, capture_output=True, text=True)
     if result.returncode != 0:
@@ -62,7 +83,7 @@ def aws(args: list) -> str:
     return result.stdout
 
 
-def list_states(bucket: str, prefix: str) -> list:
+def list_states(bucket: str, prefix: str) -> list[str]:
     """Enumerate state=<name>/ partitions under the warehouse prefix."""
     out = aws(
         [
@@ -78,14 +99,14 @@ def list_states(bucket: str, prefix: str) -> list:
             "json",
         ]
     )
-    prefixes = [p["Prefix"] for p in json.loads(out).get("CommonPrefixes", [])]
+    prefixes: list[str] = [p["Prefix"] for p in json.loads(out).get("CommonPrefixes", [])]
     states = [p.rstrip("/").split("state=", 1)[1] for p in prefixes if "state=" in p]
     if not states:
         fail(f"No state= partitions found under s3://{bucket}/{prefix}/")
     return states
 
 
-def list_objects(bucket: str, state_prefix: str) -> list:
+def list_objects(bucket: str, state_prefix: str) -> list[dict[str, Any]]:
     """All objects in one partition as [{Key, Size}], paginated by the CLI."""
     out = aws(
         [
@@ -99,7 +120,8 @@ def list_objects(bucket: str, state_prefix: str) -> list:
             "json",
         ]
     )
-    return json.loads(out).get("Contents", [])
+    contents: list[dict[str, Any]] = json.loads(out).get("Contents", [])
+    return contents
 
 
 def duckdb_connect() -> duckdb.DuckDBPyConnection:
@@ -112,21 +134,23 @@ def duckdb_connect() -> duckdb.DuckDBPyConnection:
     return con
 
 
-def sql_path_list(paths: list) -> str:
+def sql_path_list(paths: list[str]) -> str:
     """SQL literal list of paths (keys may contain spaces; escape quotes)."""
     quoted = ", ".join("'" + p.replace("'", "''") + "'" for p in paths)
     return f"[{quoted}]"
 
 
-def count_rows(con: duckdb.DuckDBPyConnection, paths: list) -> int:
+def count_rows(con: duckdb.DuckDBPyConnection, paths: list[str]) -> int:
     """Row count via parquet footer metadata only — no data scan."""
-    return con.execute(
+    row: tuple[Any, ...] | None = con.execute(
         f"SELECT count(*) FROM read_parquet({sql_path_list(paths)}, hive_partitioning=false)"
-    ).fetchone()[0]
+    ).fetchone()
+    assert row is not None, "count(*) query must return exactly one row"
+    return int(row[0])
 
 
-def validate_sort_column(con: duckdb.DuckDBPyConnection, s3_paths: list, sort_by: str) -> None:
-    columns = [
+def validate_sort_column(con: duckdb.DuckDBPyConnection, s3_paths: list[str], sort_by: str) -> None:
+    columns: list[str] = [
         r[0]
         for r in con.execute(
             f"DESCRIBE SELECT * FROM read_parquet({sql_path_list(s3_paths[:1])}, hive_partitioning=false)"
@@ -146,7 +170,7 @@ def compact_state(
     sort_by: str,
     max_file_bytes: int,
     delete_originals: bool,
-) -> dict:
+) -> dict[str, Any]:
     """Compact one partition. Returns a stats dict for the summary table."""
     started = time.time()
     state_prefix = f"{prefix}/state={state}/"
@@ -160,9 +184,18 @@ def compact_state(
 
     original_bytes = sum(o["Size"] for o in originals)
     s3_paths = [f"s3://{bucket}/{o['Key']}" for o in originals]
+    logger.info(
+        f"state={state}: {len(originals)} original files, {original_bytes / 1048576:.1f} MB "
+        f"— counting rows on S3..."
+    )
+    step = time.time()
     expected_rows = count_rows(con, s3_paths)
     if expected_rows == 0:
         fail(f"state={state}: originals contain 0 rows — refusing to compact an empty partition")
+    logger.info(
+        f"state={state}: {expected_rows:,} rows in originals ({time.time() - step:.1f}s) "
+        f"— downloading, sorting by {sort_by}, writing local compacted file(s)..."
+    )
 
     with tempfile.TemporaryDirectory(prefix=f"compact_{state.replace(' ', '_')}_") as tmp:
         con.execute(f"SET temp_directory='{tmp}';")
@@ -170,6 +203,7 @@ def compact_state(
             f"SELECT * FROM read_parquet({sql_path_list(s3_paths)}, hive_partitioning=false) "
             f'ORDER BY "{sort_by}"'
         )
+        step = time.time()
         if original_bytes > max_file_bytes:
             con.execute(
                 f"COPY ({source}) TO '{tmp}' (FORMAT PARQUET, COMPRESSION zstd, "
@@ -183,6 +217,11 @@ def compact_state(
 
         local_files = sorted(Path(tmp).glob(f"{COMPACT_BASENAME}_*.parquet"))
         assert local_files, f"state={state}: DuckDB COPY produced no output files"
+        compacted_bytes = sum(f.stat().st_size for f in local_files)
+        logger.info(
+            f"state={state}: wrote {len(local_files)} local file(s), "
+            f"{compacted_bytes / 1048576:.1f} MB ({time.time() - step:.1f}s) — verifying..."
+        )
 
         local_rows = count_rows(con, [str(f) for f in local_files])
         assert local_rows == expected_rows, (
@@ -192,23 +231,35 @@ def compact_state(
 
         # Stale compact_* files from a crashed run are superseded by this rebuild
         if stale_compact:
+            logger.info(
+                f"state={state}: removing {len(stale_compact)} stale compact file(s) "
+                f"from a previous interrupted run"
+            )
             delete_keys(bucket, [o["Key"] for o in stale_compact])
 
-        uploaded_keys = []
-        for f in local_files:
+        uploaded_keys: list[str] = []
+        for n, f in enumerate(local_files, 1):
             key = f"{state_prefix}{f.name}"
+            logger.info(
+                f"state={state}: uploading {f.name} "
+                f"({f.stat().st_size / 1048576:.1f} MB) [{n}/{len(local_files)}]"
+            )
+            step = time.time()
             aws(["s3", "cp", str(f), f"s3://{bucket}/{key}", "--only-show-errors"])
+            logger.info(f"state={state}: uploaded {f.name} ({time.time() - step:.1f}s)")
             uploaded_keys.append(key)
-        compacted_bytes = sum(f.stat().st_size for f in local_files)
 
+    logger.info(f"state={state}: verifying uploaded row count...")
     uploaded_rows = count_rows(con, [f"s3://{bucket}/{k}" for k in uploaded_keys])
     assert uploaded_rows == expected_rows, (
         f"state={state}: uploaded rows ({uploaded_rows}) != originals ({expected_rows}) "
         f"— originals NOT deleted; remove s3://{bucket}/{state_prefix}{COMPACT_BASENAME}_* "
         f"before retrying"
     )
+    logger.info(f"state={state}: upload verified ({uploaded_rows:,} rows)")
 
     if delete_originals:
+        logger.info(f"state={state}: deleting {len(originals)} verified originals...")
         delete_keys(bucket, [o["Key"] for o in originals])
 
     return {
@@ -224,7 +275,7 @@ def compact_state(
     }
 
 
-def delete_keys(bucket: str, keys: list) -> None:
+def delete_keys(bucket: str, keys: list[str]) -> None:
     for i in range(0, len(keys), DELETE_BATCH_SIZE):
         batch = keys[i : i + DELETE_BATCH_SIZE]
         payload = json.dumps({"Objects": [{"Key": k} for k in batch], "Quiet": True})
@@ -232,7 +283,7 @@ def delete_keys(bucket: str, keys: list) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[1])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[1])
     parser.add_argument("--bucket", default=DEFAULT_BUCKET)
     parser.add_argument("--prefix", default=DEFAULT_PREFIX)
     parser.add_argument(
@@ -254,8 +305,15 @@ def main() -> None:
         action="store_true",
         help="Keep originals (WARNING: readers will double-count until they are removed)",
     )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        default=DEFAULT_LOG_FILE,
+        help=f"Append step-level logs here (default: {DEFAULT_LOG_FILE})",
+    )
     args = parser.parse_args()
 
+    setup_logging(args.log_file)
     load_dotenv(Path(__file__).resolve().parent.parent / ".env")
     for var in ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_REGION"):
         if not os.getenv(var):
@@ -271,7 +329,7 @@ def main() -> None:
         selected = all_states
 
     # Smallest first: quick wins early, the big uploads last
-    sizes = {}
+    sizes: dict[str, tuple[int, int]] = {}
     for state in selected:
         objects = list_objects(args.bucket, f"{args.prefix}/state={state}/")
         originals = [
@@ -281,9 +339,9 @@ def main() -> None:
     selected = sorted(selected, key=lambda s: sizes[s][1])
 
     total_bytes = sum(sizes[s][1] for s in selected)
-    print(
+    logger.info(
         f"Plan: {len(selected)} states, {sum(sizes[s][0] for s in selected)} original files, "
-        f"{total_bytes / 1073741824:.2f} GB to move (down + up), sorted smallest-first\n"
+        f"{total_bytes / 1073741824:.2f} GB to move (down + up), sorted smallest-first"
     )
 
     if args.dry_run:
@@ -291,14 +349,14 @@ def main() -> None:
             n, size = sizes[state]
             target = max(1, -(-size // (args.max_file_mb * 1048576)))  # ceil div
             status = "already compacted" if n == 0 else f"{n:3d} files -> {target}"
-            print(f"  state={state:<22} {size / 1048576:9.1f} MB  {status}")
-        print("\nDry run — nothing was read, written, or deleted.")
+            logger.info(f"  state={state:<22} {size / 1048576:9.1f} MB  {status}")
+        logger.info("Dry run — nothing was read, written, or deleted.")
         return
 
     con = duckdb_connect()
     first_with_files = next((s for s in selected if sizes[s][0] > 0), None)
     if first_with_files is None:
-        print("All selected states are already compacted — nothing to do.")
+        logger.info("All selected states are already compacted — nothing to do.")
         return
     probe = list_objects(args.bucket, f"{args.prefix}/state={first_with_files}/")
     probe_paths = [
@@ -308,7 +366,7 @@ def main() -> None:
     ]
     validate_sort_column(con, probe_paths, args.sort_by)
 
-    results = []
+    results: list[dict[str, Any]] = []
     for i, state in enumerate(selected, 1):
         result = compact_state(
             con,
@@ -321,9 +379,9 @@ def main() -> None:
         )
         results.append(result)
         if result["skipped"]:
-            print(f"[{i:2d}/{len(selected)}] state={state:<22} already compacted — skipped")
+            logger.info(f"[{i:2d}/{len(selected)}] state={state:<22} already compacted — skipped")
         else:
-            print(
+            logger.info(
                 f"[{i:2d}/{len(selected)}] state={state:<22} "
                 f"{result['files_before']:3d} -> {result['files_after']} files  "
                 f"{result['mb_before']:8.1f} -> {result['mb_after']:8.1f} MB  "
@@ -331,14 +389,14 @@ def main() -> None:
             )
 
     done = [r for r in results if not r["skipped"]]
-    print(
-        f"\nDone: {len(done)} states compacted, {len(results) - len(done)} skipped. "
+    logger.info(
+        f"Done: {len(done)} states compacted, {len(results) - len(done)} skipped. "
         f"{sum(r['files_before'] for r in done)} files -> {sum(r['files_after'] for r in done)}, "
         f"{sum(r['mb_before'] for r in done) / 1024:.2f} GB -> "
         f"{sum(r['mb_after'] for r in done) / 1024:.2f} GB."
     )
     if args.no_delete:
-        print(
+        logger.warning(
             "⚠️  --no-delete: originals are still on S3 alongside compact files — "
             "readers will double-count until you delete them."
         )
