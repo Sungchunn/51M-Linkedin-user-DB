@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
-import SquaresBackground from '@/components/SquaresBackground';
+import AppShell from '@/components/AppShell';
 import { getApiBaseUrl } from '@/lib/config';
 
 function formatNumber(num) {
@@ -243,10 +241,7 @@ export default function ResultsPage() {
     const filtersApplied = data?.filters_applied || {};
 
     return (
-        <>
-            <SquaresBackground />
-            <Header />
-
+        <AppShell>
             <div className="results-container">
                 {/* Results Summary */}
                 {status === 'results' && data && (
@@ -392,8 +387,6 @@ export default function ResultsPage() {
                     </span>
                 </div>
             </div>
-
-            <Footer />
-        </>
+        </AppShell>
     );
 }

@@ -867,6 +867,7 @@ header h1 a {
 
 /* === Results Page === */
 .results-container {
+    width: 100%; /* fill the AppShell flex main; auto margins alone would skip stretch */
     max-width: 1400px;
     margin: 0 auto;
     padding: 32px 24px;
