@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AppShell from '@/components/AppShell';
 import { getApiBaseUrl } from '@/lib/config';
+import styles from './results.module.css';
 
 function formatNumber(num) {
     return new Intl.NumberFormat('en-US').format(num);
@@ -77,16 +78,17 @@ function ProfileRow({ profile }) {
 
     const linkedinDisplay = profile.linkedin_url ? profile.linkedin_url.replace('linkedin.com/in/', '') : null;
 
+    const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || '—';
+
     return (
         <tr>
-            <td>{profile.first_name || '—'}</td>
-            <td>{profile.last_name || '—'}</td>
-            <td>{profile.job_title || '—'}</td>
-            <td>{profile.company_name || '—'}</td>
-            <td>{profile.industry || '—'}</td>
-            <td>{location}</td>
+            <td className={styles.nameCell}>{name}</td>
+            <td className={styles.capitalize}>{profile.job_title || '—'}</td>
+            <td className={styles.capitalize}>{profile.company_name || '—'}</td>
+            <td className={styles.capitalize}>{profile.industry || '—'}</td>
+            <td className={styles.capitalize}>{location}</td>
             <td>{profile.years_experience !== null ? `${profile.years_experience} yrs` : '—'}</td>
-            <td title={summaryFull} style={{ maxWidth: 300, whiteSpace: 'normal' }}>{summaryDisplay}</td>
+            <td className={styles.summaryCell} title={summaryFull}>{summaryDisplay}</td>
             <td>
                 {profile.linkedin_url ? (
                     <a href={`https://${profile.linkedin_url}`} target="_blank" rel="noopener" className="link-accent">{linkedinDisplay}</a>
@@ -113,7 +115,7 @@ function ProfileRow({ profile }) {
                     <a href={`https://github.com/${profile.github}`} target="_blank" rel="noopener" className="link-accent">{profile.github}</a>
                 ) : '—'}
             </td>
-            <td title={skillsText}>{skills}</td>
+            <td className={styles.skillsCell} title={skillsText}>{skills}</td>
         </tr>
     );
 }
@@ -242,46 +244,49 @@ export default function ResultsPage() {
 
     return (
         <AppShell>
-            <div className="results-container">
+            <div className={styles.container}>
                 {/* Results Summary */}
                 {status === 'results' && data && (
-                    <div className="results-summary">
-                        <div className="summary-header">
+                    <div className={styles.summaryCard}>
+                        <div className={styles.summaryTop}>
                             <div>
-                                <div className="summary-stats">
-                                    <h2>
-                                        Showing {formatNumber(start)}-{formatNumber(end)} of {formatNumber(totalCount)} results
-                                    </h2>
-                                    <span className={data.query_time_ms < 1000 ? 'text-success' : 'text-muted'}>
-                                        Query time: {data.query_time_ms.toFixed(0)}ms
+                                <div className={styles.summaryHeading}>
+                                    <h2>{formatNumber(totalCount)} results</h2>
+                                    <span
+                                        className={`${styles.timeChip} ${data.query_time_ms >= 1000 ? styles.timeChipSlow : ''}`}
+                                        title="Query time"
+                                    >
+                                        {data.query_time_ms.toFixed(0)}ms
                                     </span>
                                 </div>
-                                <p className="summary-query">{searchParams?.keyword || ''}</p>
+                                {searchParams?.keyword && (
+                                    <p className={styles.summaryQuery}>&ldquo;{searchParams.keyword}&rdquo;</p>
+                                )}
                             </div>
-                            <div className="summary-actions">
-                                <button onClick={() => window.print()} className="btn-secondary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <div className={styles.summaryActions}>
+                                <button onClick={() => window.print()} className={styles.actionBtn}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M5 17H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-1" />
                                         <path d="M5 21h14a2 2 0 0 0 2-2v-5H3v5a2 2 0 0 0 2 2Z" />
                                     </svg>
                                     Save
                                 </button>
-                                <button onClick={exportToCSV} className="btn-primary">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <button onClick={exportToCSV} className={styles.actionBtnPrimary}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                         <polyline points="7 10 12 15 17 10" />
                                         <line x1="12" y1="15" x2="12" y2="3" />
                                     </svg>
-                                    Export
+                                    Export CSV
                                 </button>
                             </div>
                         </div>
-                        <div id="filtersApplied">
+                        <div className={styles.filterChips}>
                             {Object.keys(filtersApplied).length === 0 ? (
-                                <span className="filter-tag">No filters applied</span>
+                                <span className={styles.filterChip}>No filters applied</span>
                             ) : (
                                 Object.entries(filtersApplied).map(([key, value]) => (
-                                    <span className="filter-tag" key={key}>
+                                    <span className={styles.filterChip} key={key}>
                                         {formatFilterKey(key)}: {String(value)}
                                     </span>
                                 ))
@@ -291,98 +296,92 @@ export default function ResultsPage() {
                 )}
 
                 {/* Results Table */}
-                <div className="table-container">
-                    {status === 'results' && data && (
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>FIRST NAME</th>
-                                    <th>LAST NAME</th>
-                                    <th>JOB TITLE</th>
-                                    <th>COMPANY</th>
-                                    <th>INDUSTRY</th>
-                                    <th>LOCATION</th>
-                                    <th>EXPERIENCE</th>
-                                    <th>SUMMARY</th>
-                                    <th>LINKEDIN</th>
-                                    <th>EMAIL</th>
-                                    <th>PHONE</th>
-                                    <th>WEBSITE</th>
-                                    <th>TWITTER</th>
-                                    <th>GITHUB</th>
-                                    <th>SKILLS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {data.results.map((profile, index) => (
-                                    <ProfileRow profile={profile} key={profile.id || index} />
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-
-                    {status === 'loading' && (
-                        <div className="loading-state">
+                <div className={styles.tableCard}>
+                    {status === 'results' && data ? (
+                        <div className={styles.tableScroll}>
+                            <table className={styles.table}>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Job Title</th>
+                                        <th>Company</th>
+                                        <th>Industry</th>
+                                        <th>Location</th>
+                                        <th>Experience</th>
+                                        <th>Summary</th>
+                                        <th>LinkedIn</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Website</th>
+                                        <th>Twitter</th>
+                                        <th>GitHub</th>
+                                        <th>Skills</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.results.map((profile, index) => (
+                                        <ProfileRow profile={profile} key={profile.id || index} />
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : status === 'loading' ? (
+                        <div className={styles.stateBox}>
                             <div className="spinner"></div>
-                            <p>Searching profiles...</p>
+                            <p className={styles.stateText}>Searching profiles...</p>
                         </div>
-                    )}
-
-                    {status === 'empty' && (
-                        <div className="empty-state">
-                            <p style={{ fontSize: '3rem', marginBottom: 16 }}>🔍</p>
-                            <p style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginBottom: 8 }}>No results found</p>
-                            <p style={{ color: 'var(--text-muted)' }}>Try adjusting your filters or search terms</p>
-                            <button onClick={goBack} className="btn-primary" style={{ marginTop: 24 }}>Back to Search</button>
+                    ) : status === 'empty' ? (
+                        <div className={styles.stateBox}>
+                            <p className={styles.stateEmoji}>🔍</p>
+                            <p className={styles.stateTitle}>No results found</p>
+                            <p className={styles.stateText}>Try adjusting your filters or search terms</p>
+                            <button onClick={goBack} className={`btn-primary ${styles.stateAction}`}>
+                                <span>Back to Search</span>
+                            </button>
                         </div>
-                    )}
-
-                    {status === 'error' && (
-                        <div className="error-state">
-                            <p style={{ fontSize: '3rem', marginBottom: 16 }}>⚠️</p>
-                            <p style={{ fontSize: '1.25rem', color: 'var(--text-primary)', marginBottom: 8 }}>Search failed</p>
-                            <p style={{ color: 'var(--text-muted)' }}>{errorMessage}</p>
-                            <button onClick={goBack} className="btn-primary" style={{ marginTop: 24 }}>Back to Search</button>
+                    ) : (
+                        <div className={styles.stateBox}>
+                            <p className={styles.stateEmoji}>⚠️</p>
+                            <p className={styles.stateTitle}>Search failed</p>
+                            <p className={styles.stateText}>{errorMessage}</p>
+                            <button onClick={goBack} className={`btn-primary ${styles.stateAction}`}>
+                                <span>Back to Search</span>
+                            </button>
                         </div>
                     )}
                 </div>
 
                 {/* Pagination */}
-                <div className="pagination">
-                    <div className="pagination-info">
+                <div className={styles.paginationBar}>
+                    <div className={styles.paginationInfo}>
                         <span>Rows per page</span>
-                        <select
-                            className="form-control"
-                            style={{ width: 80, padding: '8px 12px', fontSize: '0.875rem' }}
-                            value={String(limit)}
-                            onChange={changeLimit}
-                        >
+                        <select className={styles.rowsSelect} value={String(limit)} onChange={changeLimit}>
                             <option value="15">15</option>
                             <option value="20">20</option>
                             <option value="50">50</option>
                             <option value="100">100</option>
                         </select>
-                        <span style={{ color: 'var(--text-subtle)' }}>
+                        <span className={styles.rangeText}>
                             {totalCount > 0 ? `${formatNumber(start)}-${formatNumber(end)} of ${formatNumber(totalCount)}` : ''}
                         </span>
                     </div>
 
-                    <div className="pagination-controls">
-                        <button onClick={goPrev} disabled={offset === 0}>
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <div className={styles.paginationControls}>
+                        <button className={styles.pageBtn} onClick={goPrev} disabled={offset === 0}>
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="m15 18-6-6 6-6" />
                             </svg>
                             Previous
                         </button>
-                        <button onClick={goNext} disabled={offset + limit >= totalCount}>
+                        <button className={styles.pageBtn} onClick={goNext} disabled={offset + limit >= totalCount}>
                             Next
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="m9 18 6-6-6-6" />
                             </svg>
                         </button>
                     </div>
 
-                    <span id="pageInfo">
+                    <span className={styles.pageInfo}>
                         {totalCount > 0 ? `Page ${currentPage} of ${formatNumber(totalPages)}` : ''}
                     </span>
                 </div>

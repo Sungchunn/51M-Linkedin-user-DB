@@ -1,0 +1,403 @@
+/* Results page — card-based presentation matching the app-shell design language.
+   All colors come from globals.css tokens; works in both themes. */
+
+.container {
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 24px;
+}
+
+/* === Summary card === */
+.summaryCard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-md);
+}
+
+.summaryTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.summaryHeading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.summaryHeading h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+}
+
+.timeChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 9999px;
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.72rem;
+    background: var(--success-tint);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.timeChipSlow {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-muted);
+}
+
+.summaryQuery {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.summaryActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.actionBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionBtn:hover {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.actionBtn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.actionBtnPrimary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: var(--primary-color);
+    border: 1px solid var(--border-hover);
+    border-radius: 9999px;
+    color: var(--text-on-primary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionBtnPrimary:hover {
+    background: var(--primary-hover);
+    border-color: var(--text-primary);
+    box-shadow: 0 0 32px var(--glow-2), 0 0 64px var(--glow-3);
+    transform: translateY(-1px);
+}
+
+.actionBtnPrimary svg {
+    width: 14px;
+    height: 14px;
+}
+
+.filterChips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.filterChip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    background: var(--surface-hover);
+    border: 1px solid var(--border-hover);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+}
+
+/* === Table card === */
+.tableCard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.tableScroll {
+    overflow: auto;
+    max-height: calc(100vh - 340px);
+    min-height: 320px;
+}
+
+.tableScroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.tableScroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.tableScroll::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 8px;
+}
+
+.tableScroll::-webkit-scrollbar-thumb:hover {
+    background: var(--border-focus);
+}
+
+.table {
+    width: 100%;
+    min-width: 2100px;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface);
+    padding: 12px 14px;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+.table td {
+    padding: 12px 14px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+    line-height: 1.45;
+}
+
+.table tbody tr {
+    transition: background 0.15s;
+}
+
+.table tbody tr:hover td {
+    background: var(--surface-hover);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Column emphasis + widths (1 Name, 2 Job title, 3 Company, 4 Industry,
+   5 Location, 6 Experience, 7 Summary, 8 LinkedIn, 9 Email, 10 Phone,
+   11 Website, 12 Twitter, 13 GitHub, 14 Skills) */
+.table th:nth-child(1) { min-width: 150px; }
+.table th:nth-child(2) { min-width: 170px; }
+.table th:nth-child(3) { min-width: 150px; }
+.table th:nth-child(4) { min-width: 130px; }
+.table th:nth-child(5) { min-width: 160px; }
+.table th:nth-child(6) { min-width: 80px; }
+.table th:nth-child(7) { min-width: 300px; }
+.table th:nth-child(8) { min-width: 150px; }
+.table th:nth-child(9) { min-width: 180px; }
+.table th:nth-child(10) { min-width: 110px; }
+.table th:nth-child(11) { min-width: 130px; }
+.table th:nth-child(12) { min-width: 90px; }
+.table th:nth-child(13) { min-width: 90px; }
+.table th:nth-child(14) { min-width: 250px; }
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+    text-align: center;
+}
+
+.nameCell {
+    color: var(--text-primary);
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.capitalize {
+    text-transform: capitalize;
+}
+
+.summaryCell {
+    max-width: 300px;
+    white-space: normal;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.skillsCell {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+/* === States (loading / empty / error) === */
+.stateBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 80px 20px;
+    text-align: center;
+}
+
+.stateEmoji {
+    font-size: 2.5rem;
+    margin-bottom: 8px;
+}
+
+.stateTitle {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.stateText {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.stateBox .stateAction {
+    margin-top: 16px;
+}
+
+/* === Pagination bar === */
+.paginationBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 0 4px 32px;
+}
+
+.paginationInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.rowsSelect {
+    padding: 7px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rowsSelect:hover {
+    border-color: var(--border-hover);
+}
+
+.rowsSelect:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.rangeText {
+    color: var(--text-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
+.paginationControls {
+    display: flex;
+    gap: 8px;
+}
+
+.pageBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 9999px;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pageBtn:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+}
+
+.pageBtn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pageBtn svg {
+    width: 14px;
+    height: 14px;
+}
+
+.pageInfo {
+    font-family: 'SF Mono', Monaco, monospace;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 900px) {
+    .container {
+        padding: 72px 16px 24px; /* clear the floating menu button */
+    }
+
+    .summaryCard {
+        padding: 16px;
+    }
+
+    .tableScroll {
+        max-height: calc(100vh - 280px);
+    }
+}
