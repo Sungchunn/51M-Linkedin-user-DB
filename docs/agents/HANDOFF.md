@@ -226,7 +226,6 @@ Template (copy/paste):
 - Impacts: Filters and exports behave as expected; baseline stable
 - Next: If enabling auth/keys/scopes again, apply incrementally with filter endpoints untouched
 
-
 ---
 
 - Date/Time (UTC): 2026-07-17
@@ -238,3 +237,17 @@ Template (copy/paste):
   - `origin/HEAD` updated; stale tracking refs pruned
 - Impacts: All future PRs target `main`; any local clones should run `git fetch --prune && git branch -m clean-main main && git branch -u origin/main main`
 - Next: Optionally delete stale branches (`feat/nextjs-migration` local, `codex/clean-main-into-main` remote)
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Applied user-designed redesign — search filter panel, results table, and contact detail slide-over
+- Details:
+  - Home filter panel: animated collapse (grid-rows 0fr→1fr), header with Clear all (filters only, keyword survives), states/industries as chip clouds (selected accent chips + "+ option" quick-add, capped at 8, search narrows), contact toggles moved to a footer bar with an "Apply filters" submit button; Filters toggle gets accent active state + rotating chevron
+  - Results page: summary card replaced by a page header (count + query-time mono chip + Edit search/Save/Export CSV); active filters render as removable accent chips built from searchParams (removal persists to sessionStorage and re-runs from page 1; "location: United States" is fixed)
+  - Results table: 14-column <table> replaced by a 6-column grid (Name & role with initials avatar, Company, Location, Exp, 2-line-clamped Summary, row actions LinkedIn/copy-contact); rows are keyboard-accessible buttons; pagination moved into the card footer
+  - Contact detail slide-over: clicking a row opens a right drawer (min(560px, 92vw), scrim, Escape/scrim-click closes, body scroll locked) with identity band, LinkedIn/copy-email actions, Summary, Experience, Contact rows (linkedin/email/phone/website/twitter/github), Skills chips, and Details — fields dropped from the table remain reachable here
+  - Theme: new token pair --accent-soft/--accent-line (both themes) for chip surfaces; SideRays kept on both pages with contrast raised slightly (intensity 2→2.4, light-mode --rays-opacity 0.55→0.62)
+- Impacts: UX only — search request/response contracts unchanged; CSV export untouched; per-row PII columns (email/phone) moved from the table into the drawer
+- Next: Verify drawer + chip-removal flows in the browser (Chrome extension was disconnected; verified via dev-server compile + API shape checks); consider restoring form state on "Edit search"
