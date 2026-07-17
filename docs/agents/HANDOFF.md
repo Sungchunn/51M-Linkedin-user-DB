@@ -251,3 +251,15 @@ Template (copy/paste):
   - Theme: new token pair --accent-soft/--accent-line (both themes) for chip surfaces; SideRays kept on both pages with contrast raised slightly (intensity 2→2.4, light-mode --rays-opacity 0.55→0.62)
 - Impacts: UX only — search request/response contracts unchanged; CSV export untouched; per-row PII columns (email/phone) moved from the table into the drawer
 - Next: Verify drawer + chip-removal flows in the browser (Chrome extension was disconnected; verified via dev-server compile + API shape checks); consider restoring form state on "Edit search"
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Moved contact requirements out of the filter panel into a standalone popover selector
+- Details:
+  - New "Contact" button in the search toolbar (next to Filters) with its own count badge; opens a compact 220px popover with tickable rows for LinkedIn/Email/Phone/Website/Twitter/GitHub plus a Clear action
+  - Popover closes on outside click or Escape; hint text "Only include profiles that have:" keeps the has_* filter semantics clear
+  - Filter panel footer now holds only "Apply filters"; panel "Clear all" no longer touches contacts (popover has its own Clear; New Search still resets everything); contacts excluded from the Filters badge count
+- Impacts: UX only — search params (has_*) unchanged; results-page "has: X" chips unaffected
+- Next: Same as previous entry — browser-verify the interactive flows
