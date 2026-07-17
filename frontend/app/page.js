@@ -102,8 +102,12 @@ const ICONS = {
     ),
 };
 
-/** Compact searchable multi-select: search box, removable chips, option list. */
+/** Searchable multi-select rendered as a chip cloud: selected accent chips
+    followed by "+ option" quick-add chips (capped; the search box narrows). */
+const MAX_SUGGESTED_OPTIONS = 8;
+
 function MultiSelectFilter({ label, items, status, selected, onToggle, search, onSearch, placeholder }) {
+    const suggestions = items.filter((item) => !selected.has(item)).slice(0, MAX_SUGGESTED_OPTIONS);
     return (
         <section className={styles.filterSection}>
             <h3 className={styles.sectionLabel}>
@@ -120,8 +124,12 @@ function MultiSelectFilter({ label, items, status, selected, onToggle, search, o
                     onChange={(e) => onSearch(e.target.value)}
                 />
             </div>
-            {selected.size > 0 && (
-                <div className={styles.selectedChips}>
+            {status === 'loading' ? (
+                <p className={styles.optionHint}>Loading…</p>
+            ) : status === 'error' ? (
+                <p className={styles.optionError}>Failed to load — is the API running?</p>
+            ) : (
+                <div className={styles.chipCloud}>
                     {Array.from(selected).map((value) => (
                         <button
                             type="button"
@@ -134,33 +142,21 @@ function MultiSelectFilter({ label, items, status, selected, onToggle, search, o
                             <span className={styles.chipX} aria-hidden="true">×</span>
                         </button>
                     ))}
+                    {suggestions.map((item) => (
+                        <button
+                            type="button"
+                            key={item}
+                            className={styles.addChip}
+                            onClick={() => onToggle(item)}
+                        >
+                            + {item}
+                        </button>
+                    ))}
+                    {suggestions.length === 0 && selected.size === 0 && (
+                        <p className={styles.optionHint}>No matches</p>
+                    )}
                 </div>
             )}
-            <div className={styles.optionList}>
-                {status === 'loading' ? (
-                    <p className={styles.optionHint}>Loading…</p>
-                ) : status === 'error' ? (
-                    <p className={styles.optionError}>Failed to load — is the API running?</p>
-                ) : items.length === 0 ? (
-                    <p className={styles.optionHint}>No matches</p>
-                ) : (
-                    items.map((item) => {
-                        const active = selected.has(item);
-                        return (
-                            <button
-                                type="button"
-                                key={item}
-                                className={`${styles.optionItem} ${active ? styles.optionItemActive : ''}`}
-                                onClick={() => onToggle(item)}
-                                aria-pressed={active}
-                            >
-                                <span className={styles.optionCheck} aria-hidden="true">{active ? '✓' : ''}</span>
-                                <span className={styles.optionText}>{item}</span>
-                            </button>
-                        );
-                    })
-                )}
-            </div>
         </section>
     );
 }
@@ -316,8 +312,8 @@ export default function SearchPage() {
         runSearch(buildParamsFromForm());
     };
 
-    const resetForm = () => {
-        setKeyword('');
+    // Clears the filter panel only; the keyword survives (used by "Clear all").
+    const clearFilters = () => {
         setJobTitle('');
         setCompany('');
         setMinExperience('');
@@ -328,6 +324,11 @@ export default function SearchPage() {
         setContacts(new Set());
         setStatesSearch('');
         setIndustrySearch('');
+    };
+
+    const resetForm = () => {
+        setKeyword('');
+        clearFilters();
     };
 
     const handleNewSearch = () => {
@@ -393,6 +394,12 @@ export default function SearchPage() {
                                     {activeFilterCount > 0 && (
                                         <span className={styles.filterBadge}>{activeFilterCount}</span>
                                     )}
+                                    <span
+                                        className={`${styles.toolbarChevron} ${filtersOpen ? styles.toolbarChevronOpen : ''}`}
+                                        aria-hidden="true"
+                                    >
+                                        {ICONS.chevronDown}
+                                    </span>
                                 </button>
                             </div>
                             <div className={styles.toolbarRight}>
@@ -409,7 +416,11 @@ export default function SearchPage() {
                         </div>
                     </div>
 
-                    {filtersOpen && (
+                    <div
+                        className={`${styles.filtersCollapse} ${filtersOpen ? styles.filtersCollapseOpen : ''}`}
+                        aria-hidden={!filtersOpen}
+                    >
+                        <div className={styles.filtersCollapseInner}>
                         <div className={styles.filtersPanel}>
                             <div className={styles.filtersHeader}>
                                 <span className={styles.filtersTitle}>
@@ -418,19 +429,9 @@ export default function SearchPage() {
                                         <span className={styles.filterBadge}>{activeFilterCount}</span>
                                     )}
                                 </span>
-                                <div className={styles.filtersHeaderActions}>
-                                    <button type="button" className={styles.clearFiltersBtn} onClick={resetForm}>
-                                        Clear all
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={styles.filtersClose}
-                                        aria-label="Close filters"
-                                        onClick={() => setFiltersOpen(false)}
-                                    >
-                                        ×
-                                    </button>
-                                </div>
+                                <button type="button" className={styles.clearFiltersBtn} onClick={clearFilters}>
+                                    Clear all
+                                </button>
                             </div>
 
                             <div className={styles.filtersGrid}>
@@ -511,29 +512,34 @@ export default function SearchPage() {
                                     placeholder="Search industries..."
                                 />
 
-                                <section className={`${styles.filterSection} ${styles.filterSectionWide}`}>
-                                    <h3 className={styles.sectionLabel}>Has contact info</h3>
-                                    <div className={styles.togglePillRow}>
-                                        {CONTACT_FILTERS.map(([key, label]) => {
-                                            const active = contacts.has(key);
-                                            return (
-                                                <button
-                                                    type="button"
-                                                    key={key}
-                                                    className={`${styles.togglePill} ${active ? styles.togglePillActive : ''}`}
-                                                    aria-pressed={active}
-                                                    onClick={() => toggleIn(setContacts)(key)}
-                                                >
-                                                    {active && <span aria-hidden="true">✓ </span>}
-                                                    {label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
+                            </div>
+
+                            <div className={styles.filtersFooter}>
+                                <div className={styles.contactGroup}>
+                                    <span className={styles.contactLabel}>Contact</span>
+                                    {CONTACT_FILTERS.map(([key, label]) => {
+                                        const active = contacts.has(key);
+                                        return (
+                                            <button
+                                                type="button"
+                                                key={key}
+                                                className={`${styles.togglePill} ${active ? styles.togglePillActive : ''}`}
+                                                aria-pressed={active}
+                                                onClick={() => toggleIn(setContacts)(key)}
+                                            >
+                                                {active && <span aria-hidden="true">✓ </span>}
+                                                {label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                                <button type="submit" className={styles.applyBtn} disabled={searching}>
+                                    Apply filters
+                                </button>
                             </div>
                         </div>
-                    )}
+                        </div>
+                    </div>
                 </form>
 
                 {/* Suggestions */}
