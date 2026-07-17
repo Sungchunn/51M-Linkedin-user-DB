@@ -11,6 +11,16 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-17 03:00
+- Author: Claude (results page shell)
+- Change: Extracted the new chrome into a shared `AppShell` component and applied it to `/results`
+- Details:
+  - New `components/AppShell.js` + `AppShell.module.css`: rays background, collapsible history sidebar, main pane — moved verbatim from the home page; pages pass `mainClassName` for their own main-pane layout (home passes `.homeMain` centering) and optional `onNewSearch`; history rerun from `/results` reloads in place via sessionStorage
+  - `app/page.js`/`home.module.css` slimmed to content-only (hero, search box, filters, suggestions); `/results` now renders inside AppShell instead of Header/Footer/SquaresBackground (those components remain for login/dashboard)
+  - Fixed a real overflow bug the swap exposed: `.results-container`'s `margin: 0 auto` disables flex-stretch inside the shell's main, so it sized to its 1400px max-width and overflowed the viewport by 220px — added `width: 100%` (globals.css)
+- Impacts: UX only; `/results` data flow unchanged. Verified via headless Chrome: both pages screenshot correctly, live search renders 9,354 results, `scrollWidth === innerWidth` after the fix, no console errors
+- Next: Port login/dashboard/api-docs to AppShell (or intentionally keep them standalone), then retire Header/Footer/SquaresBackground
+
 - Date/Time (UTC): 2026-07-17 02:20
 - Author: Claude (filters redesign)
 - Change: Complete redesign of the `/` filters panel — compact two-column grid replacing the old full-width vertical stack
