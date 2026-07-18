@@ -384,3 +384,33 @@ class SearchHistoryEntry(BaseModel):
     label: str
     params: Dict[str, Any]
     ts: int = Field(..., description="Last-run time as epoch milliseconds")
+
+
+# ==================== NATURAL LANGUAGE SEARCH MODELS ====================
+
+class NaturalParseRequest(BaseModel):
+    """
+    Request to parse a freeform talent-search description into filters.
+
+    NEGATIVE SPACE CONTRACT:
+    - query is 2-500 chars of natural language
+    """
+    query: str = Field(..., min_length=2, max_length=500,
+                       description="Freeform description of who you're looking for")
+
+
+class NaturalParseResponse(BaseModel):
+    """
+    Parsed search: hard filters + the residual semantic query.
+
+    NEGATIVE SPACE CONTRACT:
+    - semantic_query is never empty (falls back to the raw input)
+    - filters contains only SearchRequest fields that were actually extracted
+      (regions/industries validated against the database vocabulary)
+    - parse_failed=True means the LLM step failed and the raw text became the
+      semantic query — the search still works, just without hard filters
+    """
+    semantic_query: str
+    filters: Dict[str, Any]
+    parse_failed: bool = False
+    parse_time_ms: float = Field(..., ge=0.0)

@@ -26,9 +26,11 @@ from backend.api.models import (
     SearchRequest,
     SearchResponse,
     HealthResponse,
-    ErrorResponse
+    ErrorResponse,
+    NaturalParseRequest,
+    NaturalParseResponse,
 )
-from backend.api import database, search
+from backend.api import database, nl_parser, search
 from backend.api.auth import resolve_auth_context, AuthContext
 from backend.api.rate_limit import limiter
 
@@ -531,6 +533,48 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal server error: {e}"
         )
+
+
+@app.post(
+    "/search/parse",
+    response_model=NaturalParseResponse,
+    tags=["Search"],
+    summary="Parse a natural-language request into search filters"
+)
+async def parse_search_query(
+    request: NaturalParseRequest,
+    http_request: Request,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    """
+    Turn freeform text ("senior python engineers in california with 8+ years
+    who have an email") into structured filters + a semantic query for /search.
+
+    NEGATIVE SPACE CONTRACT:
+    - Never fails the request on LLM errors: parse_failed=True with the raw
+      text as semantic_query is still a usable search
+    - regions/industries in filters are guaranteed to exist in the database
+    - Returns 429 when the parse rate limit is exceeded (LLM calls cost money)
+    """
+    start_time = time.time()
+
+    ctx: AuthContext = await resolve_auth_context(x_api_key)
+    rl_key = f"parse:{ctx.api_key or http_request.client.host}"
+    if not limiter.allow(
+        rl_key,
+        int(os.getenv("RATE_LIMIT_PARSE_PER_MIN", "20")),
+        int(os.getenv("RATE_LIMIT_PARSE_BURST", "40")),
+    ):
+        raise HTTPException(status_code=429, detail="Parse rate limit exceeded")
+
+    parsed = await nl_parser.parse_natural_query(request.query)
+
+    return NaturalParseResponse(
+        semantic_query=parsed["semantic_query"],
+        filters=parsed["filters"],
+        parse_failed=parsed["parse_failed"],
+        parse_time_ms=(time.time() - start_time) * 1000,
+    )
 
 
 @app.get(
