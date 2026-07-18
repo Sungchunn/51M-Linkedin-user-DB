@@ -41,8 +41,13 @@ echo "=== 2/3 Building HNSW index (one-time, ~10-20 min; skipped if it exists) =
 if [ -n "$(psql "$PG_DSN" -t -A -c "SELECT 1 FROM pg_indexes WHERE tablename='profiles' AND indexname='idx_profiles_embedding_hnsw'")" ]; then
     echo "   ✅ Index already exists — skipping build."
 else
-    psql "$PG_DSN" -q \
-      -c "SET maintenance_work_mem='2GB';" \
+    # Serial build with 4GB local memory: the ~3.5GB HNSW graph for 497K vectors
+    # stays in RAM (a 2GB parallel build spilled to disk at 314K tuples and
+    # crawled). Serial = no shared-memory allocation, so the shm cap is moot.
+    # ON_ERROR_STOP makes psql exit nonzero on failure instead of reporting success.
+    psql "$PG_DSN" -q -v ON_ERROR_STOP=1 \
+      -c "SET maintenance_work_mem='4GB';" \
+      -c "SET max_parallel_maintenance_workers=0;" \
       -c "CREATE INDEX IF NOT EXISTS idx_profiles_embedding_hnsw
           ON profiles USING hnsw (embedding vector_cosine_ops)
           WITH (m=16, ef_construction=64);" &
