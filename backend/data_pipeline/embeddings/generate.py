@@ -10,45 +10,42 @@ Negative Spaces Implementation:
 - Transaction safety
 """
 
+import logging
 import os
 import sys
-from pathlib import Path
-from typing import List, Tuple, Optional
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional, Tuple
+
 import psycopg
-from psycopg.rows import dict_row
 from dotenv import load_dotenv
-import logging
+from psycopg.rows import dict_row
 from tqdm import tqdm
+
+from backend.data_pipeline.embeddings import providers
 
 # Import modules
 from backend.data_pipeline.ingestion import transformers as tf
-from backend.data_pipeline.embeddings import providers
 
 # Configure logging - suppress debug messages for cleaner output
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Suppress verbose logs for clean progress bar
-logging.getLogger('backend.data_pipeline.embeddings.providers').setLevel(logging.WARNING)
-logging.getLogger('backend.data_pipeline.embeddings.retry').setLevel(logging.WARNING)
-logging.getLogger('httpx').setLevel(logging.WARNING)
-logging.getLogger('openai').setLevel(logging.WARNING)
-logging.getLogger('httpcore').setLevel(logging.WARNING)
+logging.getLogger("backend.data_pipeline.embeddings.providers").setLevel(logging.WARNING)
+logging.getLogger("backend.data_pipeline.embeddings.retry").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("openai").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 class EmbeddingGenerationError(Exception):
     """Raised when embedding generation fails"""
+
     pass
 
 
 def get_profiles_needing_embeddings(
-    conn: psycopg.Connection,
-    min_quality_score: float,
-    batch_size: int,
-    offset: int
+    conn: psycopg.Connection, min_quality_score: float, batch_size: int, offset: int
 ) -> List[dict]:
     """
     Fetch profiles that need embeddings.
@@ -68,7 +65,8 @@ def get_profiles_needing_embeddings(
         List of profile dicts
     """
     with conn.cursor(row_factory=dict_row) as cur:
-        cur.execute("""
+        cur.execute(
+            """
             SELECT
                 id,
                 job_title,
@@ -80,9 +78,11 @@ def get_profiles_needing_embeddings(
             WHERE embedding IS NULL
               AND content_quality_score >= %s
               AND is_deleted = FALSE
-            ORDER BY created_at
+            ORDER BY created_at, id
             LIMIT %s OFFSET %s
-        """, (min_quality_score, batch_size, offset))
+        """,
+            (min_quality_score, batch_size, offset),
+        )
 
         return cur.fetchall()
 
@@ -107,9 +107,7 @@ def build_embedding_text(profile: dict) -> str:
 
 
 def update_profiles_bulk(
-    conn: psycopg.Connection,
-    profile_ids: List[str],
-    embeddings: List[List[float]]
+    conn: psycopg.Connection, profile_ids: List[str], embeddings: List[List[float]]
 ) -> Tuple[int, int]:
     """
     Bulk update profiles with embeddings (much faster than individual updates).
@@ -142,15 +140,18 @@ def update_profiles_bulk(
             # Prepare data for bulk update
             update_data = [
                 (embedding, profile_id)
-                for profile_id, embedding in zip(profile_ids, embeddings)
+                for profile_id, embedding in zip(profile_ids, embeddings, strict=False)
             ]
 
-            cur.executemany("""
+            cur.executemany(
+                """
                 UPDATE profiles
                 SET embedding = %s::vector,
                     updated_at = NOW()
                 WHERE id = %s
-            """, update_data)
+            """,
+                update_data,
+            )
 
             success_count = cur.rowcount
             failure_count = len(profile_ids) - success_count
@@ -165,21 +166,27 @@ def update_profiles_bulk(
 def generate_embeddings_batch(
     conn: psycopg.Connection,
     profiles: List[dict],
-    provider: providers.OpenAIEmbeddingProvider
+    provider: providers.OpenAIEmbeddingProvider,
+    on_progress: Optional[Callable[[int], None]] = None,
 ) -> Tuple[int, int]:
     """
     Generate and store embeddings for a batch of profiles with bulk updates.
 
     NEGATIVE SPACE CONTRACT:
-    - Processes in sub-batches of 100 (OpenAI limit)
-    - Uses bulk update for speed
-    - Commits after each sub-batch
+    - Processes in sub-batches of 100 (OpenAI limit), up to EMBED_CONCURRENCY
+      API calls in flight at once (the job is API-latency-bound, not CPU-bound)
+    - All DB writes and commits happen on the calling thread — psycopg
+      connections are not safe for concurrent use; only the OpenAI calls
+      run in worker threads
+    - Commits after each sub-batch as its result arrives
     - Returns (success_count, failure_count)
 
     Args:
         conn: Database connection
         profiles: List of profile dicts
         provider: Embedding provider
+        on_progress: Optional callback invoked with the sub-batch size as each
+            sub-batch finishes (success or failure) — drives the progress bar
 
     Returns:
         Tuple of (successful_embeds, failed_embeds)
@@ -188,35 +195,44 @@ def generate_embeddings_batch(
     failure_count = 0
 
     # Split into sub-batches of 100 (OpenAI limit)
-    embed_batch_size = int(os.getenv('BATCH_SIZE_EMBED', '100'))
+    embed_batch_size = int(os.getenv("BATCH_SIZE_EMBED", "100"))
+    max_workers = int(os.getenv("EMBED_CONCURRENCY", "12"))
+    sub_batches = [
+        profiles[i : i + embed_batch_size] for i in range(0, len(profiles), embed_batch_size)
+    ]
 
-    for i in range(0, len(profiles), embed_batch_size):
-        sub_batch = profiles[i:i+embed_batch_size]
+    def embed_sub_batch(sub_batch: List[dict]) -> Tuple[List[str], Optional[List[List[float]]]]:
+        """Runs in a worker thread: build texts and call OpenAI. No DB access here."""
+        texts = [build_embedding_text(profile) for profile in sub_batch]
+        profile_ids = [profile["id"] for profile in sub_batch]
+        return profile_ids, provider.embed_batch(texts)
 
-        # Build texts for embedding
-        texts = []
-        profile_ids = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(embed_sub_batch, sub): sub for sub in sub_batches}
 
-        for profile in sub_batch:
-            text = build_embedding_text(profile)
-            texts.append(text)
-            profile_ids.append(profile['id'])
+        for future in as_completed(futures):
+            sub_batch = futures[future]
+            try:
+                profile_ids, embeddings = future.result()
+            except Exception as e:
+                logger.error(f"Embedding worker failed for sub-batch of {len(sub_batch)}: {e}")
+                failure_count += len(sub_batch)
+                if on_progress:
+                    on_progress(len(sub_batch))
+                continue
 
-        # Generate embeddings via OpenAI
-        embeddings = provider.embed_batch(texts)
+            if embeddings is None:
+                logger.error(f"Failed to generate embeddings for sub-batch of {len(profile_ids)}")
+                failure_count += len(profile_ids)
+            else:
+                # Bulk update + commit on the main thread only
+                success, failed = update_profiles_bulk(conn, profile_ids, embeddings)
+                success_count += success
+                failure_count += failed
+                conn.commit()
 
-        if embeddings is None:
-            logger.error(f"Failed to generate embeddings for sub-batch of {len(texts)}")
-            failure_count += len(texts)
-            continue
-
-        # Bulk update profiles (much faster than individual updates)
-        success, failed = update_profiles_bulk(conn, profile_ids, embeddings)
-        success_count += success
-        failure_count += failed
-
-        # Commit sub-batch
-        conn.commit()
+            if on_progress:
+                on_progress(len(sub_batch))
 
     return success_count, failure_count
 
@@ -225,7 +241,7 @@ def generate_all_embeddings(
     dsn: str,
     min_quality_score: Optional[float] = None,
     batch_size: Optional[int] = None,
-    limit: Optional[int] = None
+    limit: Optional[int] = None,
 ) -> Tuple[int, int]:
     """
     Generate embeddings for all eligible profiles.
@@ -249,8 +265,8 @@ def generate_all_embeddings(
         EmbeddingGenerationError: If critical error occurs
     """
     # Load configuration
-    min_quality_score = min_quality_score or float(os.getenv('MIN_QUALITY_SCORE', '0.7'))
-    batch_size = batch_size or int(os.getenv('BATCH_SIZE_IO', '5000'))
+    min_quality_score = min_quality_score or float(os.getenv("MIN_QUALITY_SCORE", "0.7"))
+    batch_size = batch_size or int(os.getenv("BATCH_SIZE_IO", "5000"))
 
     logger.info(f"Starting embedding generation (min_quality={min_quality_score})")
 
@@ -265,12 +281,15 @@ def generate_all_embeddings(
         with psycopg.connect(dsn) as conn:
             # Get total count
             with conn.cursor() as cur:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT count(*) FROM profiles
                     WHERE embedding IS NULL
                       AND content_quality_score >= %s
                       AND is_deleted = FALSE
-                """, (min_quality_score,))
+                """,
+                    (min_quality_score,),
+                )
 
                 total_eligible = cur.fetchone()[0]
 
@@ -282,53 +301,62 @@ def generate_all_embeddings(
             total_to_process = total_eligible if limit is None else min(total_eligible, limit)
 
             logger.info(
-                f"Found {total_eligible:,} eligible profiles "
-                f"(processing {total_to_process:,})"
+                f"Found {total_eligible:,} eligible profiles " f"(processing {total_to_process:,})"
             )
 
             total_success = 0
             total_failed = 0
 
             # Process in batches with enhanced progress bar
-            with tqdm(total=total_to_process,
-                     desc="🔮 Embedding",
-                     unit=" profiles",
-                     bar_format='{desc}: {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]',
-                     colour='cyan',
-                     ncols=120) as pbar:
-                offset = 0
+            with tqdm(
+                total=total_to_process,
+                desc="🔮 Embedding",
+                unit=" profiles",
+                bar_format="{desc}: {percentage:3.0f}%|{bar:40}| {n_fmt}/{total_fmt} [{elapsed}<{remaining}, {rate_fmt}{postfix}]",
+                colour="cyan",
+                ncols=120,
+            ) as pbar:
+                processed = 0
                 batch_count = 0
 
-                while offset < total_to_process:
-                    # Fetch batch
+                while processed < total_to_process:
+                    # Fetch batch. The query filters on embedding IS NULL, so
+                    # successfully embedded rows drop out of the result set by
+                    # themselves — the offset must only skip rows that FAILED
+                    # (they stay NULL and would otherwise be refetched forever).
+                    # Failed rows always sort before unprocessed ones (we process
+                    # in (created_at, id) order), so offset = total_failed is exact.
                     profiles = get_profiles_needing_embeddings(
                         conn,
                         min_quality_score,
-                        batch_size,
-                        offset
+                        min(batch_size, total_to_process - processed),
+                        total_failed,
                     )
 
                     if not profiles:
                         break
 
-                    # Generate embeddings
-                    success, failed = generate_embeddings_batch(conn, profiles, provider)
+                    # Generate embeddings (progress advances per completed sub-batch)
+                    success, failed = generate_embeddings_batch(
+                        conn, profiles, provider, on_progress=pbar.update
+                    )
 
                     total_success += success
                     total_failed += failed
                     batch_count += 1
-
-                    pbar.update(len(profiles))
+                    processed += len(profiles)
 
                     # Update stats every 5 batches
-                    if batch_count % 5 == 0 or offset + len(profiles) >= total_to_process:
-                        success_rate = (total_success / (total_success + total_failed) * 100) if (total_success + total_failed) > 0 else 0
+                    if batch_count % 5 == 0 or processed >= total_to_process:
+                        success_rate = (
+                            (total_success / (total_success + total_failed) * 100)
+                            if (total_success + total_failed) > 0
+                            else 0
+                        )
                         pbar.set_postfix_str(
                             f"✅ {total_success:,} | ❌ {total_failed:,} | 📈 {success_rate:.1f}%",
-                            refresh=True
+                            refresh=True,
                         )
-
-                    offset += len(profiles)
 
                     # Checkpoint every 50K
                     if total_success % 50000 < batch_size:
@@ -336,10 +364,6 @@ def generate_all_embeddings(
                             f"\n📊 Checkpoint @ {total_success:,} embeddings: "
                             f"✅ {total_success:,} success | ❌ {total_failed:,} failed\n"
                         )
-
-                    # Check limit
-                    if limit and offset >= limit:
-                        break
 
             logger.info(
                 f"✅ Embedding generation complete: "
@@ -349,9 +373,7 @@ def generate_all_embeddings(
             return total_success, total_failed
 
     except psycopg.Error as e:
-        raise EmbeddingGenerationError(
-            f"NEGATIVE SPACE VIOLATION: Database error: {e}"
-        ) from e
+        raise EmbeddingGenerationError(f"NEGATIVE SPACE VIOLATION: Database error: {e}") from e
 
 
 def main():
@@ -361,7 +383,7 @@ def main():
     load_dotenv()
 
     # Get environment variables
-    dsn = os.getenv('PG_DSN')
+    dsn = os.getenv("PG_DSN")
     if not dsn:
         logger.error("NEGATIVE SPACE VIOLATION: PG_DSN environment variable not set")
         sys.exit(1)
@@ -379,9 +401,7 @@ def main():
     try:
         success, failed = generate_all_embeddings(dsn, limit=limit)
 
-        logger.info(
-            f"🎉 Success! {success:,} embeddings generated, {failed:,} failed"
-        )
+        logger.info(f"🎉 Success! {success:,} embeddings generated, {failed:,} failed")
 
         sys.exit(0 if failed == 0 else 1)
 
@@ -394,5 +414,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

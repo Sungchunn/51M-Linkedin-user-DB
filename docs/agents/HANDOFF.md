@@ -296,3 +296,29 @@ Template (copy/paste):
   - Context: PR #4 (`feat/main-page-filter-redesign`) was already merged to main via merge commit, so `feat/search-history-api` is the only branch left to land
 - Impacts: Logged-in search history now syncs across devices/sessions; anonymous behavior unchanged; no API contract changes
 - Next: PR `feat/search-history-api` → main; possible follow-up: migrate anonymous localStorage history into the account on first login
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Embedding pipeline verified and fixed — ready for the full 497K run (branch `fix/embedding-generation-pagination`)
+- Details:
+  - Found via 300-profile live test prep: `generate_all_embeddings` paginated with `OFFSET` over a `WHERE embedding IS NULL` set that shrinks as rows embed — a full run would have skipped ~half the profiles and reported success; also the CLI limit didn't clamp the fetch (limit 200 embedded 5000) and `ORDER BY created_at` without a tiebreaker made pagination nondeterministic on bulk-loaded ties
+  - Fix: fetch always at offset = total_failed (failed rows stay NULL and sort before unprocessed ones), loop on processed count, clamp fetch to remaining limit, `ORDER BY created_at, id`
+  - Live test: 300 profiles embedded (BATCH_SIZE_IO=100 → 3 iterations), verified embedded set == first 300 by (created_at,id) exactly (EXCEPT query: 0 missing/0 unexpected), 1536 dims; test embeddings then cleared so search keeps keyword fallback until the full run
+  - Measured ~66 profiles/s steady state → full 497,552 ≈ 2–3.5h sequential, ~30M tokens ≈ $0.60; run is resumable (embedded rows drop out of the fetch)
+  - Note: HNSW index from migration 004 does NOT exist in the local DB — build it AFTER the run (bulk update into an existing HNSW index would be much slower)
+- Impacts: No behavior change until the run happens; search.py still keyword-only (0 embeddings)
+- Next: user runs `poetry run generate-embeddings`, then creates the HNSW index (see migration 004 definition), then verify hybrid search activates
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Parallelized embedding generation (EMBED_CONCURRENCY, default 12)
+- Details:
+  - `generate_embeddings_batch` fans sub-batch OpenAI calls out to a ThreadPoolExecutor; all psycopg writes/commits stay on the calling thread (connection is not thread-safe); progress bar advances per completed sub-batch via callback
+  - Live test: 2,000 profiles in ~17s (~115/s burst vs ~66/s sequential); exact-set verified via pre-run ID snapshot (all 2,000 expected rows embedded, 0 strays)
+  - User had already started + interrupted a sequential run (5,200 embedded, kept — run is resumable); total now 7,200/497,552
+- Impacts: Remaining ~490K projected 30–70 min instead of 2–3.5h; cost unchanged (~$0.60 total)
+- Next: rerun `poetry run generate-embeddings` to completion, then build the HNSW index, then verify hybrid search
