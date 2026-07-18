@@ -127,6 +127,7 @@ strict_optional = true
 module = [
     "tqdm.*",
     "pyarrow.*",
+    "asyncpg.*",
 ]
 ignore_missing_imports = true
 
