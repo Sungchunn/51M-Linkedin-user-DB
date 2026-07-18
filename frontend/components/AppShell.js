@@ -71,7 +71,7 @@ export default function AppShell({ children, mainClassName = '', onNewSearch }) 
     const [rays, setRays] = useState(null);
 
     useEffect(() => {
-        setHistory(getHistory());
+        getHistory().then(setHistory);
         try {
             setSidebarCollapsed(localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === 'true');
         } catch (e) { /* localStorage unavailable */ }
@@ -114,9 +114,10 @@ export default function AppShell({ children, mainClassName = '', onNewSearch }) 
         }
     };
 
-    const handleHistoryRerun = (entry) => {
+    const handleHistoryRerun = async (entry) => {
         setSidebarOpen(false);
-        addHistoryEntry(entry.params);
+        // Await the bump: a full-page reload below would abort an in-flight API call
+        await addHistoryEntry(entry.params);
         sessionStorage.setItem('searchParams', JSON.stringify({ ...entry.params, offset: 0, limit: 100 }));
         if (window.location.pathname === '/results') {
             window.location.reload(); // results page re-reads sessionStorage on mount
@@ -126,13 +127,14 @@ export default function AppShell({ children, mainClassName = '', onNewSearch }) 
     };
 
     const handleHistoryDelete = (id) => {
+        // Optimistic: drop from the UI now, delete in the background
+        setHistory((entries) => entries.filter((e) => e.id !== id));
         removeHistoryEntry(id);
-        setHistory(getHistory());
     };
 
     const handleHistoryClear = () => {
-        clearHistory();
         setHistory([]);
+        clearHistory();
     };
 
     const q = historyQuery.trim().toLowerCase();
