@@ -12,20 +12,64 @@ set -a
 source .env
 set +a
 
+# Run a command in the background, showing a spinner + elapsed seconds.
+# Output is buffered and printed once the command finishes.
+run_with_spinner() {
+    local label=$1
+    shift
+    local out
+    out=$(mktemp)
+    "$@" > "$out" 2>&1 &
+    local pid=$! start=$SECONDS frames='|/-\' i=0
+    while kill -0 "$pid" 2>/dev/null; do
+        printf '\r   %s %s [%ds]  ' "${frames:$((i++ % 4)):1}" "$label" $((SECONDS - start))
+        sleep 1
+    done
+    local rc=0
+    wait "$pid" || rc=$?
+    printf '\r%*s\r' 60 ''
+    cat "$out"
+    rm -f "$out"
+    return $rc
+}
+
 echo "=== 1/3 Generating embeddings (resumable; Ctrl-C safe) ==="
 EMBED_CONCURRENCY="${EMBED_CONCURRENCY:-12}" poetry run generate-embeddings
 
 echo
 echo "=== 2/3 Building HNSW index (one-time, ~10-20 min; skipped if it exists) ==="
-psql "$PG_DSN" \
-  -c "SET maintenance_work_mem='2GB';" \
-  -c "CREATE INDEX IF NOT EXISTS idx_profiles_embedding_hnsw
-      ON profiles USING hnsw (embedding vector_cosine_ops)
-      WITH (m=16, ef_construction=64);"
+if [ -n "$(psql "$PG_DSN" -t -A -c "SELECT 1 FROM pg_indexes WHERE tablename='profiles' AND indexname='idx_profiles_embedding_hnsw'")" ]; then
+    echo "   ✅ Index already exists — skipping build."
+else
+    psql "$PG_DSN" -q \
+      -c "SET maintenance_work_mem='2GB';" \
+      -c "CREATE INDEX IF NOT EXISTS idx_profiles_embedding_hnsw
+          ON profiles USING hnsw (embedding vector_cosine_ops)
+          WITH (m=16, ef_construction=64);" &
+    build_pid=$!
+    build_start=$SECONDS
+    sleep 2
+    # Live progress from Postgres itself (phase + % done when counters are exposed)
+    while kill -0 "$build_pid" 2>/dev/null; do
+        prog=$(psql "$PG_DSN" -t -A -c "
+            SELECT phase || coalesce(': ' ||
+                CASE WHEN blocks_total > 0 THEN round(100.0 * blocks_done / blocks_total, 1) || '%'
+                     WHEN tuples_total > 0 THEN round(100.0 * tuples_done / tuples_total, 1) || '%'
+                END, '')
+            FROM pg_stat_progress_create_index LIMIT 1" 2>/dev/null || true)
+        printf '\r   ⏳ %-50s [%dm%02ds elapsed]  ' \
+            "${prog:-waiting for build to start...}" \
+            $(((SECONDS - build_start) / 60)) $(((SECONDS - build_start) % 60))
+        sleep 3
+    done
+    printf '\n'
+    wait "$build_pid"
+    echo "   ✅ Index built in $(((SECONDS - build_start) / 60))m$(((SECONDS - build_start) % 60))s"
+fi
 
 echo
 echo "=== 3/3 Verification ==="
-psql "$PG_DSN" \
+run_with_spinner "running verification queries..." psql "$PG_DSN" \
   -c "SELECT count(*) AS total_profiles,
              count(embedding) AS embedded,
              count(*) - count(embedding) AS missing
