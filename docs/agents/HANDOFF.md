@@ -348,3 +348,17 @@ Template (copy/paste):
   - Prior text-search outage (vector path without index seq-scanning to timeout) is resolved
 - Impacts: The product's headline feature (semantic search) works for the first time; searches previously 500-ing now return in ~1.3s
 - Next: (1) push/merge PR #6 then `feat/page-size-200` (expect one-hunk HANDOFF conflict on the second); (2) S3 cleanup — delete redundant `USA_filtered.parquet` + `raw/` (~32GB, curated/ is verified canonical); (3) truncate local `staging_profiles_raw` (631MB); (4) use search-history data to measure zero-result rate before deciding on the cold-path query router
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Natural-language search parsing — POST /search/parse (branch `feat/natural-language-search`)
+- Details:
+  - New `backend/api/nl_parser.py`: OpenAI structured-output call (NL_PARSE_MODEL, default gpt-4o-mini, temp 0, strict JSON schema) extracts SearchRequest-shaped filters + residual semantic_query from freeform text; DB region/industry vocabulary (52 + 147 values, cached per process) is passed in-prompt and extracted values are validated against it (hallucinated values dropped, DB casing restored)
+  - Design choices: skills/technologies stay in semantic_query (skills @> AND-containment zeroes results on one wrong string); job_title only on explicit exact-title phrasing (first prompt over-extracted and zeroed a test query); never raises — fallback = whole text as semantic query with parse_failed=true
+  - Endpoint: same auth/rate-limit pattern as /search (RATE_LIMIT_PARSE_PER_MIN=20 default — LLM calls cost money); returns {semantic_query, filters, parse_failed, parse_time_ms}; frontend then calls existing /search unchanged
+  - Fixed while testing: vector-path count query omitted job_title/company/has_*/min_data_completeness filters → total_count inflated to 497,552 on filtered searches; count now matches ground-truth SQL exactly (verified: 81 == 81 for company+github filter)
+  - Verified parses: "Bay Area or Austin"→california/texas; "8+ years with an email"→min_years 8, has_email; "at Google with a GitHub"→company+has_github only; pure-semantic text passes through with zero filters
+- Impacts: New additive endpoint; no changes to /search contract; ~1.4-2.9s parse latency; search history tests still pass
+- Next: wire the frontend — search box gets an NL mode calling /search/parse, parsed filters prefill the existing filter panel/sessionStorage so users can see and correct what the AI understood
