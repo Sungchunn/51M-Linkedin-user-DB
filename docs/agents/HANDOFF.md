@@ -322,3 +322,16 @@ Template (copy/paste):
   - User had already started + interrupted a sequential run (5,200 embedded, kept — run is resumable); total now 7,200/497,552
 - Impacts: Remaining ~490K projected 30–70 min instead of 2–3.5h; cost unchanged (~$0.60 total)
 - Next: rerun `poetry run generate-embeddings` to completion, then build the HNSW index, then verify hybrid search
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Page size raised 50 → 200 (branch `feat/page-size-200`)
+- Details:
+  - `PUBLIC_MAX_LIMIT` default 50 → 200 (auth.py; env-overridable); fixed latent `SearchResponse.limit le=100` validator that would 500 on any page > 100 (now le=1000, matching the request model and trusted tier)
+  - Frontend requests 200/page (home submit, history rerun, results default) and the rows-per-page select gains a 200 option
+  - Verified live: browse returns exactly 200 rows; limit=900 clamps to 200; `bun run build` clean
+  - Discovered while testing: with 497K embeddings now present but NO HNSW index yet, `hybrid_search` takes the vector path and every text query seq-scans to a 30s timeout → 500. Keyword/text search is DOWN until the index build completes (browse/filter-only queries unaffected)
+- Impacts: Larger pages for all tiers' floors; text search outage until `scripts/run_embeddings.sh` (on `fix/embedding-generation-pagination`) finishes the index build
+- Next: user completes Docker disk-limit raise + index build; then PR this branch
