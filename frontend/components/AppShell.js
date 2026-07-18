@@ -118,7 +118,7 @@ export default function AppShell({ children, mainClassName = '', onNewSearch }) 
         setSidebarOpen(false);
         // Await the bump: a full-page reload below would abort an in-flight API call
         await addHistoryEntry(entry.params);
-        sessionStorage.setItem('searchParams', JSON.stringify({ ...entry.params, offset: 0, limit: 100 }));
+        sessionStorage.setItem('searchParams', JSON.stringify({ ...entry.params, offset: 0, limit: 200 }));
         if (window.location.pathname === '/results') {
             window.location.reload(); // results page re-reads sessionStorage on mount
         } else {

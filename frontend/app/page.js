@@ -305,7 +305,7 @@ export default function SearchPage() {
     const runSearch = async (params) => {
         setSearching(true);
         try {
-            const fullParams = { ...params, offset: 0, limit: 100 }; // API max is 100
+            const fullParams = { ...params, offset: 0, limit: 200 }; // public-tier API cap is 200
             await addHistoryEntry(params);
             sessionStorage.setItem('searchParams', JSON.stringify(fullParams));
             router.push('/results');

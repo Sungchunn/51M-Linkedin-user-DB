@@ -449,7 +449,7 @@ export default function ResultsPage() {
     const [data, setData] = useState(null);
     const [errorMessage, setErrorMessage] = useState('');
     const [offset, setOffset] = useState(0);
-    const [limit, setLimit] = useState(100);
+    const [limit, setLimit] = useState(200);
     const [totalCount, setTotalCount] = useState(0);
     const requestSeq = useRef(0);
 
@@ -472,7 +472,7 @@ export default function ResultsPage() {
         const params = JSON.parse(paramsStr);
         setSearchParams(params);
         setOffset(params.offset || 0);
-        setLimit(params.limit || 50);
+        setLimit(params.limit || 200);
     }, [router]);
 
     const executeSearch = useCallback(async (params, searchOffset, searchLimit) => {
@@ -774,6 +774,7 @@ export default function ResultsPage() {
                                         <option value="20">20</option>
                                         <option value="50">50</option>
                                         <option value="100">100</option>
+                                        <option value="200">200</option>
                                     </select>
                                     <span className={styles.rangeText}>
                                         {totalCount > 0 ? `${formatNumber(start)}–${formatNumber(end)} of ${formatNumber(totalCount)}` : ''}
