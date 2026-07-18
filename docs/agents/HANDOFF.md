@@ -282,3 +282,17 @@ Template (copy/paste):
 - Next:
   - Wire `frontend/lib/searchHistory.js` to these endpoints for logged-in users (module is the designed single swap point); keep localStorage as the anonymous fallback
   - Decide semantics for the results-page "Save" button (currently a window.print() placeholder)
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Frontend search-history swap — sidebar now uses the /history API for logged-in users
+- Details:
+  - `lib/searchHistory.js` rewritten as the planned single swap point: all functions async; authenticated users (JWT in localStorage via `lib/auth.js`) read/write the `/history` endpoints, anonymous users keep localStorage; entry shape `{id,label,params,ts}` identical in both stores
+  - Fail-soft by contract (never throws): API errors log a console.warn and degrade to empty list / no-op — deliberately NO cross-store fallback (would split history between stores)
+  - Call sites updated: AppShell loads history async, delete/clear are optimistic UI updates, rerun awaits the bump before the full-page reload (which would abort an in-flight fetch); home `runSearch` awaits the save before navigating
+  - Verified: `bun run build` clean; live curl flow (register → login → POST frontend-shaped entry → list) against the API
+  - Context: PR #4 (`feat/main-page-filter-redesign`) was already merged to main via merge commit, so `feat/search-history-api` is the only branch left to land
+- Impacts: Logged-in search history now syncs across devices/sessions; anonymous behavior unchanged; no API contract changes
+- Next: PR `feat/search-history-api` → main; possible follow-up: migrate anonymous localStorage history into the account on first login
