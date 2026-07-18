@@ -125,6 +125,10 @@ else:
 from backend.api.auth_routes import router as auth_router
 app.include_router(auth_router)
 
+# Include search history router
+from backend.api.history_routes import router as history_router
+app.include_router(history_router)
+
 # Explicit preflight handlers to satisfy strict browsers and proxies
 @app.options("/search")
 async def options_search():

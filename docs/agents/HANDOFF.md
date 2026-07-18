@@ -263,3 +263,36 @@ Template (copy/paste):
   - Filter panel footer now holds only "Apply filters"; panel "Clear all" no longer touches contacts (popover has its own Clear; New Search still resets everything); contacts excluded from the Filters badge count
 - Impacts: UX only — search params (has_*) unchanged; results-page "has: X" chips unaffected
 - Next: Same as previous entry — browser-verify the interactive flows
+
+---
+
+- Date/Time (UTC): 2026-07-17
+- Author: Claude Code
+- Change: Backend service for per-user search history (backs the redesigned sidebar)
+- Details:
+  - Migration `010_search_history.sql`: `search_history` table (id, user_id FK→users ON DELETE CASCADE, label, params JSONB, params_signature, created_at/updated_at) with UNIQUE (user_id, params_signature) and a (user_id, updated_at DESC) index; applied to the local DB
+  - New `/history` endpoints (JWT-authenticated via existing `get_current_user`): GET (newest-first list), POST (upsert — identical params by canonical-JSON SHA-256 signature bump the existing row instead of duplicating; history trimmed to 50 per user in the same transaction), DELETE /history/{id} (404 if not owned), DELETE /history (clear, idempotent)
+  - Entry shape matches `frontend/lib/searchHistory.js` exactly: `{id, label, params, ts}` with ts as epoch ms — params are opaque to the API (stored verbatim, replayed by the client)
+  - New modules `backend/api/history_manager.py` + `backend/api/history_routes.py`; models `SearchHistoryEntryCreate`/`SearchHistoryEntry` in models.py; router registered in `backend/api/app.py`
+  - Tests: `backend/tests/test_search_history.py` (11 cases: auth required, add/list, dedupe-bump, ordering, remove, clear, user isolation, validation, 50-cap, cleanup) — all pass; includes a per-test pool-reset fixture because the global asyncpg pool binds to the first test's event loop (same pre-existing issue makes full-file `test_phase4.py` runs fail — not addressed here)
+  - Verified live end-to-end with curl: register → login → POST/POST-bump/GET/DELETE, 403 unauthenticated
+- Impacts:
+  - API: new authenticated `/history` routes; no changes to existing endpoint contracts
+  - Database: migration 010 must be applied in any environment before deploying this API version
+- Next:
+  - Wire `frontend/lib/searchHistory.js` to these endpoints for logged-in users (module is the designed single swap point); keep localStorage as the anonymous fallback
+  - Decide semantics for the results-page "Save" button (currently a window.print() placeholder)
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Frontend search-history swap — sidebar now uses the /history API for logged-in users
+- Details:
+  - `lib/searchHistory.js` rewritten as the planned single swap point: all functions async; authenticated users (JWT in localStorage via `lib/auth.js`) read/write the `/history` endpoints, anonymous users keep localStorage; entry shape `{id,label,params,ts}` identical in both stores
+  - Fail-soft by contract (never throws): API errors log a console.warn and degrade to empty list / no-op — deliberately NO cross-store fallback (would split history between stores)
+  - Call sites updated: AppShell loads history async, delete/clear are optimistic UI updates, rerun awaits the bump before the full-page reload (which would abort an in-flight fetch); home `runSearch` awaits the save before navigating
+  - Verified: `bun run build` clean; live curl flow (register → login → POST frontend-shaped entry → list) against the API
+  - Context: PR #4 (`feat/main-page-filter-redesign`) was already merged to main via merge commit, so `feat/search-history-api` is the only branch left to land
+- Impacts: Logged-in search history now syncs across devices/sessions; anonymous behavior unchanged; no API contract changes
+- Next: PR `feat/search-history-api` → main; possible follow-up: migrate anonymous localStorage history into the account on first login

@@ -1,18 +1,29 @@
 /**
- * Search history — localStorage-backed (client-side only).
+ * Search history — per-user via the API when logged in, localStorage otherwise.
  *
  * NEGATIVE SPACE CONTRACT:
  * - Every entry is { id: string, label: string, params: object, ts: number }
- * - getHistory() always returns an array (never throws), newest first
- * - History is capped at MAX_ENTRIES; addHistoryEntry trims the tail
+ *   (the /history endpoints return exactly this shape)
+ * - All functions are async and never throw; getHistory() always resolves to an
+ *   array, newest first
+ * - History is capped at MAX_ENTRIES (server enforces the same cap per user)
  * - Re-running an identical search moves it to the top instead of duplicating
- *
- * Backend/DB persistence is planned (per-user history via the API). Keep this
- * module the single access point so the swap to API calls happens in one place.
+ * - Logged-in users read/write ONLY the API store (no localStorage fallback on
+ *   error — mixing stores would make entries appear and vanish between loads);
+ *   API failures degrade to a console.warn and an empty result / no-op
+ * - Client-side only: call from event handlers or useEffect
  */
+import { getApiBaseUrl } from './config';
+import { getAuthHeaders, isAuthenticated } from './auth';
 
 const STORAGE_KEY = 'searchHistory';
 const MAX_ENTRIES = 50;
+
+function useApiStore() {
+    return typeof window !== 'undefined' && isAuthenticated();
+}
+
+// ---------- localStorage store (anonymous users) ----------
 
 function generateId() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -43,6 +54,23 @@ function writeStore(entries) {
     }
 }
 
+// ---------- API store (logged-in users) ----------
+
+async function apiRequest(path, options = {}) {
+    const response = await fetch(`${getApiBaseUrl()}${path}`, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+            ...(options.headers || {}),
+        },
+    });
+    if (!response.ok) {
+        throw new Error(`history API ${options.method || 'GET'} ${path} -> ${response.status}`);
+    }
+    return response.status === 204 ? null : response.json();
+}
+
 /** Human-readable one-line summary of a search's params (used as the history label). */
 export function describeParams(params) {
     if (params.keyword) return params.keyword;
@@ -68,31 +96,63 @@ export function describeParams(params) {
     return parts.length > 0 ? parts.join(' · ') : 'All profiles';
 }
 
-/** Newest-first list of saved searches. Always returns an array. */
-export function getHistory() {
+/** Newest-first list of saved searches. Always resolves to an array. */
+export async function getHistory() {
+    if (useApiStore()) {
+        try {
+            return await apiRequest('/history');
+        } catch (e) {
+            console.warn('searchHistory: API list failed', e);
+            return [];
+        }
+    }
     return readStore();
 }
 
-/** Save a search. Identical params replace the old entry (moved to top). Returns the new entry. */
-export function addHistoryEntry(params) {
+/** Save a search. Identical params replace the old entry (moved to top). Resolves to the entry. */
+export async function addHistoryEntry(params) {
+    const label = describeParams(params);
+
+    if (useApiStore()) {
+        try {
+            return await apiRequest('/history', {
+                method: 'POST',
+                body: JSON.stringify({ label, params }),
+            });
+        } catch (e) {
+            console.warn('searchHistory: API save failed', e);
+            return null;
+        }
+    }
+
     const signature = JSON.stringify(params);
-    const entry = {
-        id: generateId(),
-        label: describeParams(params),
-        params,
-        ts: Date.now(),
-    };
+    const entry = { id: generateId(), label, params, ts: Date.now() };
     const rest = readStore().filter((e) => JSON.stringify(e.params) !== signature);
-    const next = [entry, ...rest];
-    writeStore(next);
+    writeStore([entry, ...rest]);
     return entry;
 }
 
-export function removeHistoryEntry(id) {
+export async function removeHistoryEntry(id) {
+    if (useApiStore()) {
+        try {
+            await apiRequest(`/history/${id}`, { method: 'DELETE' });
+        } catch (e) {
+            console.warn('searchHistory: API delete failed', e);
+        }
+        return;
+    }
     writeStore(readStore().filter((e) => e.id !== id));
 }
 
-export function clearHistory() {
+export async function clearHistory() {
+    if (useApiStore()) {
+        try {
+            await apiRequest('/history', { method: 'DELETE' });
+        } catch (e) {
+            console.warn('searchHistory: API clear failed', e);
+        }
+        return;
+    }
     try {
         localStorage.removeItem(STORAGE_KEY);
     } catch (e) {

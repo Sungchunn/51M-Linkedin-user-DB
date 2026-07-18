@@ -8,7 +8,7 @@ Negative Spaces Implementation:
 - Required vs optional fields clearly defined
 """
 
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, validator
 import logging
 
@@ -349,3 +349,38 @@ class APIKeyListItem(BaseModel):
     last_used_at: Optional[datetime]
     expires_at: Optional[datetime]
     created_at: datetime
+
+
+# ==================== SEARCH HISTORY MODELS ====================
+
+class SearchHistoryEntryCreate(BaseModel):
+    """
+    Request to save a search to the user's history.
+
+    NEGATIVE SPACE CONTRACT:
+    - label is a non-empty display string (client-generated, e.g. describeParams)
+    - params is opaque to the API: stored verbatim, replayed by the client
+    - Identical params (order-insensitive) replace the existing entry
+    """
+    label: str = Field(..., min_length=1, max_length=300, description="Display label for the search")
+    params: Dict[str, Any] = Field(..., description="Search form params, stored verbatim")
+
+    @validator('label')
+    def validate_label_not_blank(cls, v):
+        if not v.strip():
+            raise ValueError('NEGATIVE SPACE: label must not be blank')
+        return v
+
+
+class SearchHistoryEntry(BaseModel):
+    """
+    Single search history entry (matches frontend/lib/searchHistory.js shape).
+
+    NEGATIVE SPACE CONTRACT:
+    - ts is epoch milliseconds of the last run (recency/sort key)
+    - Listing is newest-first, capped at 50 per user
+    """
+    id: str
+    label: str
+    params: Dict[str, Any]
+    ts: int = Field(..., description="Last-run time as epoch milliseconds")
