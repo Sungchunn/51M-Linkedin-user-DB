@@ -406,9 +406,48 @@ async def hybrid_search(
                 count_params.append(industries_to_filter)
                 count_param_idx += 1
 
+            # Job title / company filters (partial match, case-insensitive) —
+            # omitting these from the count inflated total_count for filtered searches
+            if request.job_title:
+                count_where_conditions.append(f"job_title ILIKE ${count_param_idx}")
+                count_params.append(f"%{request.job_title}%")
+                count_param_idx += 1
+
+            if request.company:
+                count_where_conditions.append(f"company_name ILIKE ${count_param_idx}")
+                count_params.append(f"%{request.company}%")
+                count_param_idx += 1
+
+            # Contact information filters (literal conditions, no parameters)
+            if request.has_linkedin:
+                count_where_conditions.append(
+                    "linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'"
+                )
+            if request.has_email:
+                count_where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
+            if request.has_phone:
+                count_where_conditions.append("phone IS NOT NULL AND phone != '' AND phone != '-'")
+            if request.has_website:
+                count_where_conditions.append(
+                    "website IS NOT NULL AND website != '' AND website != '-'"
+                )
+            if request.has_twitter:
+                count_where_conditions.append(
+                    "twitter IS NOT NULL AND twitter != '' AND twitter != '-'"
+                )
+            if request.has_github:
+                count_where_conditions.append(
+                    "github IS NOT NULL AND github != '' AND github != '-'"
+                )
+
             if request.min_quality_score is not None:
                 count_where_conditions.append(f"content_quality_score >= ${count_param_idx}")
                 count_params.append(request.min_quality_score)
+                count_param_idx += 1
+
+            if request.min_data_completeness is not None:
+                count_where_conditions.append(f"data_completeness_pct >= ${count_param_idx}")
+                count_params.append(request.min_data_completeness)
                 count_param_idx += 1
 
             count_where_clause = " AND ".join(count_where_conditions)
