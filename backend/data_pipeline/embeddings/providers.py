@@ -9,10 +9,12 @@ Negative Spaces Implementation:
 - Retry logic for API failures
 """
 
+import logging
 import os
 from typing import List, Optional
-import logging
+
 from openai import OpenAI, OpenAIError
+
 from backend.data_pipeline.embeddings.retry import retry_decorator
 
 logger = logging.getLogger(__name__)
@@ -23,6 +25,7 @@ UNINITIALIZED = object()
 
 class EmbeddingProviderError(Exception):
     """Raised when embedding generation fails"""
+
     pass
 
 
@@ -53,7 +56,7 @@ class OpenAIEmbeddingProvider:
             EmbeddingProviderError: If API key is missing
         """
         # Load from env if not provided
-        self.api_key = api_key or os.getenv('OPENAI_API_KEY')
+        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
 
         if not self.api_key:
             raise EmbeddingProviderError(
@@ -64,8 +67,8 @@ class OpenAIEmbeddingProvider:
         self.client = OpenAI(api_key=self.api_key)
 
         # Model configuration
-        self.model = model or os.getenv('EMBEDDING_MODEL', 'text-embedding-3-small')
-        self.dimension = int(os.getenv('EMBEDDING_DIMENSION', '1536'))
+        self.model = model or os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
+        self.dimension = int(os.getenv("EMBEDDING_DIMENSION", "1536"))
 
         # Validate dimension
         if self.dimension != 1536:
@@ -75,7 +78,9 @@ class OpenAIEmbeddingProvider:
 
         logger.info(f"✅ OpenAI provider initialized: model={self.model}, dim={self.dimension}")
 
-    @retry_decorator(max_retries=3, base_delay=1.0, exceptions=(OpenAIError, Exception))
+    # Patient retries: sustained 429 windows under concurrency can last 20-60s;
+    # 3 attempts with 1-4s backoff caused a 23% sub-batch failure rate at scale
+    @retry_decorator(max_retries=7, base_delay=2.0, exceptions=(OpenAIError, Exception))
     def embed_batch(self, texts: List[str]) -> Optional[List[List[float]]]:
         """
         Generate embeddings for a batch of texts.
@@ -94,9 +99,7 @@ class OpenAIEmbeddingProvider:
         """
         # Validate inputs
         if not texts:
-            raise EmbeddingProviderError(
-                "NEGATIVE SPACE VIOLATION: Cannot embed empty text list"
-            )
+            raise EmbeddingProviderError("NEGATIVE SPACE VIOLATION: Cannot embed empty text list")
 
         if len(texts) > 100:
             raise EmbeddingProviderError(
@@ -119,10 +122,7 @@ class OpenAIEmbeddingProvider:
             logger.debug(f"Embedding batch of {len(valid_texts)} texts")
 
             # Call OpenAI API
-            response = self.client.embeddings.create(
-                input=valid_texts,
-                model=self.model
-            )
+            response = self.client.embeddings.create(input=valid_texts, model=self.model)
 
             # Extract embeddings
             embeddings = [item.embedding for item in response.data]
@@ -206,9 +206,7 @@ class OpenAIEmbeddingProvider:
         # Check all values are numeric
         for i, val in enumerate(embedding):
             if not isinstance(val, (int, float)):
-                logger.warning(
-                    f"NEGATIVE SPACE: Embedding[{i}] is {type(val)}, expected float"
-                )
+                logger.warning(f"NEGATIVE SPACE: Embedding[{i}] is {type(val)}, expected float")
                 return False
 
         return True

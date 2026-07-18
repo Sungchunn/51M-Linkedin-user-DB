@@ -335,3 +335,16 @@ Template (copy/paste):
   - Discovered while testing: with 497K embeddings now present but NO HNSW index yet, `hybrid_search` takes the vector path and every text query seq-scans to a 30s timeout → 500. Keyword/text search is DOWN until the index build completes (browse/filter-only queries unaffected)
 - Impacts: Larger pages for all tiers' floors; text search outage until `scripts/run_embeddings.sh` (on `fix/embedding-generation-pagination`) finishes the index build
 - Next: user completes Docker disk-limit raise + index build; then PR this branch
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: MILESTONE — semantic search live; compaction complete
+- Details:
+  - Embeddings: 497,552/497,552 profiles (100%), 0 missing; HNSW index `idx_profiles_embedding_hnsw` built (serial in-memory, 40m44s) after raising Docker VM disk 32→64GB and container shm 64MB→3GB
+  - Hybrid search verified live: ~1.2-1.3s/query (includes OpenAI query-embed round trip), vector_similarity populated; semantic queries confirmed ("builds recommendation systems and neural networks" → ML engineers at Pinterest/DataRobot; "helps companies close enterprise deals" → enterprise AEs/SVPs — zero keyword overlap with titles)
+  - S3 compaction complete: all 52 state partitions, 1,560 files → 55 (verified via list: 0 originals remain)
+  - Prior text-search outage (vector path without index seq-scanning to timeout) is resolved
+- Impacts: The product's headline feature (semantic search) works for the first time; searches previously 500-ing now return in ~1.3s
+- Next: (1) push/merge PR #6 then `feat/page-size-200` (expect one-hunk HANDOFF conflict on the second); (2) S3 cleanup — delete redundant `USA_filtered.parquet` + `raw/` (~32GB, curated/ is verified canonical); (3) truncate local `staging_profiles_raw` (631MB); (4) use search-history data to measure zero-result rate before deciding on the cold-path query router

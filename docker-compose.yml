@@ -8,6 +8,10 @@ services:
       POSTGRES_DB: profiles
     ports:
       - "5433:5432"  # Use 5433 externally to avoid conflict
+    # Parallel index builds (HNSW) allocate maintenance_work_mem in shared
+    # memory; Docker's 64MB /dev/shm default aborts them with
+    # "could not resize shared memory segment ... No space left on device"
+    shm_size: '3gb'
     volumes:
       # Named volume (avoids iCloud/Dropbox sync)
       - postgres_data:/var/lib/postgresql/data
