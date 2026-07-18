@@ -263,3 +263,17 @@ Template (copy/paste):
   - Filter panel footer now holds only "Apply filters"; panel "Clear all" no longer touches contacts (popover has its own Clear; New Search still resets everything); contacts excluded from the Filters badge count
 - Impacts: UX only — search params (has_*) unchanged; results-page "has: X" chips unaffected
 - Next: Same as previous entry — browser-verify the interactive flows
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Embedding pipeline verified and fixed — ready for the full 497K run (branch `fix/embedding-generation-pagination`)
+- Details:
+  - Found via 300-profile live test prep: `generate_all_embeddings` paginated with `OFFSET` over a `WHERE embedding IS NULL` set that shrinks as rows embed — a full run would have skipped ~half the profiles and reported success; also the CLI limit didn't clamp the fetch (limit 200 embedded 5000) and `ORDER BY created_at` without a tiebreaker made pagination nondeterministic on bulk-loaded ties
+  - Fix: fetch always at offset = total_failed (failed rows stay NULL and sort before unprocessed ones), loop on processed count, clamp fetch to remaining limit, `ORDER BY created_at, id`
+  - Live test: 300 profiles embedded (BATCH_SIZE_IO=100 → 3 iterations), verified embedded set == first 300 by (created_at,id) exactly (EXCEPT query: 0 missing/0 unexpected), 1536 dims; test embeddings then cleared so search keeps keyword fallback until the full run
+  - Measured ~66 profiles/s steady state → full 497,552 ≈ 2–3.5h sequential, ~30M tokens ≈ $0.60; run is resumable (embedded rows drop out of the fetch)
+  - Note: HNSW index from migration 004 does NOT exist in the local DB — build it AFTER the run (bulk update into an existing HNSW index would be much slower)
+- Impacts: No behavior change until the run happens; search.py still keyword-only (0 embeddings)
+- Next: user runs `poetry run generate-embeddings`, then creates the HNSW index (see migration 004 definition), then verify hybrid search activates
