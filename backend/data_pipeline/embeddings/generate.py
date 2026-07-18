@@ -13,7 +13,8 @@ Negative Spaces Implementation:
 import logging
 import os
 import sys
-from typing import List, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional, Tuple
 
 import psycopg
 from dotenv import load_dotenv
@@ -163,21 +164,29 @@ def update_profiles_bulk(
 
 
 def generate_embeddings_batch(
-    conn: psycopg.Connection, profiles: List[dict], provider: providers.OpenAIEmbeddingProvider
+    conn: psycopg.Connection,
+    profiles: List[dict],
+    provider: providers.OpenAIEmbeddingProvider,
+    on_progress: Optional[Callable[[int], None]] = None,
 ) -> Tuple[int, int]:
     """
     Generate and store embeddings for a batch of profiles with bulk updates.
 
     NEGATIVE SPACE CONTRACT:
-    - Processes in sub-batches of 100 (OpenAI limit)
-    - Uses bulk update for speed
-    - Commits after each sub-batch
+    - Processes in sub-batches of 100 (OpenAI limit), up to EMBED_CONCURRENCY
+      API calls in flight at once (the job is API-latency-bound, not CPU-bound)
+    - All DB writes and commits happen on the calling thread — psycopg
+      connections are not safe for concurrent use; only the OpenAI calls
+      run in worker threads
+    - Commits after each sub-batch as its result arrives
     - Returns (success_count, failure_count)
 
     Args:
         conn: Database connection
         profiles: List of profile dicts
         provider: Embedding provider
+        on_progress: Optional callback invoked with the sub-batch size as each
+            sub-batch finishes (success or failure) — drives the progress bar
 
     Returns:
         Tuple of (successful_embeds, failed_embeds)
@@ -187,34 +196,43 @@ def generate_embeddings_batch(
 
     # Split into sub-batches of 100 (OpenAI limit)
     embed_batch_size = int(os.getenv("BATCH_SIZE_EMBED", "100"))
+    max_workers = int(os.getenv("EMBED_CONCURRENCY", "12"))
+    sub_batches = [
+        profiles[i : i + embed_batch_size] for i in range(0, len(profiles), embed_batch_size)
+    ]
 
-    for i in range(0, len(profiles), embed_batch_size):
-        sub_batch = profiles[i : i + embed_batch_size]
+    def embed_sub_batch(sub_batch: List[dict]) -> Tuple[List[str], Optional[List[List[float]]]]:
+        """Runs in a worker thread: build texts and call OpenAI. No DB access here."""
+        texts = [build_embedding_text(profile) for profile in sub_batch]
+        profile_ids = [profile["id"] for profile in sub_batch]
+        return profile_ids, provider.embed_batch(texts)
 
-        # Build texts for embedding
-        texts = []
-        profile_ids = []
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = {pool.submit(embed_sub_batch, sub): sub for sub in sub_batches}
 
-        for profile in sub_batch:
-            text = build_embedding_text(profile)
-            texts.append(text)
-            profile_ids.append(profile["id"])
+        for future in as_completed(futures):
+            sub_batch = futures[future]
+            try:
+                profile_ids, embeddings = future.result()
+            except Exception as e:
+                logger.error(f"Embedding worker failed for sub-batch of {len(sub_batch)}: {e}")
+                failure_count += len(sub_batch)
+                if on_progress:
+                    on_progress(len(sub_batch))
+                continue
 
-        # Generate embeddings via OpenAI
-        embeddings = provider.embed_batch(texts)
+            if embeddings is None:
+                logger.error(f"Failed to generate embeddings for sub-batch of {len(profile_ids)}")
+                failure_count += len(profile_ids)
+            else:
+                # Bulk update + commit on the main thread only
+                success, failed = update_profiles_bulk(conn, profile_ids, embeddings)
+                success_count += success
+                failure_count += failed
+                conn.commit()
 
-        if embeddings is None:
-            logger.error(f"Failed to generate embeddings for sub-batch of {len(texts)}")
-            failure_count += len(texts)
-            continue
-
-        # Bulk update profiles (much faster than individual updates)
-        success, failed = update_profiles_bulk(conn, profile_ids, embeddings)
-        success_count += success
-        failure_count += failed
-
-        # Commit sub-batch
-        conn.commit()
+            if on_progress:
+                on_progress(len(sub_batch))
 
     return success_count, failure_count
 
@@ -318,15 +336,15 @@ def generate_all_embeddings(
                     if not profiles:
                         break
 
-                    # Generate embeddings
-                    success, failed = generate_embeddings_batch(conn, profiles, provider)
+                    # Generate embeddings (progress advances per completed sub-batch)
+                    success, failed = generate_embeddings_batch(
+                        conn, profiles, provider, on_progress=pbar.update
+                    )
 
                     total_success += success
                     total_failed += failed
                     batch_count += 1
                     processed += len(profiles)
-
-                    pbar.update(len(profiles))
 
                     # Update stats every 5 batches
                     if batch_count % 5 == 0 or processed >= total_to_process:

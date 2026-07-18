@@ -310,3 +310,15 @@ Template (copy/paste):
   - Note: HNSW index from migration 004 does NOT exist in the local DB — build it AFTER the run (bulk update into an existing HNSW index would be much slower)
 - Impacts: No behavior change until the run happens; search.py still keyword-only (0 embeddings)
 - Next: user runs `poetry run generate-embeddings`, then creates the HNSW index (see migration 004 definition), then verify hybrid search activates
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: Parallelized embedding generation (EMBED_CONCURRENCY, default 12)
+- Details:
+  - `generate_embeddings_batch` fans sub-batch OpenAI calls out to a ThreadPoolExecutor; all psycopg writes/commits stay on the calling thread (connection is not thread-safe); progress bar advances per completed sub-batch via callback
+  - Live test: 2,000 profiles in ~17s (~115/s burst vs ~66/s sequential); exact-set verified via pre-run ID snapshot (all 2,000 expected rows embedded, 0 strays)
+  - User had already started + interrupted a sequential run (5,200 embedded, kept — run is resumable); total now 7,200/497,552
+- Impacts: Remaining ~490K projected 30–70 min instead of 2–3.5h; cost unchanged (~$0.60 total)
+- Next: rerun `poetry run generate-embeddings` to completion, then build the HNSW index, then verify hybrid search
