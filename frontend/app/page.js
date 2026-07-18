@@ -302,11 +302,11 @@ export default function SearchPage() {
 
     // Central submit path: every search (form, suggestion card) goes through
     // here so history + navigation stay consistent.
-    const runSearch = (params) => {
+    const runSearch = async (params) => {
         setSearching(true);
         try {
             const fullParams = { ...params, offset: 0, limit: 100 }; // API max is 100
-            addHistoryEntry(params);
+            await addHistoryEntry(params);
             sessionStorage.setItem('searchParams', JSON.stringify(fullParams));
             router.push('/results');
         } catch (error) {
