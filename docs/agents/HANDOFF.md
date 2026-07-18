@@ -11,6 +11,18 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-18 05:20
+- Author: Claude (search match semantics)
+- Change: Made the search query text a hard filter in `hybrid_search()` — `total_count` now reflects actual matches instead of always reporting the whole corpus (497K)
+- Details:
+  - `backend/api/search.py`: candidates must match `search_vector @@ plainto_tsquery`; hybrid score (0.8 vector + 0.2 ts_rank) now only ranks the matches; vector distance computed for the top 5000 lexical matches by ts_rank (deeper pagination degrades by design)
+  - Count query now reuses the exact same WHERE clause + a prefix of the same numbered params — deleted the ~110-line duplicated count-rebuild block (the historical source of param-index bugs); empty/whitespace query short-circuits to `keyword_search` browse mode (no embedding call)
+  - `hnsw.ef_search` SET removed (GIN gate means no ANN scan; `ef_search` request param kept for API compat)
+- Impacts: /search, /export/* — response shape unchanged, but `total_count` semantics changed (was: corpus size passing hard filters; now: rows matching filters + query text). Verified live: nurse→8,823, senior engineer→9,119, nurse+california→866, empty query→497,552 browse. test_phase4 search tests pass individually; full-file run fails on a pre-existing "Event loop is closed" harness issue (confirmed on unmodified code via stash)
+- Next: Fix the test_phase4 event-loop/pool fixture so the file runs green as a suite
+
+---
+
 - Date/Time (UTC): 2026-07-17 03:40
 - Author: Claude (results table redesign)
 - Change: Restyled the `/results` summary/table/pagination to the app-shell design language (both themes) via a new `results.module.css`
@@ -246,7 +258,7 @@ Template (copy/paste):
 - Details:
   - Home filter panel: animated collapse (grid-rows 0fr→1fr), header with Clear all (filters only, keyword survives), states/industries as chip clouds (selected accent chips + "+ option" quick-add, capped at 8, search narrows), contact toggles moved to a footer bar with an "Apply filters" submit button; Filters toggle gets accent active state + rotating chevron
   - Results page: summary card replaced by a page header (count + query-time mono chip + Edit search/Save/Export CSV); active filters render as removable accent chips built from searchParams (removal persists to sessionStorage and re-runs from page 1; "location: United States" is fixed)
-  - Results table: 14-column <table> replaced by a 6-column grid (Name & role with initials avatar, Company, Location, Exp, 2-line-clamped Summary, row actions LinkedIn/copy-contact); rows are keyboard-accessible buttons; pagination moved into the card footer
+  - Results table: 14-column `<table>` replaced by a 6-column grid (Name & role with initials avatar, Company, Location, Exp, 2-line-clamped Summary, row actions LinkedIn/copy-contact); rows are keyboard-accessible buttons; pagination moved into the card footer
   - Contact detail slide-over: clicking a row opens a right drawer (min(560px, 92vw), scrim, Escape/scrim-click closes, body scroll locked) with identity band, LinkedIn/copy-email actions, Summary, Experience, Contact rows (linkedin/email/phone/website/twitter/github), Skills chips, and Details — fields dropped from the table remain reachable here
   - Theme: new token pair --accent-soft/--accent-line (both themes) for chip surfaces; SideRays kept on both pages with contrast raised slightly (intensity 2→2.4, light-mode --rays-opacity 0.55→0.62)
 - Impacts: UX only — search request/response contracts unchanged; CSV export untouched; per-row PII columns (email/phone) moved from the table into the drawer

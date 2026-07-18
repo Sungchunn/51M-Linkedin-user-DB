@@ -10,7 +10,7 @@ Negative Spaces Implementation:
 """
 
 import logging
-from typing import List
+from typing import Any, List
 
 import asyncpg
 
@@ -33,7 +33,11 @@ async def hybrid_search(
     Execute hybrid search combining vector + lexical + filters.
 
     NEGATIVE SPACE CONTRACT:
-    - query must generate valid embedding
+    - query text is a HARD filter: only profiles whose search_vector matches
+      plainto_tsquery are candidates; the hybrid score only ranks them
+    - total_count == count of rows matching filters + query text (never the
+      whole corpus)
+    - empty/whitespace query -> keyword_search browse mode (no embedding call)
     - Returns (results, total_count)
     - Results list length <= request.limit
     - All scores in [0.0, 1.0]
@@ -49,6 +53,11 @@ async def hybrid_search(
         SearchError: If search fails
     """
     try:
+        # Browse mode: without query text there is nothing to match or rank
+        # semantically — the filter-only path orders by recency and counts correctly
+        if not request.query or not request.query.strip():
+            return await keyword_search(conn, request)
+
         # Check if we have any embeddings in the database
         has_embeddings = await conn.fetchval(
             "SELECT EXISTS(SELECT 1 FROM profiles WHERE embedding IS NOT NULL LIMIT 1)"
@@ -76,12 +85,10 @@ async def hybrid_search(
         # Convert embedding list to string format for asyncpg
         embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
 
-        # Start with embedding as $1
-        params = [embedding_str]
-        param_idx = 2
-
-        # Track where filter params start (for count query)
-        filter_params_start_idx = len(params)
+        # Filter params come first ($1..$N) so the count query can reuse the
+        # same WHERE clause text and a prefix of the same params list
+        params: List[Any] = []
+        param_idx = 1
 
         # Location filters
         if request.location_country:
@@ -184,21 +191,18 @@ async def hybrid_search(
 
         where_clause = " AND ".join(where_conditions)
 
-        # Number of filter params (excluding embedding which is used in CTEs only)
-        num_filter_params = len(params) - filter_params_start_idx
-
-        # Set HNSW ef_search parameter. An HNSW scan returns at most ef_search
-        # rows, so a page (limit + offset) larger than ef_search can never fill —
-        # raise the effective value to cover the requested window, clamped to
-        # pgvector's hard maximum of 1000. Deep vector pagination beyond that
-        # degrades by design (ANN indexes can't seek).
-        effective_ef_search = min(max(request.ef_search, request.limit + request.offset), 1000)
-        await conn.execute(f"SET hnsw.ef_search = {effective_ef_search}")
+        # Note: the query is gated by the GIN full-text index, not an ANN scan,
+        # so hnsw.ef_search does not apply (request.ef_search is kept in the API
+        # for compatibility).
 
         # Build hybrid search query
         # Append parameters for remaining placeholders
         params.append(request.query)  # $param_idx
         tsquery_idx = param_idx
+        param_idx += 1
+
+        params.append(embedding_str)  # $param_idx
+        embedding_idx = param_idx
         param_idx += 1
 
         params.append(request.vector_weight)  # $param_idx
@@ -216,8 +220,12 @@ async def hybrid_search(
         params.append(request.offset)  # $param_idx
         offset_idx = param_idx
 
+        # The query text is a hard filter: candidates must match the full-text
+        # query; the hybrid score only ranks them. Vector distance is computed
+        # for the top 5000 lexical matches (by ts_rank) — pagination past that
+        # window degrades by design.
         query = f"""
-        WITH vector_results AS (
+        WITH lexical_matches AS (
             SELECT
                 id,
                 full_name,
@@ -243,51 +251,43 @@ async def hybrid_search(
                 github,
                 content_quality_score,
                 data_completeness_pct,
-                1 - (embedding <=> $1::vector) AS vector_similarity
-            FROM profiles
-            WHERE {where_clause}
-            ORDER BY embedding <=> $1::vector
-            LIMIT LEAST(${limit_idx}*4, 5000)
-        ),
-        lexical_results AS (
-            SELECT
-                id,
+                embedding,
                 ts_rank(search_vector, plainto_tsquery('english', ${tsquery_idx})) AS lexical_rank
             FROM profiles
             WHERE {where_clause}
               AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
-            LIMIT LEAST(${limit_idx}*4, 5000)
+            ORDER BY lexical_rank DESC
+            LIMIT 5000
         )
         SELECT
-            v.id,
-            v.full_name,
-            v.first_name,
-            v.last_name,
-            v.job_title,
-            v.company_name,
-            v.industry,
-            v.location,
-            v.location_country,
-            v.region,
-            v.locality,
-            v.years_experience,
-            v.skills,
-            v.headline,
-            v.summary,
-            v.linkedin_url,
-            v.linkedin_username,
-            v.email,
-            v.phone,
-            v.website,
-            v.twitter,
-            v.github,
-            v.content_quality_score,
-            v.data_completeness_pct,
-            v.vector_similarity,
-            COALESCE(l.lexical_rank, 0.0) AS lexical_rank,
-            (v.vector_similarity * ${vector_weight_idx}) + (COALESCE(l.lexical_rank, 0.0) * ${lexical_weight_idx}) AS score
-        FROM vector_results v
-        LEFT JOIN lexical_results l ON l.id = v.id
+            id,
+            full_name,
+            first_name,
+            last_name,
+            job_title,
+            company_name,
+            industry,
+            location,
+            location_country,
+            region,
+            locality,
+            years_experience,
+            skills,
+            headline,
+            summary,
+            linkedin_url,
+            linkedin_username,
+            email,
+            phone,
+            website,
+            twitter,
+            github,
+            content_quality_score,
+            data_completeness_pct,
+            1 - (embedding <=> ${embedding_idx}::vector) AS vector_similarity,
+            lexical_rank,
+            ((1 - (embedding <=> ${embedding_idx}::vector)) * ${vector_weight_idx}) + (lexical_rank * ${lexical_weight_idx}) AS score
+        FROM lexical_matches
         ORDER BY score DESC
         LIMIT ${limit_idx} OFFSET ${offset_idx}
         """
@@ -342,126 +342,16 @@ async def hybrid_search(
 
             results.append(result)
 
-        # Get total count (for pagination)
-        # Need to rebuild WHERE clause with renumbered parameters starting from $1
-        if num_filter_params > 0:
-            # Rebuild where conditions with params starting from $1
-            count_where_conditions = ["embedding IS NOT NULL", "is_deleted = FALSE"]
-            count_param_idx = 1
-            count_params = []
-
-            if request.location_country:
-                count_where_conditions.append(f"location_country = ${count_param_idx}")
-                count_params.append(request.location_country)
-                count_param_idx += 1
-
-            # Region filter (support both single and multiple)
-            regions_to_filter = []
-            if request.regions:
-                regions_to_filter = request.regions
-            elif request.region:
-                regions_to_filter = [request.region]
-
-            if regions_to_filter:
-                count_where_conditions.append(f"region = ANY(${count_param_idx})")
-                count_params.append(regions_to_filter)
-                count_param_idx += 1
-
-            # Locality filter (support both single and multiple)
-            localities_to_filter = []
-            if request.localities:
-                localities_to_filter = request.localities
-            elif request.locality:
-                localities_to_filter = [request.locality]
-
-            if localities_to_filter:
-                count_where_conditions.append(f"locality = ANY(${count_param_idx})")
-                count_params.append(localities_to_filter)
-                count_param_idx += 1
-
-            if request.min_years_experience is not None:
-                count_where_conditions.append(f"years_experience >= ${count_param_idx}")
-                count_params.append(request.min_years_experience)
-                count_param_idx += 1
-
-            if request.max_years_experience is not None:
-                count_where_conditions.append(f"years_experience <= ${count_param_idx}")
-                count_params.append(request.max_years_experience)
-                count_param_idx += 1
-
-            if request.skills:
-                count_where_conditions.append(f"skills @> ${count_param_idx}")
-                count_params.append(request.skills)
-                count_param_idx += 1
-
-            # Industry filter (support both single and multiple)
-            industries_to_filter = []
-            if request.industries:
-                industries_to_filter = request.industries
-            elif request.industry:
-                industries_to_filter = [request.industry]
-
-            if industries_to_filter:
-                count_where_conditions.append(f"industry = ANY(${count_param_idx})")
-                count_params.append(industries_to_filter)
-                count_param_idx += 1
-
-            # Job title / company filters (partial match, case-insensitive) —
-            # omitting these from the count inflated total_count for filtered searches
-            if request.job_title:
-                count_where_conditions.append(f"job_title ILIKE ${count_param_idx}")
-                count_params.append(f"%{request.job_title}%")
-                count_param_idx += 1
-
-            if request.company:
-                count_where_conditions.append(f"company_name ILIKE ${count_param_idx}")
-                count_params.append(f"%{request.company}%")
-                count_param_idx += 1
-
-            # Contact information filters (literal conditions, no parameters)
-            if request.has_linkedin:
-                count_where_conditions.append(
-                    "linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'"
-                )
-            if request.has_email:
-                count_where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
-            if request.has_phone:
-                count_where_conditions.append("phone IS NOT NULL AND phone != '' AND phone != '-'")
-            if request.has_website:
-                count_where_conditions.append(
-                    "website IS NOT NULL AND website != '' AND website != '-'"
-                )
-            if request.has_twitter:
-                count_where_conditions.append(
-                    "twitter IS NOT NULL AND twitter != '' AND twitter != '-'"
-                )
-            if request.has_github:
-                count_where_conditions.append(
-                    "github IS NOT NULL AND github != '' AND github != '-'"
-                )
-
-            if request.min_quality_score is not None:
-                count_where_conditions.append(f"content_quality_score >= ${count_param_idx}")
-                count_params.append(request.min_quality_score)
-                count_param_idx += 1
-
-            if request.min_data_completeness is not None:
-                count_where_conditions.append(f"data_completeness_pct >= ${count_param_idx}")
-                count_params.append(request.min_data_completeness)
-                count_param_idx += 1
-
-            count_where_clause = " AND ".join(count_where_conditions)
-        else:
-            # No filter params, just base conditions
-            count_where_clause = where_clause
-            count_params = []
-
+        # Get total count for pagination — same WHERE clause + full-text match
+        # as the search itself, so the count reflects actual matches. Reuses the
+        # numbered filter/query params verbatim (a prefix of `params`).
         count_query = f"""
             SELECT count(*) FROM profiles
-            WHERE {count_where_clause}
+            WHERE {where_clause}
+              AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
         """
-
-        total_count = await conn.fetchval(count_query, *count_params)
+        total_count = await conn.fetchval(count_query, *params[:tsquery_idx])
+        assert total_count is not None, "count(*) always returns a row"
 
         logger.info(f"Search completed: {len(results)} results, {total_count} total matches")
 
@@ -490,7 +380,7 @@ async def keyword_search(
 
         # Build WHERE clause for filters
         where_conditions = ["is_deleted = FALSE"]
-        params = []
+        params: List[Any] = []
         param_idx = 1
 
         # Location filters
@@ -697,6 +587,7 @@ async def keyword_search(
         else:
             count_params = params[:-2]  # Remove limit, offset only
         total_count = await conn.fetchval(count_query, *count_params)
+        assert total_count is not None, "count(*) always returns a row"
 
         logger.info(
             f"Keyword search completed: {len(results)} results, {total_count} total matches"
