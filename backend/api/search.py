@@ -9,10 +9,12 @@ Negative Spaces Implementation:
 - Timeout enforcement
 """
 
-from typing import List, Dict, Any, Optional
-import asyncpg
 import logging
-from backend.api.models import SearchRequest, ProfileResult
+from typing import List
+
+import asyncpg
+
+from backend.api.models import ProfileResult, SearchRequest
 from backend.data_pipeline.embeddings import providers
 
 logger = logging.getLogger(__name__)
@@ -20,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 class SearchError(Exception):
     """Raised when search operations fail"""
+
     pass
 
 
 async def hybrid_search(
-    conn: asyncpg.Connection,
-    request: SearchRequest
+    conn: asyncpg.Connection, request: SearchRequest
 ) -> tuple[List[ProfileResult], int]:
     """
     Execute hybrid search combining vector + lexical + filters.
@@ -62,13 +64,11 @@ async def hybrid_search(
             provider = providers.get_provider()
             query_embedding = provider.embed_single(request.query)
         except Exception as e:
-            logger.warning(
-                f"Embedding provider error, falling back to keyword search: {e}")
+            logger.warning(f"Embedding provider error, falling back to keyword search: {e}")
             return await keyword_search(conn, request)
 
         if query_embedding is None:
-            logger.warning(
-                "Query embedding is None, falling back to keyword search")
+            logger.warning("Query embedding is None, falling back to keyword search")
             return await keyword_search(conn, request)
 
         # Build WHERE clause for filters
@@ -156,7 +156,9 @@ async def hybrid_search(
 
         # Contact information filters (exclude NULL, empty string, and "-")
         if request.has_linkedin:
-            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'")
+            where_conditions.append(
+                "linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'"
+            )
         if request.has_email:
             where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
         if request.has_phone:
@@ -185,8 +187,13 @@ async def hybrid_search(
         # Number of filter params (excluding embedding which is used in CTEs only)
         num_filter_params = len(params) - filter_params_start_idx
 
-        # Set HNSW ef_search parameter
-        await conn.execute(f"SET hnsw.ef_search = {request.ef_search}")
+        # Set HNSW ef_search parameter. An HNSW scan returns at most ef_search
+        # rows, so a page (limit + offset) larger than ef_search can never fill —
+        # raise the effective value to cover the requested window, clamped to
+        # pgvector's hard maximum of 1000. Deep vector pagination beyond that
+        # degrades by design (ANN indexes can't seek).
+        effective_ef_search = min(max(request.ef_search, request.limit + request.offset), 1000)
+        await conn.execute(f"SET hnsw.ef_search = {effective_ef_search}")
 
         # Build hybrid search query
         # Append parameters for remaining placeholders
@@ -286,7 +293,9 @@ async def hybrid_search(
         """
 
         # Execute search
-        logger.debug(f"Executing hybrid search: query='{request.query}', filters={len(where_conditions)}")
+        logger.debug(
+            f"Executing hybrid search: query='{request.query}', filters={len(where_conditions)}"
+        )
 
         rows = await conn.fetch(query, *params)
 
@@ -294,33 +303,35 @@ async def hybrid_search(
         results = []
         for row in rows:
             result = ProfileResult(
-                id=str(row['id']),
-                full_name=row['full_name'],
-                first_name=row['first_name'],
-                last_name=row['last_name'],
-                job_title=row['job_title'],
-                company_name=row['company_name'],
-                industry=row['industry'],
-                location=row['location'],
-                location_country=row['location_country'],
-                region=row['region'],
-                locality=row['locality'],
-                years_experience=row['years_experience'],
-                skills=row['skills'],
-                headline=row['headline'],
-                summary=row['summary'],
-                linkedin_url=row['linkedin_url'],
-                linkedin_username=row['linkedin_username'],
-                email=row['email'],
-                phone=row['phone'],
-                website=row['website'],
-                twitter=row['twitter'],
-                github=row['github'],
-                score=float(row['score']),
-                vector_similarity=float(row['vector_similarity']),
-                lexical_rank=float(row['lexical_rank']),
-                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None,
-                data_completeness_pct=row['data_completeness_pct']
+                id=str(row["id"]),
+                full_name=row["full_name"],
+                first_name=row["first_name"],
+                last_name=row["last_name"],
+                job_title=row["job_title"],
+                company_name=row["company_name"],
+                industry=row["industry"],
+                location=row["location"],
+                location_country=row["location_country"],
+                region=row["region"],
+                locality=row["locality"],
+                years_experience=row["years_experience"],
+                skills=row["skills"],
+                headline=row["headline"],
+                summary=row["summary"],
+                linkedin_url=row["linkedin_url"],
+                linkedin_username=row["linkedin_username"],
+                email=row["email"],
+                phone=row["phone"],
+                website=row["website"],
+                twitter=row["twitter"],
+                github=row["github"],
+                score=float(row["score"]),
+                vector_similarity=float(row["vector_similarity"]),
+                lexical_rank=float(row["lexical_rank"]),
+                content_quality_score=(
+                    float(row["content_quality_score"]) if row["content_quality_score"] else None
+                ),
+                data_completeness_pct=row["data_completeness_pct"],
             )
 
             # Validate score bounds
@@ -413,9 +424,7 @@ async def hybrid_search(
 
         total_count = await conn.fetchval(count_query, *count_params)
 
-        logger.info(
-            f"Search completed: {len(results)} results, {total_count} total matches"
-        )
+        logger.info(f"Search completed: {len(results)} results, {total_count} total matches")
 
         return results, total_count
 
@@ -425,8 +434,7 @@ async def hybrid_search(
 
 
 async def keyword_search(
-    conn: asyncpg.Connection,
-    request: SearchRequest
+    conn: asyncpg.Connection, request: SearchRequest
 ) -> tuple[List[ProfileResult], int]:
     """
     Simple keyword search without embeddings (fallback when no embeddings exist).
@@ -434,10 +442,12 @@ async def keyword_search(
     """
     try:
         # DEBUG: Log all incoming filter parameters
-        logger.info(f"DEBUG FILTERS: job_title={request.job_title}, company={request.company}, "
-                   f"has_linkedin={request.has_linkedin}, has_email={request.has_email}, "
-                   f"has_phone={request.has_phone}, has_website={request.has_website}, "
-                   f"has_twitter={request.has_twitter}, has_github={request.has_github}")
+        logger.info(
+            f"DEBUG FILTERS: job_title={request.job_title}, company={request.company}, "
+            f"has_linkedin={request.has_linkedin}, has_email={request.has_email}, "
+            f"has_phone={request.has_phone}, has_website={request.has_website}, "
+            f"has_twitter={request.has_twitter}, has_github={request.has_github}"
+        )
 
         # Build WHERE clause for filters
         where_conditions = ["is_deleted = FALSE"]
@@ -517,7 +527,9 @@ async def keyword_search(
 
         # Contact information filters (exclude NULL, empty string, and "-")
         if request.has_linkedin:
-            where_conditions.append("linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'")
+            where_conditions.append(
+                "linkedin_url IS NOT NULL AND linkedin_url != '' AND linkedin_url != '-'"
+            )
         if request.has_email:
             where_conditions.append("email IS NOT NULL AND email != '' AND email != '-'")
         if request.has_phone:
@@ -602,33 +614,35 @@ async def keyword_search(
         results = []
         for row in rows:
             result = ProfileResult(
-                id=str(row['id']),
-                full_name=row['full_name'],
-                first_name=row['first_name'],
-                last_name=row['last_name'],
-                job_title=row['job_title'],
-                company_name=row['company_name'],
-                industry=row['industry'],
-                location=row['location'],
-                location_country=row['location_country'],
-                region=row['region'],
-                locality=row['locality'],
-                years_experience=row['years_experience'],
-                skills=row['skills'],
-                headline=row['headline'],
-                summary=row['summary'],
-                linkedin_url=row['linkedin_url'],
-                linkedin_username=row['linkedin_username'],
-                email=row['email'],
-                phone=row['phone'],
-                website=row['website'],
-                twitter=row['twitter'],
-                github=row['github'],
+                id=str(row["id"]),
+                full_name=row["full_name"],
+                first_name=row["first_name"],
+                last_name=row["last_name"],
+                job_title=row["job_title"],
+                company_name=row["company_name"],
+                industry=row["industry"],
+                location=row["location"],
+                location_country=row["location_country"],
+                region=row["region"],
+                locality=row["locality"],
+                years_experience=row["years_experience"],
+                skills=row["skills"],
+                headline=row["headline"],
+                summary=row["summary"],
+                linkedin_url=row["linkedin_url"],
+                linkedin_username=row["linkedin_username"],
+                email=row["email"],
+                phone=row["phone"],
+                website=row["website"],
+                twitter=row["twitter"],
+                github=row["github"],
                 score=0.5,  # Placeholder score for keyword search
                 vector_similarity=0.0,
                 lexical_rank=0.5,
-                content_quality_score=float(row['content_quality_score']) if row['content_quality_score'] else None,
-                data_completeness_pct=row.get('data_completeness_pct', None)
+                content_quality_score=(
+                    float(row["content_quality_score"]) if row["content_quality_score"] else None
+                ),
+                data_completeness_pct=row.get("data_completeness_pct", None),
             )
             results.append(result)
 
