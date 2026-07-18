@@ -5,7 +5,7 @@ Environment configuration:
 - REQUIRE_API_KEY: "true"/"false" (default: false)
 - API_KEYS: JSON mapping of api key -> {"scopes": [...], "tier": "public|basic|trusted"}
   Example: {"demo-key": {"scopes": ["search:read"], "tier": "basic"}}
-- PUBLIC_MAX_LIMIT (default: 50)
+- PUBLIC_MAX_LIMIT (default: 200)
 - AUTH_MAX_LIMIT (default: 200)
 - TRUSTED_MAX_LIMIT (default: 1000)
 - MAX_OFFSET (default: 100000)
@@ -52,7 +52,7 @@ def _load_keys() -> dict:
 
 def _get_tier_max_limit(tier: str) -> int:
     """Get max result limit for a given tier"""
-    public_max = int(os.getenv("PUBLIC_MAX_LIMIT", "50"))
+    public_max = int(os.getenv("PUBLIC_MAX_LIMIT", "200"))
     auth_max = int(os.getenv("AUTH_MAX_LIMIT", "200"))
     trusted_max = int(os.getenv("TRUSTED_MAX_LIMIT", "1000"))
 
@@ -76,7 +76,7 @@ async def resolve_auth_context(header_key: Optional[str]) -> AuthContext:
     Returns AuthContext with tier, scopes, and limits.
     """
     require = os.getenv("REQUIRE_API_KEY", "false").lower() == "true"
-    public_max = int(os.getenv("PUBLIC_MAX_LIMIT", "50"))
+    public_max = int(os.getenv("PUBLIC_MAX_LIMIT", "200"))
     max_offset = int(os.getenv("MAX_OFFSET", "100000"))
 
     # No API key provided
