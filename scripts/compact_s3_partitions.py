@@ -124,13 +124,16 @@ def list_objects(bucket: str, state_prefix: str) -> list[dict[str, Any]]:
     return contents
 
 
-def duckdb_connect() -> duckdb.DuckDBPyConnection:
+def duckdb_connect(spill_dir: str) -> duckdb.DuckDBPyConnection:
     con = duckdb.connect()
     con.execute("INSTALL httpfs; LOAD httpfs;")
     con.execute(f"SET s3_region='{os.environ['AWS_REGION']}';")
     con.execute(f"SET s3_access_key_id='{os.environ['AWS_ACCESS_KEY_ID']}';")
     con.execute(f"SET s3_secret_access_key='{os.environ['AWS_SECRET_ACCESS_KEY']}';")
     con.execute("SET memory_limit='4GB';")
+    # Set once for the whole run: DuckDB refuses to switch temp_directory after
+    # the first sort spills to disk (NotImplementedException on big states otherwise)
+    con.execute(f"SET temp_directory='{spill_dir}';")
     return con
 
 
@@ -198,7 +201,6 @@ def compact_state(
     )
 
     with tempfile.TemporaryDirectory(prefix=f"compact_{state.replace(' ', '_')}_") as tmp:
-        con.execute(f"SET temp_directory='{tmp}';")
         source = (
             f"SELECT * FROM read_parquet({sql_path_list(s3_paths)}, hive_partitioning=false) "
             f'ORDER BY "{sort_by}"'
@@ -353,7 +355,8 @@ def main() -> None:
         logger.info("Dry run — nothing was read, written, or deleted.")
         return
 
-    con = duckdb_connect()
+    spill_dir = tempfile.mkdtemp(prefix="compact_duckdb_spill_")
+    con = duckdb_connect(spill_dir)
     first_with_files = next((s for s in selected if sizes[s][0] > 0), None)
     if first_with_files is None:
         logger.info("All selected states are already compacted — nothing to do.")
