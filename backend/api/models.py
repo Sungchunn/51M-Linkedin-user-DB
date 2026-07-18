@@ -184,7 +184,7 @@ class SearchResponse(BaseModel):
     total_count: int = Field(..., ge=0)
     returned_count: int = Field(..., ge=0)
     offset: int = Field(..., ge=0)
-    limit: int = Field(..., ge=1, le=100)
+    limit: int = Field(..., ge=1, le=1000)
     query_time_ms: float = Field(..., ge=0.0)
 
     query: str
