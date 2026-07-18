@@ -322,3 +322,16 @@ Template (copy/paste):
   - User had already started + interrupted a sequential run (5,200 embedded, kept — run is resumable); total now 7,200/497,552
 - Impacts: Remaining ~490K projected 30–70 min instead of 2–3.5h; cost unchanged (~$0.60 total)
 - Next: rerun `poetry run generate-embeddings` to completion, then build the HNSW index, then verify hybrid search
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: MILESTONE — semantic search live; compaction complete
+- Details:
+  - Embeddings: 497,552/497,552 profiles (100%), 0 missing; HNSW index `idx_profiles_embedding_hnsw` built (serial in-memory, 40m44s) after raising Docker VM disk 32→64GB and container shm 64MB→3GB
+  - Hybrid search verified live: ~1.2-1.3s/query (includes OpenAI query-embed round trip), vector_similarity populated; semantic queries confirmed ("builds recommendation systems and neural networks" → ML engineers at Pinterest/DataRobot; "helps companies close enterprise deals" → enterprise AEs/SVPs — zero keyword overlap with titles)
+  - S3 compaction complete: all 52 state partitions, 1,560 files → 55 (verified via list: 0 originals remain)
+  - Prior text-search outage (vector path without index seq-scanning to timeout) is resolved
+- Impacts: The product's headline feature (semantic search) works for the first time; searches previously 500-ing now return in ~1.3s
+- Next: (1) push/merge PR #6 then `feat/page-size-200` (expect one-hunk HANDOFF conflict on the second); (2) S3 cleanup — delete redundant `USA_filtered.parquet` + `raw/` (~32GB, curated/ is verified canonical); (3) truncate local `staging_profiles_raw` (631MB); (4) use search-history data to measure zero-result rate before deciding on the cold-path query router
