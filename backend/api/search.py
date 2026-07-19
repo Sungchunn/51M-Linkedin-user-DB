@@ -20,6 +20,12 @@ from backend.data_pipeline.embeddings import providers
 
 logger = logging.getLogger(__name__)
 
+# Query embeddings cached by normalized text so pagination and repeat searches
+# don't re-pay the provider call. FIFO-evicted at the cap (mirrors the parse
+# cache in nl_parser).
+_query_embedding_cache: dict[str, List[float]] = {}
+_QUERY_EMBED_CACHE_MAX = 256
+
 
 class SearchError(Exception):
     """Raised when search operations fail"""
@@ -75,16 +81,23 @@ async def hybrid_search(
         # Generate query embedding with graceful fallback to keyword search.
         # embed_single is a blocking HTTP call — run it in a worker thread so
         # it can't stall the event loop for other requests.
-        try:
-            provider = providers.get_provider()
-            query_embedding = await asyncio.to_thread(provider.embed_single, request.query)
-        except Exception as e:
-            logger.warning(f"Embedding provider error, falling back to keyword search: {e}")
-            return await keyword_search(conn, request)
-
+        embed_key = request.query.strip().lower()
+        query_embedding = _query_embedding_cache.get(embed_key)
         if query_embedding is None:
-            logger.warning("Query embedding is None, falling back to keyword search")
-            return await keyword_search(conn, request)
+            try:
+                provider = providers.get_provider()
+                query_embedding = await asyncio.to_thread(provider.embed_single, request.query)
+            except Exception as e:
+                logger.warning(f"Embedding provider error, falling back to keyword search: {e}")
+                return await keyword_search(conn, request)
+
+            if query_embedding is None:
+                logger.warning("Query embedding is None, falling back to keyword search")
+                return await keyword_search(conn, request)
+
+            if len(_query_embedding_cache) >= _QUERY_EMBED_CACHE_MAX:
+                _query_embedding_cache.pop(next(iter(_query_embedding_cache)))
+            _query_embedding_cache[embed_key] = query_embedding
 
         # Build WHERE clause for filters
         where_conditions = ["embedding IS NOT NULL", "is_deleted = FALSE"]
