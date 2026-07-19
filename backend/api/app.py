@@ -36,8 +36,7 @@ from backend.api.rate_limit import limiter
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -65,6 +64,7 @@ async def lifespan(app: FastAPI):
     # Create admin user if not exists
     try:
         from backend.api.user_manager import UserManager
+
         await UserManager.create_admin_if_not_exists()
     except Exception as e:
         logger.error(f"⚠️  Failed to create admin user: {e}")
@@ -82,22 +82,19 @@ app = FastAPI(
     title="INSIGHT - Semantic Talent Finder",
     description="Hybrid search API for LinkedIn profiles using vector embeddings and full-text search",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 
 # Add CORS middleware
 import os
+
 environment = os.getenv("ENVIRONMENT", "development")
-allowed_origins_env = os.getenv(
-    "CORS_ORIGINS",
-    "http://localhost:5500,http://127.0.0.1:5500"
-)
+allowed_origins_env = os.getenv("CORS_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500")
 dev_relax_cors = os.getenv("DEV_RELAX_CORS", "false").lower() == "true"
 allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 allow_origin_regex = os.getenv(
-    "CORS_ORIGIN_REGEX",
-    r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\\d+)?$"
+    "CORS_ORIGIN_REGEX", r"https?://(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\\d+)?$"
 )
 
 # CORS Configuration
@@ -120,25 +117,30 @@ else:
         allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
-        allow_headers=["*"]
+        allow_headers=["*"],
     )
 
 # Include authentication router
 from backend.api.auth_routes import router as auth_router
+
 app.include_router(auth_router)
 
 # Include search history router
 from backend.api.history_routes import router as history_router
+
 app.include_router(history_router)
+
 
 # Explicit preflight handlers to satisfy strict browsers and proxies
 @app.options("/search")
 async def options_search():
     return Response(status_code=204)
 
+
 @app.options("/export/ndjson")
 async def options_export_ndjson():
     return Response(status_code=204)
+
 
 @app.options("/export/csv")
 async def options_export_csv():
@@ -152,8 +154,9 @@ async def root():
         "name": "INSIGHT - Semantic Talent Finder",
         "version": "1.0.0",
         "status": "running",
-        "docs": "/docs"
+        "docs": "/docs",
     }
+
 
 # Page token helpers
 def _encode_token(payload: dict) -> str:
@@ -169,12 +172,7 @@ def _decode_token(token: str) -> dict:
         raise HTTPException(status_code=400, detail=f"Invalid page_token: {e}")
 
 
-@app.get(
-    "/health",
-    response_model=HealthResponse,
-    tags=["Health"],
-    summary="Health check endpoint"
-)
+@app.get("/health", response_model=HealthResponse, tags=["Health"], summary="Health check endpoint")
 async def health_check():
     """
     Check API and database health.
@@ -204,72 +202,63 @@ async def health_check():
             timestamp=datetime.utcnow(),
             database="connected",
             profiles_total=total_profiles,
-            profiles_with_embeddings=profiles_with_embeddings
+            profiles_with_embeddings=profiles_with_embeddings,
         )
 
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database unavailable: {e}"
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database unavailable: {e}"
         )
 
 
-@app.get(
-    "/countries",
-    tags=["Filters"],
-    summary="Get list of countries"
-)
+@app.get("/countries", tags=["Filters"], summary="Get list of countries")
 async def get_countries(response: Response):
     """Get distinct countries from profiles"""
     try:
         # No rate limit on filters to avoid UX issues
         pool = await database.get_pool()
         async with pool.acquire() as conn:
-            countries = await conn.fetch("""
+            countries = await conn.fetch(
+                """
                 SELECT DISTINCT location_country
                 FROM profiles
                 WHERE location_country IS NOT NULL
                   AND is_deleted = FALSE
                 ORDER BY location_country
-            """)
+            """
+            )
             response.headers["Cache-Control"] = "public, max-age=600"
-            return {"countries": [row['location_country'] for row in countries]}
+            return {"countries": [row["location_country"] for row in countries]}
     except Exception as e:
         logger.error(f"Failed to fetch countries: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get(
-    "/industries",
-    tags=["Filters"],
-    summary="Get list of industries"
-)
+@app.get("/industries", tags=["Filters"], summary="Get list of industries")
 async def get_industries(response: Response):
     """Get distinct industries from profiles"""
     try:
         # No rate limit on filters to avoid UX issues
         pool = await database.get_pool()
         async with pool.acquire() as conn:
-            industries = await conn.fetch("""
+            industries = await conn.fetch(
+                """
                 SELECT DISTINCT industry
                 FROM profiles
                 WHERE industry IS NOT NULL
                   AND is_deleted = FALSE
                 ORDER BY industry
-            """)
+            """
+            )
             response.headers["Cache-Control"] = "public, max-age=600"
-            return {"industries": [row['industry'] for row in industries]}
+            return {"industries": [row["industry"] for row in industries]}
     except Exception as e:
         logger.error(f"Failed to fetch industries: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get(
-    "/regions",
-    tags=["Filters"],
-    summary="Get list of regions/states"
-)
+@app.get("/regions", tags=["Filters"], summary="Get list of regions/states")
 async def get_regions(response: Response, country: Optional[str] = None):
     """Get distinct regions/states from profiles, optionally filtered by country"""
     try:
@@ -277,7 +266,8 @@ async def get_regions(response: Response, country: Optional[str] = None):
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country:
-                regions = await conn.fetch("""
+                regions = await conn.fetch(
+                    """
                     SELECT DISTINCT region, COUNT(*) as count
                     FROM profiles
                     WHERE region IS NOT NULL
@@ -286,9 +276,12 @@ async def get_regions(response: Response, country: Optional[str] = None):
                     GROUP BY region
                     ORDER BY count DESC, region
                     LIMIT 100
-                """, country)
+                """,
+                    country,
+                )
             else:
-                regions = await conn.fetch("""
+                regions = await conn.fetch(
+                    """
                     SELECT DISTINCT region, COUNT(*) as count
                     FROM profiles
                     WHERE region IS NOT NULL
@@ -296,27 +289,29 @@ async def get_regions(response: Response, country: Optional[str] = None):
                     GROUP BY region
                     ORDER BY count DESC, region
                     LIMIT 100
-                """)
+                """
+                )
             response.headers["Cache-Control"] = "public, max-age=600"
-            return {"regions": [{"region": row['region'], "count": row['count']} for row in regions]}
+            return {
+                "regions": [{"region": row["region"], "count": row["count"]} for row in regions]
+            }
     except Exception as e:
         logger.error(f"Failed to fetch regions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get(
-    "/localities",
-    tags=["Filters"],
-    summary="Get list of cities"
-)
-async def get_localities(response: Response, country: Optional[str] = None, region: Optional[str] = None):
+@app.get("/localities", tags=["Filters"], summary="Get list of cities")
+async def get_localities(
+    response: Response, country: Optional[str] = None, region: Optional[str] = None
+):
     """Get distinct localities/cities from profiles, optionally filtered by country and region"""
     try:
         # No rate limit on filters to avoid UX issues
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             if country and region:
-                localities = await conn.fetch("""
+                localities = await conn.fetch(
+                    """
                     SELECT DISTINCT locality, COUNT(*) as count
                     FROM profiles
                     WHERE locality IS NOT NULL
@@ -326,9 +321,13 @@ async def get_localities(response: Response, country: Optional[str] = None, regi
                     GROUP BY locality
                     ORDER BY count DESC, locality
                     LIMIT 100
-                """, country, region)
+                """,
+                    country,
+                    region,
+                )
             elif country:
-                localities = await conn.fetch("""
+                localities = await conn.fetch(
+                    """
                     SELECT DISTINCT locality, COUNT(*) as count
                     FROM profiles
                     WHERE locality IS NOT NULL
@@ -337,9 +336,12 @@ async def get_localities(response: Response, country: Optional[str] = None, regi
                     GROUP BY locality
                     ORDER BY count DESC, locality
                     LIMIT 100
-                """, country)
+                """,
+                    country,
+                )
             else:
-                localities = await conn.fetch("""
+                localities = await conn.fetch(
+                    """
                     SELECT DISTINCT locality, COUNT(*) as count
                     FROM profiles
                     WHERE locality IS NOT NULL
@@ -347,19 +349,20 @@ async def get_localities(response: Response, country: Optional[str] = None, regi
                     GROUP BY locality
                     ORDER BY count DESC, locality
                     LIMIT 100
-                """)
+                """
+                )
             response.headers["Cache-Control"] = "public, max-age=600"
-            return {"localities": [{"locality": row['locality'], "count": row['count']} for row in localities]}
+            return {
+                "localities": [
+                    {"locality": row["locality"], "count": row["count"]} for row in localities
+                ]
+            }
     except Exception as e:
         logger.error(f"Failed to fetch localities: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get(
-    "/stats",
-    tags=["Statistics"],
-    summary="Get dataset statistics"
-)
+@app.get("/stats", tags=["Statistics"], summary="Get dataset statistics")
 async def get_stats(response: Response, request: Request):
     """Get dataset statistics"""
     try:
@@ -371,35 +374,45 @@ async def get_stats(response: Response, request: Request):
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             # Total profiles
-            total = await conn.fetchval("""
+            total = await conn.fetchval(
+                """
                 SELECT COUNT(*) FROM profiles WHERE is_deleted = FALSE
-            """)
+            """
+            )
 
             # Top countries
-            countries = await conn.fetch("""
+            countries = await conn.fetch(
+                """
                 SELECT location_country as country, COUNT(*) as count
                 FROM profiles
                 WHERE location_country IS NOT NULL AND is_deleted = FALSE
                 GROUP BY location_country
                 ORDER BY count DESC
                 LIMIT 20
-            """)
+            """
+            )
 
             # Top industries
-            industries = await conn.fetch("""
+            industries = await conn.fetch(
+                """
                 SELECT industry, COUNT(*) as count
                 FROM profiles
                 WHERE industry IS NOT NULL AND is_deleted = FALSE
                 GROUP BY industry
                 ORDER BY count DESC
                 LIMIT 20
-            """)
+            """
+            )
 
             response.headers["Cache-Control"] = "public, max-age=60"
             return {
                 "total_profiles": total,
-                "countries": [{"country": row['country'], "count": row['count']} for row in countries],
-                "industries": [{"industry": row['industry'], "count": row['count']} for row in industries]
+                "countries": [
+                    {"country": row["country"], "count": row["count"]} for row in countries
+                ],
+                "industries": [
+                    {"industry": row["industry"], "count": row["count"]} for row in industries
+                ],
             }
     except Exception as e:
         logger.error(f"Failed to fetch stats: {e}")
@@ -410,9 +423,13 @@ async def get_stats(response: Response, request: Request):
     "/search",
     response_model=SearchResponse,
     tags=["Search"],
-    summary="Semantic search for talent profiles"
+    summary="Semantic search for talent profiles",
 )
-async def search_profiles(request: SearchRequest, http_request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+async def search_profiles(
+    request: SearchRequest,
+    http_request: Request,
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
     """
     Execute hybrid semantic search on talent profiles.
 
@@ -444,7 +461,11 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
 
         # Rate limit per API key/IP
         rl_key = f"search:{ctx.api_key or http_request.client.host}"
-        if not limiter.allow(rl_key, int(os.getenv("RATE_LIMIT_SEARCH_PER_MIN", "60")), int(os.getenv("RATE_LIMIT_SEARCH_BURST", "120"))):
+        if not limiter.allow(
+            rl_key,
+            int(os.getenv("RATE_LIMIT_SEARCH_PER_MIN", "60")),
+            int(os.getenv("RATE_LIMIT_SEARCH_BURST", "120")),
+        ):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
 
         # If a page_token is provided, reconstruct request from token (server-side snapshot)
@@ -467,25 +488,25 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
         # Build filters dict for response
         filters_applied = {}
         if request.location_country:
-            filters_applied['location_country'] = request.location_country
+            filters_applied["location_country"] = request.location_country
         if request.regions:
-            filters_applied['regions'] = request.regions
+            filters_applied["regions"] = request.regions
         elif request.region:
-            filters_applied['region'] = request.region
+            filters_applied["region"] = request.region
         if request.localities:
-            filters_applied['localities'] = request.localities
+            filters_applied["localities"] = request.localities
         elif request.locality:
-            filters_applied['locality'] = request.locality
+            filters_applied["locality"] = request.locality
         if request.min_years_experience is not None:
-            filters_applied['min_years_experience'] = request.min_years_experience
+            filters_applied["min_years_experience"] = request.min_years_experience
         if request.max_years_experience is not None:
-            filters_applied['max_years_experience'] = request.max_years_experience
+            filters_applied["max_years_experience"] = request.max_years_experience
         if request.skills:
-            filters_applied['skills'] = request.skills
+            filters_applied["skills"] = request.skills
         if request.industry:
-            filters_applied['industry'] = request.industry
+            filters_applied["industry"] = request.industry
         if request.min_quality_score is not None:
-            filters_applied['min_quality_score'] = request.min_quality_score
+            filters_applied["min_quality_score"] = request.min_quality_score
 
         logger.info(
             f"Search completed: query='{request.query}', "
@@ -497,8 +518,8 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
         next_token = None
         if request.offset + request.limit < total_count:
             snapshot = request.dict()
-            snapshot.pop('page_token', None)
-            snapshot['offset'] = request.offset + request.limit
+            snapshot.pop("page_token", None)
+            snapshot["offset"] = request.offset + request.limit
             next_token = _encode_token(snapshot)
 
         # PII redaction unless authorized
@@ -517,21 +538,19 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
             query_time_ms=query_time_ms,
             query=request.query,
             filters_applied=filters_applied,
-            next_page_token=next_token
+            next_page_token=next_token,
         )
 
     except search.SearchError as e:
         logger.error(f"Search error: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Search failed: {e}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Search failed: {e}"
         )
 
     except Exception as e:
         logger.error(f"Unexpected error: {e}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal server error: {e}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Internal server error: {e}"
         )
 
 
@@ -539,7 +558,7 @@ async def search_profiles(request: SearchRequest, http_request: Request, x_api_k
     "/search/parse",
     response_model=NaturalParseResponse,
     tags=["Search"],
-    summary="Parse a natural-language request into search filters"
+    summary="Parse a natural-language request into search filters",
 )
 async def parse_search_query(
     request: NaturalParseRequest,
@@ -581,25 +600,39 @@ async def parse_search_query(
     "/search",
     response_model=SearchResponse,
     tags=["Search"],
-    summary="Semantic search (GET with query params)"
+    summary="Semantic search (GET with query params)",
 )
 async def search_profiles_get(
     request: Request,
     q: str = Query("", description="Search query text (empty for browse mode)"),
     limit: int = Query(20, ge=1, le=1000, description="Number of results to return (max 1000)"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
-    page_token: str | None = Query(None, description="Opaque token to fetch the next page (overrides other params)"),
+    page_token: str | None = Query(
+        None, description="Opaque token to fetch the next page (overrides other params)"
+    ),
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
     location_country: str | None = Query(None, description="Filter by country"),
-    region: str | None = Query(None, description="Filter by region/state (deprecated - use regions)"),
-    regions: list[str] | None = Query(None, description="Filter by multiple regions/states (OR logic)"),
+    region: str | None = Query(
+        None, description="Filter by region/state (deprecated - use regions)"
+    ),
+    regions: list[str] | None = Query(
+        None, description="Filter by multiple regions/states (OR logic)"
+    ),
     locality: str | None = Query(None, description="Filter by city (deprecated - use localities)"),
     localities: list[str] | None = Query(None, description="Filter by multiple cities (OR logic)"),
-    min_years_experience: int | None = Query(None, ge=0, le=80, description="Minimum years of experience"),
-    max_years_experience: int | None = Query(None, ge=0, le=80, description="Maximum years of experience"),
+    min_years_experience: int | None = Query(
+        None, ge=0, le=80, description="Minimum years of experience"
+    ),
+    max_years_experience: int | None = Query(
+        None, ge=0, le=80, description="Maximum years of experience"
+    ),
     skills: list[str] | None = Query(None, description="Required skills (AND logic)"),
-    industry: str | None = Query(None, description="Filter by single industry (deprecated - use industries)"),
-    industries: list[str] | None = Query(None, description="Filter by multiple industries (OR logic)"),
+    industry: str | None = Query(
+        None, description="Filter by single industry (deprecated - use industries)"
+    ),
+    industries: list[str] | None = Query(
+        None, description="Filter by multiple industries (OR logic)"
+    ),
     job_title: str | None = Query(None, description="Filter by job title (partial match)"),
     company: str | None = Query(None, description="Filter by company name (partial match)"),
     has_linkedin: bool | None = Query(None, description="Filter profiles with LinkedIn URL"),
@@ -608,11 +641,17 @@ async def search_profiles_get(
     has_website: bool | None = Query(None, description="Filter profiles with website"),
     has_twitter: bool | None = Query(None, description="Filter profiles with Twitter"),
     has_github: bool | None = Query(None, description="Filter profiles with GitHub"),
-    min_quality_score: float | None = Query(None, ge=0.0, le=1.0, description="Minimum quality score"),
-    min_data_completeness: int | None = Query(None, ge=0, le=100, description="Minimum data completeness percentage"),
+    min_quality_score: float | None = Query(
+        None, ge=0.0, le=1.0, description="Minimum quality score"
+    ),
+    min_data_completeness: int | None = Query(
+        None, ge=0, le=100, description="Minimum data completeness percentage"
+    ),
     vector_weight: float = Query(0.8, ge=0.0, le=1.0, description="Weight for vector similarity"),
     lexical_weight: float = Query(0.2, ge=0.0, le=1.0, description="Weight for lexical matching"),
-    ef_search: int = Query(64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)")
+    ef_search: int = Query(
+        64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)"
+    ),
 ):
     """
     GET version of search to support simple HTTP request nodes.
@@ -654,7 +693,7 @@ async def search_profiles_get(
 @app.get(
     "/export/ndjson",
     tags=["Export"],
-    summary="Export search results as NDJSON (up to 1000 per call)"
+    summary="Export search results as NDJSON (up to 1000 per call)",
 )
 async def export_ndjson(
     request: Request,
@@ -699,15 +738,27 @@ async def export_ndjson(
         ctx: AuthContext = await resolve_auth_context(x_api_key)
         require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
         if require_key and not ctx.allow_export:
-            raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
+            raise HTTPException(
+                status_code=403, detail="Export not permitted without 'export:read' scope"
+            )
         # Rate limit exports
-        if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
+        if not limiter.allow(
+            f"export:{ctx.api_key or request.client.host}",
+            int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")),
+            int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10")),
+        ):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         # Require filters and query to mitigate bulk dumps
         export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
-        has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
+        has_any_filter = bool(
+            location_country
+            or (regions and len(regions) > 0)
+            or (localities and len(localities) > 0)
+        )
         if (q.strip() == "") and (export_require_filter and not has_any_filter):
-            raise HTTPException(status_code=422, detail="Export requires query or at least one filter")
+            raise HTTPException(
+                status_code=422, detail="Export requires query or at least one filter"
+            )
 
         pool = await database.get_pool()
         async with pool.acquire() as conn:
@@ -724,9 +775,7 @@ async def export_ndjson(
 
 
 @app.get(
-    "/export/csv",
-    tags=["Export"],
-    summary="Export search results as CSV (up to 1000 per call)"
+    "/export/csv", tags=["Export"], summary="Export search results as CSV (up to 1000 per call)"
 )
 async def export_csv(
     request: Request,
@@ -804,13 +853,25 @@ async def export_csv(
         ctx: AuthContext = await resolve_auth_context(x_api_key)
         require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
         if require_key and not ctx.allow_export:
-            raise HTTPException(status_code=403, detail="Export not permitted without 'export:read' scope")
-        if not limiter.allow(f"export:{ctx.api_key or request.client.host}", int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")), int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10"))):
+            raise HTTPException(
+                status_code=403, detail="Export not permitted without 'export:read' scope"
+            )
+        if not limiter.allow(
+            f"export:{ctx.api_key or request.client.host}",
+            int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")),
+            int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10")),
+        ):
             raise HTTPException(status_code=429, detail="Rate limit exceeded")
         export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
-        has_any_filter = bool(location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0))
+        has_any_filter = bool(
+            location_country
+            or (regions and len(regions) > 0)
+            or (localities and len(localities) > 0)
+        )
         if (q.strip() == "") and (export_require_filter and not has_any_filter):
-            raise HTTPException(status_code=422, detail="Export requires query or at least one filter")
+            raise HTTPException(
+                status_code=422, detail="Export requires query or at least one filter"
+            )
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
@@ -836,17 +897,14 @@ async def export_csv(
 
     return StreamingResponse(iter_csv(), headers=headers, media_type="text/csv")
 
+
 # Exception handlers
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc: HTTPException):
     """Handle HTTP exceptions with ErrorResponse format"""
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "error": exc.detail,
-            "detail": None,
-            "timestamp": datetime.utcnow().isoformat()
-        }
+        content={"error": exc.detail, "detail": None, "timestamp": datetime.utcnow().isoformat()},
     )
 
 
@@ -859,8 +917,8 @@ async def general_exception_handler(request, exc: Exception):
         content={
             "error": "Internal server error",
             "detail": str(exc),
-            "timestamp": datetime.utcnow().isoformat()
-        }
+            "timestamp": datetime.utcnow().isoformat(),
+        },
     )
 
 
@@ -868,10 +926,4 @@ if __name__ == "__main__":
     import uvicorn
 
     # Run with: python -m backend.api.app
-    uvicorn.run(
-        "backend.api.app:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("backend.api.app:app", host="0.0.0.0", port=8000, reload=True, log_level="info")
