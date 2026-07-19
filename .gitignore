@@ -7,6 +7,9 @@ claude.md
 .claude.md
 docs/claude.md
 
+# Local IDE config (machine-specific venv path)
+pyrightconfig.json
+
 # Environment variables
 *.env
 .env

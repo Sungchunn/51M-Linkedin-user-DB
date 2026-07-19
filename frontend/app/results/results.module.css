@@ -110,6 +110,60 @@
     height: 14px;
 }
 
+.actionBtnPrimary:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+}
+
+/* === Shared export dropdown (CSV / Excel) === */
+.exportWrap {
+    position: relative;
+}
+
+.exportMenu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    min-width: 150px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.exportMenuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.exportMenuItem:hover {
+    background: var(--surface-hover);
+}
+
+.exportMenuHint {
+    color: var(--text-subtle);
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+
 /* === Active filter chips === */
 .filterChipsRow {
     display: flex;
@@ -499,6 +553,17 @@
     margin-top: 16px;
 }
 
+.stateActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.stateActions .stateAction {
+    margin-top: 0;
+}
+
 /* === Detail slide-over === */
 .scrim {
     position: fixed;
@@ -849,5 +914,252 @@
 
     .drawerSection {
         padding: 18px 16px;
+    }
+}
+
+/* === Loading skeleton (theme-aware via --skeleton-* tokens) === */
+
+.skel {
+    display: inline-block;
+    border-radius: 6px;
+    background:
+        linear-gradient(100deg,
+            var(--skeleton-base) 40%,
+            var(--skeleton-sheen) 50%,
+            var(--skeleton-base) 60%);
+    background-size: 200% 100%;
+    animation: skeletonSweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonSweep {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+.skeletonRow {
+    composes: gridRow;
+    border-bottom: 1px solid var(--border);
+    padding-top: 15px;
+    padding-bottom: 15px;
+    animation: skelRowFade 0.5s ease both;
+    animation-delay: var(--row-delay, 0ms);
+}
+
+@keyframes skelRowFade {
+    from { opacity: 0.35; }
+    to { opacity: 1; }
+}
+
+/* Accent-tinted scan beam sweeping down the skeleton rows. The wrapper
+   provides the positioning context and clips the beam at both ends. */
+.scanArea {
+    position: relative;
+    overflow: hidden;
+}
+
+.scanBeam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 88px;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        transparent,
+        var(--scan-tint) 30%,
+        var(--scan-tint-strong) 50%,
+        var(--scan-tint) 70%,
+        transparent);
+    animation: scanSweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scanSweep {
+    0% { top: -88px; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+.skelName {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.skelAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.skelLines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.skelLine {
+    height: 12px;
+    width: 100%;
+}
+
+.skelChip {
+    height: 20px;
+    width: 40px;
+    border-radius: 999px;
+}
+
+.skelActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.skelBtn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+}
+
+.skelCount {
+    width: 88px;
+    height: 30px;
+    border-radius: 8px;
+    vertical-align: middle;
+}
+
+/* Status bar: orbit spinner + cycling message + scanned counter + dots. */
+.loadingFooter {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--accent-soft);
+}
+
+.spinnerWrap {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    flex: none;
+}
+
+.spinnerOrbit {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--spinner-ring);
+    border-top-color: transparent;
+    border-right-color: transparent;
+    animation: spinnerOrbit 0.9s linear infinite;
+}
+
+@keyframes spinnerOrbit {
+    to { transform: rotate(360deg); }
+}
+
+.spinnerCore {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--link-accent);
+    animation: spinnerPulse 1.6s ease-out infinite;
+}
+
+@keyframes spinnerPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.9); opacity: 0; }
+}
+
+.loadingText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.loadingMain {
+    color: var(--text-primary);
+    font-size: 0.87rem;
+    font-weight: 600;
+    animation: loadingMsgIn 0.35s ease;
+}
+
+@keyframes loadingMsgIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: none; }
+}
+
+.loadingSub {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.loadingCount {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+    color: var(--link-accent);
+    font-variant-numeric: tabular-nums;
+}
+
+.loadingDots {
+    display: inline-flex;
+    gap: 5px;
+    margin-left: auto;
+    color: var(--link-accent);
+}
+
+.loadingDots i {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: loadingDotPulse 1.2s ease-in-out infinite;
+}
+
+.loadingDots i:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots i:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loadingDotPulse {
+    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skel {
+        animation: none;
+        background: var(--skeleton-base);
+    }
+
+    .loadingDots i {
+        animation: none;
+        opacity: 0.6;
+    }
+
+    .skeletonRow {
+        animation: none;
+    }
+
+    .scanBeam {
+        animation: none;
+        opacity: 0;
+    }
+
+    .spinnerOrbit {
+        animation-duration: 2.4s;
+    }
+
+    .spinnerCore,
+    .loadingMain {
+        animation: none;
     }
 }

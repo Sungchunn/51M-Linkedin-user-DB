@@ -10,7 +10,7 @@ packages = [{include = "data_pipeline", from = "backend"}, {include = "api", fro
 python = "^3.11"
 # Database
 asyncpg = "^0.29.0"
-psycopg = {extras = ["binary"], version = "^3.2.1"}
+psycopg = {extras = ["binary", "pool"], version = "^3.2.1"}
 # Data Processing
 pandas = "^2.2.2"
 pyarrow = "^17.0.0"
@@ -32,6 +32,7 @@ pyjwt = "^2.10.1"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-multipart = "^0.0.20"
 bcrypt = "^4.1.0"
+openpyxl = "^3.1.5"
 
 [tool.poetry.group.dev.dependencies]
 # Testing
@@ -127,6 +128,7 @@ strict_optional = true
 module = [
     "tqdm.*",
     "pyarrow.*",
+    "asyncpg.*",
 ]
 ignore_missing_imports = true
 

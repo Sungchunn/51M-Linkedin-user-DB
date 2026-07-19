@@ -26,6 +26,7 @@ class SearchRequest(BaseModel):
     - offset must be >= 0
     - vector_weight + lexical_weight should = 1.0 (warning if not)
     """
+
     # Query text (optional - if empty, returns recent profiles with filters)
     query: str = Field("", description="Search query text (empty for browse mode)")
 
@@ -34,21 +35,40 @@ class SearchRequest(BaseModel):
     offset: int = Field(0, ge=0, description="Offset for pagination")
 
     # Opaque pagination
-    page_token: Optional[str] = Field(None, description="Opaque token to fetch the next page (overrides offset/filters if provided)")
+    page_token: Optional[str] = Field(
+        None,
+        description="Opaque token to fetch the next page (overrides offset/filters if provided)",
+    )
 
     # Filters
     location_country: Optional[str] = Field(None, description="Filter by country")
-    region: Optional[str] = Field(None, description="Filter by region/state (deprecated - use regions)")
-    regions: Optional[List[str]] = Field(None, description="Filter by multiple regions/states (OR logic)")
-    locality: Optional[str] = Field(None, description="Filter by city (deprecated - use localities)")
-    localities: Optional[List[str]] = Field(None, description="Filter by multiple cities (OR logic)")
+    region: Optional[str] = Field(
+        None, description="Filter by region/state (deprecated - use regions)"
+    )
+    regions: Optional[List[str]] = Field(
+        None, description="Filter by multiple regions/states (OR logic)"
+    )
+    locality: Optional[str] = Field(
+        None, description="Filter by city (deprecated - use localities)"
+    )
+    localities: Optional[List[str]] = Field(
+        None, description="Filter by multiple cities (OR logic)"
+    )
 
-    min_years_experience: Optional[int] = Field(None, ge=0, le=80, description="Minimum years of experience")
-    max_years_experience: Optional[int] = Field(None, ge=0, le=80, description="Maximum years of experience")
+    min_years_experience: Optional[int] = Field(
+        None, ge=0, le=80, description="Minimum years of experience"
+    )
+    max_years_experience: Optional[int] = Field(
+        None, ge=0, le=80, description="Maximum years of experience"
+    )
 
     skills: Optional[List[str]] = Field(None, description="Required skills (AND logic)")
-    industry: Optional[str] = Field(None, description="Filter by single industry (deprecated - use industries)")
-    industries: Optional[List[str]] = Field(None, description="Filter by multiple industries (OR logic)")
+    industry: Optional[str] = Field(
+        None, description="Filter by single industry (deprecated - use industries)"
+    )
+    industries: Optional[List[str]] = Field(
+        None, description="Filter by multiple industries (OR logic)"
+    )
 
     # Job and company filters
     job_title: Optional[str] = Field(None, description="Filter by job title (partial match)")
@@ -62,20 +82,26 @@ class SearchRequest(BaseModel):
     has_twitter: Optional[bool] = Field(None, description="Filter profiles with Twitter")
     has_github: Optional[bool] = Field(None, description="Filter profiles with GitHub")
 
-    min_quality_score: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum quality score")
-    min_data_completeness: Optional[int] = Field(None, ge=0, le=100, description="Minimum data completeness percentage")
+    min_quality_score: Optional[float] = Field(
+        None, ge=0.0, le=1.0, description="Minimum quality score"
+    )
+    min_data_completeness: Optional[int] = Field(
+        None, ge=0, le=100, description="Minimum data completeness percentage"
+    )
 
     # Search weights
     vector_weight: float = Field(0.8, ge=0.0, le=1.0, description="Weight for vector similarity")
     lexical_weight: float = Field(0.2, ge=0.0, le=1.0, description="Weight for lexical matching")
 
     # HNSW search parameter
-    ef_search: int = Field(64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)")
+    ef_search: int = Field(
+        64, ge=10, le=400, description="HNSW ef_search parameter (quality vs speed)"
+    )
 
-    @validator('lexical_weight')
+    @validator("lexical_weight")
     def validate_weights(cls, v, values):
         """Warn if vector_weight + lexical_weight != 1.0"""
-        vec = values.get('vector_weight', 0.0)
+        vec = values.get("vector_weight", 0.0)
         total = vec + v
         if abs(total - 1.0) > 1e-6:
             logger.warning(
@@ -83,11 +109,11 @@ class SearchRequest(BaseModel):
             )
         return v
 
-    @validator('max_years_experience')
+    @validator("max_years_experience")
     def validate_experience_range(cls, v, values):
         """Ensure max >= min for experience range"""
-        if v is not None and 'min_years_experience' in values:
-            min_exp = values['min_years_experience']
+        if v is not None and "min_years_experience" in values:
+            min_exp = values["min_years_experience"]
             if min_exp is not None and v < min_exp:
                 raise ValueError(
                     f"NEGATIVE SPACE: max_years_experience ({v}) must be >= "
@@ -106,7 +132,7 @@ class SearchRequest(BaseModel):
                 "min_years_experience": 5,
                 "skills": ["python", "sql"],
                 "vector_weight": 0.8,
-                "lexical_weight": 0.2
+                "lexical_weight": 0.2,
             }
         }
 
@@ -120,6 +146,7 @@ class ProfileResult(BaseModel):
     - score is in [0.0, 1.0]
     - All nullable fields explicitly typed as Optional
     """
+
     id: str
     full_name: str
     first_name: Optional[str]
@@ -152,7 +179,9 @@ class ProfileResult(BaseModel):
 
     # Quality metrics
     content_quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
-    data_completeness_pct: Optional[int] = Field(None, ge=0, le=100, description="Data completeness percentage (0-100)")
+    data_completeness_pct: Optional[int] = Field(
+        None, ge=0, le=100, description="Data completeness percentage (0-100)"
+    )
 
     class Config:
         schema_extra = {
@@ -166,7 +195,7 @@ class ProfileResult(BaseModel):
                 "score": 0.92,
                 "vector_similarity": 0.95,
                 "content_quality_score": 0.85,
-                "data_completeness_pct": 75
+                "data_completeness_pct": 75,
             }
         }
 
@@ -180,6 +209,7 @@ class SearchResponse(BaseModel):
     - total_count >= results count
     - query_time_ms >= 0
     """
+
     results: List[ProfileResult]
     total_count: int = Field(..., ge=0)
     returned_count: int = Field(..., ge=0)
@@ -191,11 +221,11 @@ class SearchResponse(BaseModel):
     filters_applied: dict
     next_page_token: Optional[str] = Field(None, description="Token to retrieve the next page")
 
-    @validator('returned_count')
+    @validator("returned_count")
     def validate_returned_count(cls, v, values):
         """Ensure returned_count matches results length"""
-        if 'results' in values:
-            actual_count = len(values['results'])
+        if "results" in values:
+            actual_count = len(values["results"])
             if v != actual_count:
                 raise ValueError(
                     f"NEGATIVE SPACE: returned_count ({v}) must match "
@@ -213,16 +243,14 @@ class SearchResponse(BaseModel):
                 "limit": 20,
                 "query_time_ms": 145.3,
                 "query": "senior software engineer",
-                "filters_applied": {
-                    "location_country": "united states",
-                    "min_years_experience": 5
-                }
+                "filters_applied": {"location_country": "united states", "min_years_experience": 5},
             }
         }
 
 
 class HealthResponse(BaseModel):
     """Health check response"""
+
     status: str
     timestamp: datetime
     database: str
@@ -236,13 +264,14 @@ class HealthResponse(BaseModel):
                 "timestamp": "2025-10-07T03:00:00Z",
                 "database": "connected",
                 "profiles_total": 10000,
-                "profiles_with_embeddings": 5000
+                "profiles_with_embeddings": 5000,
             }
         }
 
 
 class ErrorResponse(BaseModel):
     """Error response"""
+
     error: str
     detail: Optional[str] = None
     timestamp: datetime
@@ -252,39 +281,43 @@ class ErrorResponse(BaseModel):
             "example": {
                 "error": "Invalid query parameter",
                 "detail": "Query text cannot be empty",
-                "timestamp": "2025-10-07T03:00:00Z"
+                "timestamp": "2025-10-07T03:00:00Z",
             }
         }
 
 
 # ==================== AUTHENTICATION MODELS ====================
 
+
 class UserRegisterRequest(BaseModel):
     """User registration request"""
+
     username: str = Field(..., min_length=3, max_length=50, description="Username (3-50 chars)")
     email: str = Field(..., description="Email address")
     password: str = Field(..., min_length=8, description="Password (min 8 chars)")
     full_name: Optional[str] = Field(None, max_length=255, description="Full name")
 
-    @validator('username')
+    @validator("username")
     def username_alphanumeric(cls, v):
-        if not v.replace('_', '').replace('-', '').isalnum():
-            raise ValueError('Username must be alphanumeric (underscores and hyphens allowed)')
+        if not v.replace("_", "").replace("-", "").isalnum():
+            raise ValueError("Username must be alphanumeric (underscores and hyphens allowed)")
         return v.lower()
 
-    @validator('email')
+    @validator("email")
     def email_lowercase(cls, v):
         return v.lower()
 
 
 class UserLoginRequest(BaseModel):
     """User login request"""
+
     username: str = Field(..., description="Username")
     password: str = Field(..., description="Password")
 
 
 class TokenResponse(BaseModel):
     """JWT token response"""
+
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
@@ -293,6 +326,7 @@ class TokenResponse(BaseModel):
 
 class UserResponse(BaseModel):
     """User profile response"""
+
     id: str
     username: str
     email: str
@@ -305,28 +339,36 @@ class UserResponse(BaseModel):
 
 class APIKeyCreateRequest(BaseModel):
     """Request to create a new API key"""
-    key_name: str = Field(..., min_length=3, max_length=100, description="Descriptive name for the API key")
-    scopes: List[str] = Field(default=["search:read"], description="Permissions: search:read, export:read, pii:read")
-    tier: str = Field(default="basic", description="Tier: public, basic, trusted")
-    expires_in_days: Optional[int] = Field(None, gt=0, le=365, description="Expiration in days (max 365)")
 
-    @validator('tier')
+    key_name: str = Field(
+        ..., min_length=3, max_length=100, description="Descriptive name for the API key"
+    )
+    scopes: List[str] = Field(
+        default=["search:read"], description="Permissions: search:read, export:read, pii:read"
+    )
+    tier: str = Field(default="basic", description="Tier: public, basic, trusted")
+    expires_in_days: Optional[int] = Field(
+        None, gt=0, le=365, description="Expiration in days (max 365)"
+    )
+
+    @validator("tier")
     def validate_tier(cls, v):
-        if v not in ['public', 'basic', 'trusted']:
-            raise ValueError('Tier must be: public, basic, or trusted')
+        if v not in ["public", "basic", "trusted"]:
+            raise ValueError("Tier must be: public, basic, or trusted")
         return v
 
-    @validator('scopes')
+    @validator("scopes")
     def validate_scopes(cls, v):
-        valid_scopes = {'search:read', 'export:read', 'pii:read', 'admin:write'}
+        valid_scopes = {"search:read", "export:read", "pii:read", "admin:write"}
         for scope in v:
             if scope not in valid_scopes:
-                raise ValueError(f'Invalid scope: {scope}. Valid: {valid_scopes}')
+                raise ValueError(f"Invalid scope: {scope}. Valid: {valid_scopes}")
         return v
 
 
 class APIKeyResponse(BaseModel):
     """API key response (created)"""
+
     id: str
     api_key: str = Field(..., description="Full API key - SAVE THIS! Only shown once")
     key_prefix: str = Field(..., description="First 16 chars for identification")
@@ -339,6 +381,7 @@ class APIKeyResponse(BaseModel):
 
 class APIKeyListItem(BaseModel):
     """API key list item (without full key)"""
+
     id: str
     key_name: str
     key_prefix: str = Field(..., description="First 16 chars (e.g., abc123...)")
@@ -353,6 +396,7 @@ class APIKeyListItem(BaseModel):
 
 # ==================== SEARCH HISTORY MODELS ====================
 
+
 class SearchHistoryEntryCreate(BaseModel):
     """
     Request to save a search to the user's history.
@@ -362,13 +406,16 @@ class SearchHistoryEntryCreate(BaseModel):
     - params is opaque to the API: stored verbatim, replayed by the client
     - Identical params (order-insensitive) replace the existing entry
     """
-    label: str = Field(..., min_length=1, max_length=300, description="Display label for the search")
+
+    label: str = Field(
+        ..., min_length=1, max_length=300, description="Display label for the search"
+    )
     params: Dict[str, Any] = Field(..., description="Search form params, stored verbatim")
 
-    @validator('label')
+    @validator("label")
     def validate_label_not_blank(cls, v):
         if not v.strip():
-            raise ValueError('NEGATIVE SPACE: label must not be blank')
+            raise ValueError("NEGATIVE SPACE: label must not be blank")
         return v
 
 
@@ -380,7 +427,47 @@ class SearchHistoryEntry(BaseModel):
     - ts is epoch milliseconds of the last run (recency/sort key)
     - Listing is newest-first, capped at 50 per user
     """
+
     id: str
     label: str
     params: Dict[str, Any]
     ts: int = Field(..., description="Last-run time as epoch milliseconds")
+
+
+# ==================== NATURAL LANGUAGE SEARCH MODELS ====================
+
+
+class NaturalParseRequest(BaseModel):
+    """
+    Request to parse a freeform talent-search description into filters.
+
+    NEGATIVE SPACE CONTRACT:
+    - query is 2-500 chars of natural language
+    """
+
+    query: str = Field(
+        ...,
+        min_length=2,
+        max_length=500,
+        description="Freeform description of who you're looking for",
+    )
+
+
+class NaturalParseResponse(BaseModel):
+    """
+    Parsed search: hard filters + the residual semantic query.
+
+    NEGATIVE SPACE CONTRACT:
+    - semantic_query may be EMPTY: a request that is only filters + filler
+      ("find candidates in NYC") has no residual intent — searching with the
+      empty query is a filtered browse
+    - filters contains only SearchRequest fields that were actually extracted
+      (regions/industries validated against the database vocabulary)
+    - parse_failed=True means the LLM step failed and the raw text became the
+      semantic query — the search still works, just without hard filters
+    """
+
+    semantic_query: str
+    filters: Dict[str, Any]
+    parse_failed: bool = False
+    parse_time_ms: float = Field(..., ge=0.0)

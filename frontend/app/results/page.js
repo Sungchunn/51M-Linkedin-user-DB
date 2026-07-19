@@ -19,6 +19,101 @@ const CONTACT_LABELS = {
     has_github: 'GitHub',
 };
 
+/** Column headers shared by the results table and its loading skeleton. */
+function TableHead() {
+    return (
+        <div className={styles.gridHead}>
+            <span className={styles.headCell}>Name &amp; role</span>
+            <span className={styles.headCell}>Company</span>
+            <span className={styles.headCell}>Location</span>
+            <span className={styles.headCell}>Exp</span>
+            <span className={styles.headCell}>Summary</span>
+            <span className={`${styles.headCell} ${styles.headCellRight}`}>Actions</span>
+        </div>
+    );
+}
+
+// Deterministic width variation for skeleton rows (SSR-safe — no randomness):
+// [name, role, company, location, summary-2nd-line]
+const SKELETON_ROWS = Array.from({ length: 8 }, (_, i) => [
+    ['72%', '48%', '78%', '62%', '58%'],
+    ['60%', '42%', '66%', '74%', '66%'],
+    ['80%', '52%', '58%', '58%', '48%'],
+    ['66%', '38%', '84%', '68%', '72%'],
+][i % 4]);
+
+// Client-side ceiling above the API's own 30s DB timeout, so a server error
+// always beats an opaque abort.
+const SEARCH_TIMEOUT_MS = 75000;
+
+// Status-bar pacing: messages advance while the scanned counter eases toward
+// the corpus size. Purely a pacing device — real progress isn't reported by
+// the API — so after LONG_WAIT_MS the message switches to an honest one.
+const LOADING_MESSAGES = [
+    'Embedding your query',
+    'Searching 497K+ profiles',
+    'Scoring semantic relevance',
+    'Ranking best matches',
+    'Assembling results',
+];
+const SCAN_TARGET = 497552;
+const SCAN_DURATION_MS = 6200;
+const LONG_WAIT_MS = 20000;
+
+/** Loading status bar: orbit spinner, cycling message, scanned count-up.
+    Self-contained so its per-frame state stays out of the page tree. */
+function SearchLoadingStatus() {
+    const [scanned, setScanned] = useState(0);
+    const [msgIndex, setMsgIndex] = useState(0);
+    const [longWait, setLongWait] = useState(false);
+
+    useEffect(() => {
+        const longTimer = setTimeout(() => setLongWait(true), LONG_WAIT_MS);
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setScanned(SCAN_TARGET);
+            setMsgIndex(1); // static "Searching 497K+ profiles"
+            return () => clearTimeout(longTimer);
+        }
+
+        const start = performance.now();
+        let raf;
+        const tick = (now) => {
+            const t = Math.min(1, (now - start) / SCAN_DURATION_MS);
+            const eased = 1 - Math.pow(1 - t, 2.2);
+            setScanned(Math.floor(eased * SCAN_TARGET));
+            setMsgIndex(Math.min(LOADING_MESSAGES.length - 1, Math.floor(t * LOADING_MESSAGES.length)));
+            if (t < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => {
+            cancelAnimationFrame(raf);
+            clearTimeout(longTimer);
+        };
+    }, []);
+
+    const scannedLabel = scanned >= 1000 ? `${(scanned / 1000).toFixed(1)}K` : String(scanned);
+    const message = longWait
+        ? 'Still working — the server is under heavy load'
+        : LOADING_MESSAGES[msgIndex];
+
+    return (
+        <div className={styles.loadingFooter}>
+            <div className={styles.spinnerWrap} aria-hidden="true">
+                <span className={styles.spinnerOrbit} />
+                <span className={styles.spinnerCore} />
+            </div>
+            <div className={styles.loadingText}>
+                <span className={styles.loadingMain} key={message}>{message}</span>
+                <span className={styles.loadingSub}>
+                    <span className={styles.loadingCount}>Scanned {scannedLabel}</span>
+                    {' of 497K profiles · semantic ranking'}
+                </span>
+            </div>
+            <span className={styles.loadingDots} aria-hidden="true"><i /><i /><i /></span>
+        </div>
+    );
+}
+
 function buildSearchQuery(searchParams, offset, limit) {
     // Build GET query params to avoid CORS preflight
     const params = new URLSearchParams();
@@ -62,10 +157,9 @@ const ICONS = {
             <path d="M4 6h16M7 12h10M10 18h4" />
         </svg>
     ),
-    save: (
+    caretDown: (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <path d="M17 21v-8H7v8M7 3v5h8" />
+            <path d="m6 9 6 6 6-6" />
         </svg>
     ),
     download: (
@@ -459,7 +553,30 @@ export default function ResultsPage() {
     const [copiedRow, setCopiedRow] = useState(null);
     const copyTimer = useRef(null);
 
+    // Shared export button (CSV / Excel dropdown)
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const exportWrapRef = useRef(null);
+
     useEffect(() => () => clearTimeout(copyTimer.current), []);
+
+    useEffect(() => {
+        if (!exportMenuOpen) return undefined;
+        const onPointerDown = (e) => {
+            if (exportWrapRef.current && !exportWrapRef.current.contains(e.target)) {
+                setExportMenuOpen(false);
+            }
+        };
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') setExportMenuOpen(false);
+        };
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [exportMenuOpen]);
 
     useEffect(() => {
         const paramsStr = sessionStorage.getItem('searchParams');
@@ -479,9 +596,14 @@ export default function ResultsPage() {
         const seq = ++requestSeq.current;
         setStatus('loading');
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+
         try {
             const query = buildSearchQuery(params, searchOffset, searchLimit);
-            const response = await fetch(`${getApiBaseUrl()}/search?${query.toString()}`);
+            const response = await fetch(`${getApiBaseUrl()}/search?${query.toString()}`, {
+                signal: controller.signal,
+            });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -497,10 +619,18 @@ export default function ResultsPage() {
         } catch (error) {
             console.error('Search error:', error);
             if (seq !== requestSeq.current) return;
-            setErrorMessage(error.message);
+            setErrorMessage(error.name === 'AbortError'
+                ? `Search timed out after ${SEARCH_TIMEOUT_MS / 1000}s — the server may be under heavy load. Try again in a moment.`
+                : error.message);
             setStatus('error');
+        } finally {
+            clearTimeout(timeoutId);
         }
     }, []);
+
+    const retrySearch = useCallback(() => {
+        if (searchParams) executeSearch(searchParams, offset, limit);
+    }, [searchParams, offset, limit, executeSearch]);
 
     useEffect(() => {
         if (!searchParams) return;
@@ -645,7 +775,10 @@ export default function ResultsPage() {
         }
     }
 
-    const exportToCSV = async () => {
+    // format: 'csv' | 'xlsx' — both endpoints share params and column order
+    const exportResults = async (format) => {
+        setExportMenuOpen(false);
+        setExporting(true);
         try {
             const params = new URLSearchParams();
             params.set('q', searchParams?.keyword || '');
@@ -660,21 +793,23 @@ export default function ResultsPage() {
                 searchParams.skills.split(',').map((s) => s.trim()).filter(Boolean).forEach((skill) => params.append('skills', skill));
             }
 
-            const resp = await fetch(`${getApiBaseUrl()}/export/csv?${params.toString()}`);
-            if (!resp.ok) throw new Error('Failed to export CSV');
+            const resp = await fetch(`${getApiBaseUrl()}/export/${format}?${params.toString()}`);
+            if (!resp.ok) throw new Error(`Failed to export ${format.toUpperCase()}`);
 
             const blob = await resp.blob();
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.href = url;
-            link.download = `prospectiq_results_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.download = `prospectiq_results_${new Date().toISOString().slice(0, 10)}.${format}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Export error:', error);
-            alert('Failed to export CSV: ' + error.message);
+            alert('Failed to export: ' + error.message);
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -690,7 +825,13 @@ export default function ResultsPage() {
                 <div className={styles.resultsHeader}>
                     <div className={styles.resultsCountRow}>
                         <span className={styles.resultsCount}>
-                            {data ? formatNumber(totalCount) : '—'}
+                            {status === 'loading' ? (
+                                <span className={`${styles.skel} ${styles.skelCount}`} aria-hidden="true" />
+                            ) : data ? (
+                                formatNumber(totalCount)
+                            ) : (
+                                '—'
+                            )}
                         </span>
                         <span className={styles.resultsWord}>results</span>
                         {data && (
@@ -704,14 +845,31 @@ export default function ResultsPage() {
                             {ICONS.sliders}
                             Edit search
                         </button>
-                        <button onClick={() => window.print()} className={styles.actionBtn}>
-                            {ICONS.save}
-                            Save
-                        </button>
-                        <button onClick={exportToCSV} className={styles.actionBtnPrimary}>
-                            {ICONS.download}
-                            Export CSV
-                        </button>
+                        <div className={styles.exportWrap} ref={exportWrapRef}>
+                            <button
+                                onClick={() => setExportMenuOpen((open) => !open)}
+                                className={styles.actionBtnPrimary}
+                                disabled={exporting}
+                                aria-haspopup="menu"
+                                aria-expanded={exportMenuOpen}
+                            >
+                                {ICONS.download}
+                                {exporting ? 'Exporting…' : 'Export'}
+                                {ICONS.caretDown}
+                            </button>
+                            {exportMenuOpen && (
+                                <div className={styles.exportMenu} role="menu">
+                                    <button role="menuitem" className={styles.exportMenuItem} onClick={() => exportResults('csv')}>
+                                        CSV
+                                        <span className={styles.exportMenuHint}>.csv</span>
+                                    </button>
+                                    <button role="menuitem" className={styles.exportMenuItem} onClick={() => exportResults('xlsx')}>
+                                        Excel
+                                        <span className={styles.exportMenuHint}>.xlsx</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -743,14 +901,7 @@ export default function ResultsPage() {
                         <>
                             <div className={styles.tableScroll}>
                                 <div className={styles.tableInner}>
-                                    <div className={styles.gridHead}>
-                                        <span className={styles.headCell}>Name &amp; role</span>
-                                        <span className={styles.headCell}>Company</span>
-                                        <span className={styles.headCell}>Location</span>
-                                        <span className={styles.headCell}>Exp</span>
-                                        <span className={styles.headCell}>Summary</span>
-                                        <span className={`${styles.headCell} ${styles.headCellRight}`}>Actions</span>
-                                    </div>
+                                    <TableHead />
                                     {data.results.map((profile, index) => {
                                         const rowKey = profile.id || index;
                                         return (
@@ -796,10 +947,44 @@ export default function ResultsPage() {
                             </div>
                         </>
                     ) : status === 'loading' ? (
-                        <div className={styles.stateBox}>
-                            <div className="spinner"></div>
-                            <p className={styles.stateText}>Searching profiles...</p>
-                        </div>
+                        <>
+                            <div className={styles.tableScroll} role="status" aria-label="Searching profiles">
+                                <div className={styles.tableInner}>
+                                    <TableHead />
+                                    <div className={styles.scanArea}>
+                                        <span className={styles.scanBeam} aria-hidden="true" />
+                                        {SKELETON_ROWS.map((w, i) => (
+                                            <div
+                                                className={styles.skeletonRow}
+                                                key={i}
+                                                aria-hidden="true"
+                                                style={{ '--row-delay': `${i * 90}ms` }}
+                                            >
+                                                <div className={styles.skelName}>
+                                                    <span className={`${styles.skel} ${styles.skelAvatar}`} />
+                                                    <span className={styles.skelLines}>
+                                                        <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[0] }} />
+                                                        <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[1] }} />
+                                                    </span>
+                                                </div>
+                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[2] }} />
+                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[3] }} />
+                                                <span className={`${styles.skel} ${styles.skelChip}`} />
+                                                <span className={styles.skelLines}>
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} />
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[4] }} />
+                                                </span>
+                                                <span className={styles.skelActions}>
+                                                    <span className={`${styles.skel} ${styles.skelBtn}`} />
+                                                    <span className={`${styles.skel} ${styles.skelBtn}`} />
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <SearchLoadingStatus />
+                        </>
                     ) : status === 'empty' ? (
                         <div className={styles.stateBox}>
                             <p className={styles.stateEmoji}>🔍</p>
@@ -814,9 +999,14 @@ export default function ResultsPage() {
                             <p className={styles.stateEmoji}>⚠️</p>
                             <p className={styles.stateTitle}>Search failed</p>
                             <p className={styles.stateText}>{errorMessage}</p>
-                            <button onClick={goBack} className={`btn-primary ${styles.stateAction}`}>
-                                <span>Back to Search</span>
-                            </button>
+                            <div className={styles.stateActions}>
+                                <button onClick={retrySearch} className={`btn-primary ${styles.stateAction}`}>
+                                    <span>Try again</span>
+                                </button>
+                                <button onClick={goBack} className={`btn-secondary ${styles.stateAction}`}>
+                                    Back to Search
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

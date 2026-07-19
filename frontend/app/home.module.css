@@ -756,3 +756,25 @@
         padding: 16px;
     }
 }
+
+/* === Submit-button loading spinner (theme-aware via currentColor) === */
+
+.spinnerRing {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--skeleton-sheen);
+    border-top-color: currentColor;
+    animation: spinnerRotate 0.7s linear infinite;
+}
+
+@keyframes spinnerRotate {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinnerRing {
+        animation-duration: 1.6s;
+    }
+}
