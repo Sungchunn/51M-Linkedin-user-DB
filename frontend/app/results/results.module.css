@@ -851,3 +851,123 @@
         padding: 18px 16px;
     }
 }
+
+/* === Loading skeleton (theme-aware via --skeleton-* tokens) === */
+
+.skel {
+    display: inline-block;
+    border-radius: 6px;
+    background:
+        linear-gradient(100deg,
+            var(--skeleton-base) 40%,
+            var(--skeleton-sheen) 50%,
+            var(--skeleton-base) 60%);
+    background-size: 200% 100%;
+    animation: skeletonSweep 1.4s ease-in-out infinite;
+}
+
+@keyframes skeletonSweep {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+.skeletonRow {
+    composes: gridRow;
+    border-bottom: 1px solid var(--border);
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+.skelName {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.skelAvatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.skelLines {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.skelLine {
+    height: 12px;
+    width: 100%;
+}
+
+.skelChip {
+    height: 20px;
+    width: 40px;
+    border-radius: 999px;
+}
+
+.skelActions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.skelBtn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+}
+
+.skelCount {
+    width: 88px;
+    height: 30px;
+    border-radius: 8px;
+    vertical-align: middle;
+}
+
+.loadingFooter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.loadingDots {
+    display: inline-flex;
+    gap: 4px;
+}
+
+.loadingDots i {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: loadingDotPulse 1.2s ease-in-out infinite;
+}
+
+.loadingDots i:nth-child(2) { animation-delay: 0.2s; }
+.loadingDots i:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes loadingDotPulse {
+    0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skel {
+        animation: none;
+        background: var(--skeleton-base);
+    }
+
+    .loadingDots i {
+        animation: none;
+        opacity: 0.6;
+    }
+}

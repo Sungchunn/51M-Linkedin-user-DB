@@ -19,6 +19,29 @@ const CONTACT_LABELS = {
     has_github: 'GitHub',
 };
 
+/** Column headers shared by the results table and its loading skeleton. */
+function TableHead() {
+    return (
+        <div className={styles.gridHead}>
+            <span className={styles.headCell}>Name &amp; role</span>
+            <span className={styles.headCell}>Company</span>
+            <span className={styles.headCell}>Location</span>
+            <span className={styles.headCell}>Exp</span>
+            <span className={styles.headCell}>Summary</span>
+            <span className={`${styles.headCell} ${styles.headCellRight}`}>Actions</span>
+        </div>
+    );
+}
+
+// Deterministic width variation for skeleton rows (SSR-safe — no randomness):
+// [name, role, company, location, summary-2nd-line]
+const SKELETON_ROWS = Array.from({ length: 8 }, (_, i) => [
+    ['72%', '48%', '78%', '62%', '58%'],
+    ['60%', '42%', '66%', '74%', '66%'],
+    ['80%', '52%', '58%', '58%', '48%'],
+    ['66%', '38%', '84%', '68%', '72%'],
+][i % 4]);
+
 function buildSearchQuery(searchParams, offset, limit) {
     // Build GET query params to avoid CORS preflight
     const params = new URLSearchParams();
@@ -690,7 +713,13 @@ export default function ResultsPage() {
                 <div className={styles.resultsHeader}>
                     <div className={styles.resultsCountRow}>
                         <span className={styles.resultsCount}>
-                            {data ? formatNumber(totalCount) : '—'}
+                            {status === 'loading' ? (
+                                <span className={`${styles.skel} ${styles.skelCount}`} aria-hidden="true" />
+                            ) : data ? (
+                                formatNumber(totalCount)
+                            ) : (
+                                '—'
+                            )}
                         </span>
                         <span className={styles.resultsWord}>results</span>
                         {data && (
@@ -743,14 +772,7 @@ export default function ResultsPage() {
                         <>
                             <div className={styles.tableScroll}>
                                 <div className={styles.tableInner}>
-                                    <div className={styles.gridHead}>
-                                        <span className={styles.headCell}>Name &amp; role</span>
-                                        <span className={styles.headCell}>Company</span>
-                                        <span className={styles.headCell}>Location</span>
-                                        <span className={styles.headCell}>Exp</span>
-                                        <span className={styles.headCell}>Summary</span>
-                                        <span className={`${styles.headCell} ${styles.headCellRight}`}>Actions</span>
-                                    </div>
+                                    <TableHead />
                                     {data.results.map((profile, index) => {
                                         const rowKey = profile.id || index;
                                         return (
@@ -796,10 +818,39 @@ export default function ResultsPage() {
                             </div>
                         </>
                     ) : status === 'loading' ? (
-                        <div className={styles.stateBox}>
-                            <div className="spinner"></div>
-                            <p className={styles.stateText}>Searching profiles...</p>
-                        </div>
+                        <>
+                            <div className={styles.tableScroll} role="status" aria-label="Searching profiles">
+                                <div className={styles.tableInner}>
+                                    <TableHead />
+                                    {SKELETON_ROWS.map((w, i) => (
+                                        <div className={styles.skeletonRow} key={i} aria-hidden="true">
+                                            <div className={styles.skelName}>
+                                                <span className={`${styles.skel} ${styles.skelAvatar}`} />
+                                                <span className={styles.skelLines}>
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[0] }} />
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[1] }} />
+                                                </span>
+                                            </div>
+                                            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[2] }} />
+                                            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[3] }} />
+                                            <span className={`${styles.skel} ${styles.skelChip}`} />
+                                            <span className={styles.skelLines}>
+                                                <span className={`${styles.skel} ${styles.skelLine}`} />
+                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[4] }} />
+                                            </span>
+                                            <span className={styles.skelActions}>
+                                                <span className={`${styles.skel} ${styles.skelBtn}`} />
+                                                <span className={`${styles.skel} ${styles.skelBtn}`} />
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className={styles.loadingFooter}>
+                                <span>Searching 497K+ profiles with semantic ranking</span>
+                                <span className={styles.loadingDots} aria-hidden="true"><i /><i /><i /></span>
+                            </div>
+                        </>
                     ) : status === 'empty' ? (
                         <div className={styles.stateBox}>
                             <p className={styles.stateEmoji}>🔍</p>

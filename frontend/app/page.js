@@ -511,7 +511,7 @@ export default function SearchPage() {
                                     disabled={searching}
                                     aria-label="Search profiles"
                                 >
-                                    {searching ? <span className="loading">…</span> : ICONS.arrow}
+                                    {searching ? <span className={styles.spinnerRing} aria-hidden="true" /> : ICONS.arrow}
                                 </button>
                             </div>
                         </div>
