@@ -11,6 +11,30 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-19 03:05
+- Author: Claude (review-finding triage)
+- Change: Verified three High review findings — one fixed, one confirmed-but-inactive-track, one refuted with evidence
+- Details:
+  - FIXED (`backend/api/search.py`): `keyword_search()` was missing the `min_data_completeness` filter that `hybrid_search()` applies — browse/fallback silently over-returned. Added the mirrored condition; verified live (browse 497,552 → 495,504 with min=50, all rows ≥ 50)
+  - CONFIRMED, NOT FIXED (`backend/search.py` — the ALTERNATE hybrid track, `make api/start`): it runs `$1`-style placeholders through psycopg cursors (`backend/db.py` is `psycopg_pool`); psycopg needs `%s`, so `_vector_search`/`_keyword_search`/`get_profile_by_id`/`record_profile_view` fail at execution. Not fixed here: track is inactive (empty `profiles_hot` schema, unverifiable end-to-end) — fix when that track is revived
+  - REFUTED: "row.get() crashes on asyncpg.Record at backend/api/search.py:574" — asyncpg.Record implements `.get(key, default)` (verified empirically against the live pool), and browse mode demonstrably works; no crash exists
+- Impacts: /search browse & fallback paths now honor min_data_completeness
+- Next: When reviving the hybrid track, convert its SQL to %s placeholders (and register a pgvector adapter for psycopg)
+
+---
+
+- Date/Time (UTC): 2026-07-19 02:20
+- Author: Claude (search review fixes)
+- Change: Fixed two review findings in `hybrid_search()`: empty pages past the 5000-row rank window, and the blocking embed call in the async request path
+- Details:
+  - Rank window now `GREATEST(5000, limit + offset)` (int-cast — bare `$n + $n` in LIMIT is ambiguous-typed for Postgres): the window always covers the requested page, so deep pages cost proportionally more (bounded by tier MAX_OFFSET, default 100K) instead of silently returning 0 rows while total_count promises more
+  - Deterministic `id` tiebreakers on both ORDER BYs (ts_rank and hybrid-score ties are common; without them adjacent pages could overlap/skip). Caveat: pages fetched with different window sizes can shift slightly at the boundary — full consistency would need keyset pagination via page_token
+  - `provider.embed_single()` now runs via `asyncio.to_thread` — the blocking OpenAI HTTP call no longer stalls the event loop for concurrent requests; the keyword-search fallback on embed failure is preserved (to_thread propagates exceptions)
+- Impacts: /search, /export/*. Verified live on "nurse" (8,823 matches): offset 6000 → 5 rows (was 0), last partial page (offset 8820) → 3 rows, adjacent pages zero overlap, shallow search unchanged (vec_sim 0.482). black/mypy/pyright clean
+- Next: Keyset pagination via page_token would make deep pages both cheap and fully stable
+
+---
+
 - Date/Time (UTC): 2026-07-18 05:20
 - Author: Claude (search match semantics)
 - Change: Made the search query text a hard filter in `hybrid_search()` — `total_count` now reflects actual matches instead of always reporting the whole corpus (497K)

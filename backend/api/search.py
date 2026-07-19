@@ -9,6 +9,7 @@ Negative Spaces Implementation:
 - Timeout enforcement
 """
 
+import asyncio
 import logging
 from typing import Any, List
 
@@ -37,6 +38,9 @@ async def hybrid_search(
       plainto_tsquery are candidates; the hybrid score only ranks them
     - total_count == count of rows matching filters + query text (never the
       whole corpus)
+    - if the lexical gate matches ZERO rows (residual intents like "candidate"
+      have no lexical anchor), falls back to _vector_browse: the filtered set
+      ranked by vector similarity, total_count == filtered-set size
     - empty/whitespace query -> keyword_search browse mode (no embedding call)
     - Returns (results, total_count)
     - Results list length <= request.limit
@@ -68,10 +72,12 @@ async def hybrid_search(
             logger.info("No embeddings found, using keyword-only search")
             return await keyword_search(conn, request)
 
-        # Generate query embedding with graceful fallback to keyword search
+        # Generate query embedding with graceful fallback to keyword search.
+        # embed_single is a blocking HTTP call — run it in a worker thread so
+        # it can't stall the event loop for other requests.
         try:
             provider = providers.get_provider()
-            query_embedding = provider.embed_single(request.query)
+            query_embedding = await asyncio.to_thread(provider.embed_single, request.query)
         except Exception as e:
             logger.warning(f"Embedding provider error, falling back to keyword search: {e}")
             return await keyword_search(conn, request)
@@ -222,8 +228,11 @@ async def hybrid_search(
 
         # The query text is a hard filter: candidates must match the full-text
         # query; the hybrid score only ranks them. Vector distance is computed
-        # for the top 5000 lexical matches (by ts_rank) — pagination past that
-        # window degrades by design.
+        # for the top lexical matches by ts_rank; the rank window always covers
+        # the requested page (deep pages cost proportionally more, bounded by
+        # the tier's MAX_OFFSET) so pages are never silently empty while
+        # total_count reports more. Ties break on id so pagination is
+        # deterministic.
         query = f"""
         WITH lexical_matches AS (
             SELECT
@@ -256,8 +265,8 @@ async def hybrid_search(
             FROM profiles
             WHERE {where_clause}
               AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
-            ORDER BY lexical_rank DESC
-            LIMIT 5000
+            ORDER BY lexical_rank DESC, id
+            LIMIT GREATEST(5000, ${limit_idx}::int + ${offset_idx}::int)
         )
         SELECT
             id,
@@ -288,9 +297,30 @@ async def hybrid_search(
             lexical_rank,
             ((1 - (embedding <=> ${embedding_idx}::vector)) * ${vector_weight_idx}) + (lexical_rank * ${lexical_weight_idx}) AS score
         FROM lexical_matches
-        ORDER BY score DESC
+        ORDER BY score DESC, id
         LIMIT ${limit_idx} OFFSET ${offset_idx}
         """
+
+        # Count first — a cheap GIN probe, and the gate may match nothing: a
+        # natural-language residual like "candidate" has no lexical anchor.
+        # The count reuses the search's WHERE clause + a prefix of its params,
+        # so it always reflects the same match set.
+        count_query = f"""
+            SELECT count(*) FROM profiles
+            WHERE {where_clause}
+              AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
+        """
+        total_count = await conn.fetchval(count_query, *params[:tsquery_idx])
+        assert total_count is not None, "count(*) always returns a row"
+
+        if total_count == 0:
+            logger.info(
+                f"Lexical gate matched 0 rows for {request.query!r} — "
+                "vector-browse fallback over the filtered set"
+            )
+            return await _vector_browse(
+                conn, request, where_clause, params[: tsquery_idx - 1], embedding_str
+            )
 
         # Execute search
         logger.debug(
@@ -342,17 +372,6 @@ async def hybrid_search(
 
             results.append(result)
 
-        # Get total count for pagination — same WHERE clause + full-text match
-        # as the search itself, so the count reflects actual matches. Reuses the
-        # numbered filter/query params verbatim (a prefix of `params`).
-        count_query = f"""
-            SELECT count(*) FROM profiles
-            WHERE {where_clause}
-              AND search_vector @@ plainto_tsquery('english', ${tsquery_idx})
-        """
-        total_count = await conn.fetchval(count_query, *params[:tsquery_idx])
-        assert total_count is not None, "count(*) always returns a row"
-
         logger.info(f"Search completed: {len(results)} results, {total_count} total matches")
 
         return results, total_count
@@ -360,6 +379,113 @@ async def hybrid_search(
     except Exception as e:
         logger.error(f"Search error: {e}", exc_info=True)
         raise SearchError(f"Search failed: {e}") from e
+
+
+async def _vector_browse(
+    conn: asyncpg.Connection,
+    request: SearchRequest,
+    where_clause: str,
+    filter_params: List[Any],
+    embedding_str: str,
+) -> tuple[List[ProfileResult], int]:
+    """
+    Rank the filtered set by vector similarity when the query text has no
+    lexical matches (e.g. a residual intent like "candidate" that describes
+    every profile and none).
+
+    NEGATIVE SPACE CONTRACT:
+    - total_count == size of the filtered set (filters only, no query gate)
+    - ordering is ANN (HNSW) — pages beyond hnsw.ef_search degrade by design
+    - where_clause references exactly $1..$len(filter_params)
+    """
+    emb_idx = len(filter_params) + 1
+    limit_idx = emb_idx + 1
+    offset_idx = emb_idx + 2
+
+    # An HNSW scan returns at most ef_search rows — raise it to cover the
+    # requested window, clamped to pgvector's hard maximum of 1000.
+    effective_ef_search = min(max(request.ef_search, request.limit + request.offset), 1000)
+    await conn.execute(f"SET hnsw.ef_search = {effective_ef_search}")
+
+    query = f"""
+        SELECT
+            id,
+            full_name,
+            first_name,
+            last_name,
+            job_title,
+            company_name,
+            industry,
+            location,
+            location_country,
+            region,
+            locality,
+            years_experience,
+            skills,
+            headline,
+            summary,
+            linkedin_url,
+            linkedin_username,
+            email,
+            phone,
+            website,
+            twitter,
+            github,
+            content_quality_score,
+            data_completeness_pct,
+            1 - (embedding <=> ${emb_idx}::vector) AS vector_similarity
+        FROM profiles
+        WHERE {where_clause}
+        ORDER BY embedding <=> ${emb_idx}::vector
+        LIMIT ${limit_idx} OFFSET ${offset_idx}
+    """
+    rows = await conn.fetch(query, *filter_params, embedding_str, request.limit, request.offset)
+
+    results = []
+    for row in rows:
+        # Clamp: cosine similarity can be slightly negative, but ProfileResult
+        # enforces scores in [0, 1]
+        vector_similarity = max(0.0, min(1.0, float(row["vector_similarity"])))
+        results.append(
+            ProfileResult(
+                id=str(row["id"]),
+                full_name=row["full_name"],
+                first_name=row["first_name"],
+                last_name=row["last_name"],
+                job_title=row["job_title"],
+                company_name=row["company_name"],
+                industry=row["industry"],
+                location=row["location"],
+                location_country=row["location_country"],
+                region=row["region"],
+                locality=row["locality"],
+                years_experience=row["years_experience"],
+                skills=row["skills"],
+                headline=row["headline"],
+                summary=row["summary"],
+                linkedin_url=row["linkedin_url"],
+                linkedin_username=row["linkedin_username"],
+                email=row["email"],
+                phone=row["phone"],
+                website=row["website"],
+                twitter=row["twitter"],
+                github=row["github"],
+                score=vector_similarity * request.vector_weight,
+                vector_similarity=vector_similarity,
+                lexical_rank=0.0,
+                content_quality_score=(
+                    float(row["content_quality_score"]) if row["content_quality_score"] else None
+                ),
+                data_completeness_pct=row["data_completeness_pct"],
+            )
+        )
+
+    count_query = f"SELECT count(*) FROM profiles WHERE {where_clause}"
+    total_count = await conn.fetchval(count_query, *filter_params)
+    assert total_count is not None, "count(*) always returns a row"
+
+    logger.info(f"Vector browse: {len(results)} results, {total_count} in filtered set")
+    return results, total_count
 
 
 async def keyword_search(
@@ -474,6 +600,13 @@ async def keyword_search(
         if request.min_quality_score is not None:
             where_conditions.append(f"content_quality_score >= ${param_idx}")
             params.append(request.min_quality_score)
+            param_idx += 1
+
+        # Data completeness filter (must mirror hybrid_search — this is its
+        # fallback path, and a silently dropped filter over-returns rows)
+        if request.min_data_completeness is not None:
+            where_conditions.append(f"data_completeness_pct >= ${param_idx}")
+            params.append(request.min_data_completeness)
             param_idx += 1
 
         # Add keyword filter if query provided (use pre-computed search_vector)
