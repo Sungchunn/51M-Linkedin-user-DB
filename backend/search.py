@@ -1,16 +1,19 @@
 """
 INSIGHT - Hybrid Search Implementation
 Vector similarity + keyword search on hot profiles with HNSW optimization
+
+NOTE: this module runs through the psycopg_pool cursors in backend/db.py, so
+all SQL uses psycopg named placeholders (%(name)s) — NOT asyncpg $N style.
 """
 
-import os
-import time
-from typing import List, Optional
-from psycopg.rows import dict_row
 import logging
+import time
+from typing import Any, Dict, List, Optional
+
+from psycopg.rows import dict_row
 
 from backend.db import get_db_pool
-from backend.models import SearchRequest, SearchResponse, ProfileResult
+from backend.models import ProfileResult, SearchRequest, SearchResponse
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +56,7 @@ async def hybrid_search(request: SearchRequest) -> SearchResponse:
 
         # Increment query counters for matched profiles
         if results:
-            profile_ids = [r['id'] for r in results]
+            profile_ids = [r["id"] for r in results]
             await _increment_query_counts(conn, profile_ids)
             await conn.commit()
 
@@ -63,7 +66,7 @@ async def hybrid_search(request: SearchRequest) -> SearchResponse:
         results=[ProfileResult(**r) for r in results],
         total_results=len(results),
         search_time_ms=elapsed_ms,
-        query=request.query
+        query=request.query,
     )
 
 
@@ -87,55 +90,52 @@ async def _generate_query_embedding(query: str) -> Optional[List[float]]:
     return None  # Fallback to keyword search
 
 
-async def _vector_search(
-    conn,
-    request: SearchRequest,
-    query_embedding: List[float]
-) -> List[dict]:
+def _apply_filters(request: SearchRequest, filters: List[str], params: Dict[str, Any]) -> None:
+    """Append the shared filter conditions and their named params in place —
+    single source of truth for both search paths."""
+    if request.country:
+        filters.append("location_country = %(country)s")
+        params["country"] = request.country
+
+    if request.industry:
+        filters.append("industry = %(industry)s")
+        params["industry"] = request.industry
+
+    if request.seniority:
+        filters.append("seniority_level = %(seniority)s")
+        params["seniority"] = request.seniority
+
+    if request.min_experience is not None:
+        filters.append("years_experience >= %(min_experience)s")
+        params["min_experience"] = request.min_experience
+
+    if request.max_experience is not None:
+        filters.append("years_experience <= %(max_experience)s")
+        params["max_experience"] = request.max_experience
+
+    if request.skills:
+        filters.append("top_skills && %(skills)s")
+        params["skills"] = request.skills
+
+    if request.min_quality_score is not None:
+        filters.append("quality_score >= %(min_quality_score)s")
+        params["min_quality_score"] = request.min_quality_score
+
+
+async def _vector_search(conn, request: SearchRequest, query_embedding: List[float]) -> List[dict]:
     """
     Execute vector similarity search with filters.
 
     Uses HNSW index for fast approximate nearest neighbor search.
     """
-    # Build filter clauses
     filters = ["is_deleted = FALSE", "embedding IS NOT NULL"]
-    params = [query_embedding]
-    param_idx = 2  # Start at $2 (embedding is $1)
-
-    if request.country:
-        filters.append(f"location_country = ${param_idx}")
-        params.append(request.country)
-        param_idx += 1
-
-    if request.industry:
-        filters.append(f"industry = ${param_idx}")
-        params.append(request.industry)
-        param_idx += 1
-
-    if request.seniority:
-        filters.append(f"seniority_level = ${param_idx}")
-        params.append(request.seniority)
-        param_idx += 1
-
-    if request.min_experience is not None:
-        filters.append(f"years_experience >= ${param_idx}")
-        params.append(request.min_experience)
-        param_idx += 1
-
-    if request.max_experience is not None:
-        filters.append(f"years_experience <= ${param_idx}")
-        params.append(request.max_experience)
-        param_idx += 1
-
-    if request.skills:
-        filters.append(f"top_skills && ${param_idx}")
-        params.append(request.skills)
-        param_idx += 1
-
-    if request.min_quality_score is not None:
-        filters.append(f"quality_score >= ${param_idx}")
-        params.append(request.min_quality_score)
-        param_idx += 1
+    params: Dict[str, Any] = {
+        # pgvector accepts the text form '[x,y,...]' cast to ::vector — no
+        # adapter registration needed
+        "embedding": "[" + ",".join(str(x) for x in query_embedding) + "]",
+        "limit": request.limit,
+    }
+    _apply_filters(request, filters, params)
 
     where_clause = " AND ".join(filters)
 
@@ -155,16 +155,16 @@ async def _vector_search(
             top_skills,
             quality_score,
             hotness_score,
-            (1 - (embedding <=> $1::vector)) as relevance_score
+            (1 - (embedding <=> %(embedding)s::vector)) as relevance_score
         FROM profiles_hot
         WHERE {where_clause}
-        ORDER BY embedding <=> $1::vector
-        LIMIT {request.limit}
+        ORDER BY embedding <=> %(embedding)s::vector
+        LIMIT %(limit)s
     """
 
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(query, params)
-        results = await cur.fetchall()
+        results: List[dict] = await cur.fetchall()
 
     return results
 
@@ -176,44 +176,11 @@ async def _keyword_search(conn, request: SearchRequest) -> List[dict]:
     Uses trigram similarity on full_name + job_title + company_name.
     """
     filters = ["is_deleted = FALSE"]
-    params = [f"%{request.query}%"]
-    param_idx = 2
-
-    # Build filter clauses (same as vector search)
-    if request.country:
-        filters.append(f"location_country = ${param_idx}")
-        params.append(request.country)
-        param_idx += 1
-
-    if request.industry:
-        filters.append(f"industry = ${param_idx}")
-        params.append(request.industry)
-        param_idx += 1
-
-    if request.seniority:
-        filters.append(f"seniority_level = ${param_idx}")
-        params.append(request.seniority)
-        param_idx += 1
-
-    if request.min_experience is not None:
-        filters.append(f"years_experience >= ${param_idx}")
-        params.append(request.min_experience)
-        param_idx += 1
-
-    if request.max_experience is not None:
-        filters.append(f"years_experience <= ${param_idx}")
-        params.append(request.max_experience)
-        param_idx += 1
-
-    if request.skills:
-        filters.append(f"top_skills && ${param_idx}")
-        params.append(request.skills)
-        param_idx += 1
-
-    if request.min_quality_score is not None:
-        filters.append(f"quality_score >= ${param_idx}")
-        params.append(request.min_quality_score)
-        param_idx += 1
+    params: Dict[str, Any] = {
+        "pattern": f"%{request.query}%",
+        "limit": request.limit,
+    }
+    _apply_filters(request, filters, params)
 
     where_clause = " AND ".join(filters)
 
@@ -232,22 +199,22 @@ async def _keyword_search(conn, request: SearchRequest) -> List[dict]:
             top_skills,
             quality_score,
             hotness_score,
-            similarity(full_name || ' ' || COALESCE(job_title, '') || ' ' || COALESCE(company_name, ''), $1) as relevance_score
+            similarity(full_name || ' ' || COALESCE(job_title, '') || ' ' || COALESCE(company_name, ''), %(pattern)s) as relevance_score
         FROM profiles_hot
         WHERE {where_clause}
           AND (
-            full_name ILIKE $1
-            OR job_title ILIKE $1
-            OR company_name ILIKE $1
-            OR headline ILIKE $1
+            full_name ILIKE %(pattern)s
+            OR job_title ILIKE %(pattern)s
+            OR company_name ILIKE %(pattern)s
+            OR headline ILIKE %(pattern)s
           )
         ORDER BY relevance_score DESC, hotness_score DESC
-        LIMIT {request.limit}
+        LIMIT %(limit)s
     """
 
     async with conn.cursor(row_factory=dict_row) as cur:
         await cur.execute(query, params)
-        results = await cur.fetchall()
+        results: List[dict] = await cur.fetchall()
 
     return results
 
@@ -260,7 +227,7 @@ async def _increment_query_counts(conn, profile_ids: List[str]):
     query = """
         UPDATE profiles_hot
         SET query_count_7d = query_count_7d + 1
-        WHERE id = ANY($1::uuid[])
+        WHERE id = ANY(%s::uuid[])
     """
 
     async with conn.cursor() as cur:
@@ -300,7 +267,7 @@ async def get_profile_by_id(profile_id: str) -> Optional[dict]:
             d.all_skills
         FROM profiles_hot h
         LEFT JOIN profiles_detail d ON h.id = d.id
-        WHERE h.id = $1::uuid AND h.is_deleted = FALSE
+        WHERE h.id = %s::uuid AND h.is_deleted = FALSE
     """
 
     async with pool.connection() as conn:
@@ -318,7 +285,7 @@ async def record_profile_view(profile_id: str):
     query = """
         UPDATE profiles_hot
         SET click_count_7d = click_count_7d + 1
-        WHERE id = $1::uuid
+        WHERE id = %s::uuid
     """
 
     async with pool.connection() as conn:

@@ -10,7 +10,7 @@ packages = [{include = "data_pipeline", from = "backend"}, {include = "api", fro
 python = "^3.11"
 # Database
 asyncpg = "^0.29.0"
-psycopg = {extras = ["binary"], version = "^3.2.1"}
+psycopg = {extras = ["binary", "pool"], version = "^3.2.1"}
 # Data Processing
 pandas = "^2.2.2"
 pyarrow = "^17.0.0"

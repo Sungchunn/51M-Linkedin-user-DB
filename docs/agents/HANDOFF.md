@@ -11,6 +11,19 @@ Template (copy/paste):
 - Impacts: API/UX/security/perf (as applicable)
 - Next: What you expect the other agent to do
 
+- Date/Time (UTC): 2026-07-19 04:10
+- Author: Claude (hybrid-track placeholder fix)
+- Change: Converted `backend/search.py` (alternate hybrid track) from asyncpg `$N` placeholders to psycopg named placeholders, and fixed the missing `psycopg_pool` dependency
+- Details:
+  - All five functions (`_vector_search`, `_keyword_search`, `_increment_query_counts`, `get_profile_by_id`, `record_profile_view`) now use `%(name)s`/`%s` style matching the psycopg cursors in `backend/db.py`; the duplicated per-path filter building collapsed into one `_apply_filters()` helper; `LIMIT` is parameterized instead of f-string-interpolated
+  - Embedding passed as pgvector text form (`'[x,y,...]'::vector`) — no adapter registration needed
+  - `pyproject.toml`: psycopg extras were `["binary"]` only — `psycopg_pool` was never installable, so `backend/db.py` failed at import; now `["binary", "pool"]` (lock updated, psycopg-pool 3.3.1)
+  - Execute-verified every query against the live (empty) `profiles_hot`/`profiles_detail` schema with all filter clauses bound: no placeholder/binding errors (previously `syntax error at or near "$1"`); ruff/black/mypy clean
+- Impacts: the `make api/start` hybrid track can now import and query; results still empty until that schema is loaded
+- Next: `backend/db.py` uses the deprecated `open=True` pool constructor — switch to `await pool.open()` when touching that module
+
+---
+
 - Date/Time (UTC): 2026-07-19 03:05
 - Author: Claude (review-finding triage)
 - Change: Verified three High review findings — one fixed, one confirmed-but-inactive-track, one refuted with evidence
