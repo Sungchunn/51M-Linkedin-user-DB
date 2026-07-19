@@ -492,3 +492,17 @@ Template (copy/paste):
   - Verified: xlsx downloads as valid Excel 2007+ (50 rows + header, 27 cols, openpyxl round-trip); CSV regression-checked after the fieldnames refactor; `bun run build` clean; ruff/black clean on new code (12 pre-existing ruff E402/B904 errors in app.py untouched)
 - Impacts: additive endpoint; /export/csv contract unchanged; PII-redaction TEMPORARY-disabled block mirrored in xlsx so re-enabling touches both
 - Next: consider a shared helper for the duplicated export gate sequence if a third format ever lands
+
+---
+
+- Date/Time (UTC): 2026-07-18
+- Author: Claude Code
+- Change: S3 cold-tier partition compaction — script + first partition compacted
+- Details:
+  - Audit: all 52 `state=` partitions under `s3://sungchunn-linkedin-db/curated/usa_profiles/` were 30 Athena-written files each (1,560 files, 12.22GB; Wyoming 30×0.5MB) — per-file S3 round-trips dominate small partitions
+  - New `scripts/compact_s3_partitions.py` (branch `feat/s3-partition-compaction`): rewrites each state to 1 file (>512MB states split via FILE_SIZE_BYTES → Illinois/Florida 2, Texas/New York 3, California 4), sorted by `company_industry` (note: curated schema has no `industry` column) for row-group min/max pruning, zstd compression
+  - Safety gates: originals deleted only after S3-originals count == local compacted count == uploaded count; deletes only the exact listed keys; re-runnable after crash (stale `compact_*` rebuilt while originals remain, completed states skipped); `--dry-run`, `--states`, `--no-delete`, `--sort-by`, `--max-file-mb` flags
+  - Uses DuckDB 1.4 httpfs for read/compact + aws CLI for upload/delete (boto3 not a dependency); creds are the existing single `insight-s3-reader` pair in `.env` — S3 prefixes are not buckets, nothing per-partition needed
+  - Verified on Wyoming end-to-end: 30 files → 1 (14.9MB → 7.8MB, zstd+sort), 65,369 rows exact at every gate; hive-partitioned glob read still returns identical counts
+- Impacts: Wyoming partition now `compact_0.parquet` only; remaining 51 states unchanged until the full run (~12GB down/~8GB up through local machine, user-run)
+- Next: run full compaction (`poetry run python scripts/compact_s3_partitions.py`, resumable, smallest-first; or in chunks via `--states`); afterwards re-audit file counts and consider wiring the DuckDB cold path into the query router
