@@ -9,29 +9,29 @@ Negative Spaces Implementation:
 - CORS configuration
 """
 
-from fastapi import FastAPI, HTTPException, status, Query, Response, Header, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, StreamingResponse
-import json
 import base64
-import io
 import csv
-from contextlib import asynccontextmanager
+import io
+import json
 import logging
+import time
+from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import Optional
-import time
 
+from fastapi import FastAPI, Header, HTTPException, Query, Request, Response, status
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+
+from backend.api import database, nl_parser, search
+from backend.api.auth import AuthContext, resolve_auth_context
 from backend.api.models import (
-    SearchRequest,
-    SearchResponse,
     HealthResponse,
-    ErrorResponse,
     NaturalParseRequest,
     NaturalParseResponse,
+    SearchRequest,
+    SearchResponse,
 )
-from backend.api import database, nl_parser, search
-from backend.api.auth import resolve_auth_context, AuthContext
 from backend.api.rate_limit import limiter
 
 # Configure logging
@@ -419,6 +419,28 @@ async def get_stats(response: Response, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+async def _apply_nl_parse(request: SearchRequest) -> str:
+    """
+    Extract hard filters from a natural-language query and merge them into the
+    request in place; the residual intent becomes the search text ("candidates
+    in NYC with 8+ years" -> regions=[new york], min_years=8, query="candidates").
+
+    NEGATIVE SPACE CONTRACT:
+    - Explicitly-set request fields always win over parsed values
+    - parse_natural_query never raises; on parse failure the request text is
+      searched as-is
+    - Returns the original query text for response display
+    """
+    original_query = request.query
+    if request.query and request.query.strip():
+        parsed = await nl_parser.parse_natural_query(request.query)
+        for field, value in parsed["filters"].items():
+            if not getattr(request, field, None):
+                setattr(request, field, value)
+        request.query = parsed["semantic_query"]
+    return original_query
+
+
 @app.post(
     "/search",
     response_model=SearchResponse,
@@ -475,6 +497,9 @@ async def search_profiles(
             for k, v in snapshot.items():
                 if hasattr(request, k):
                     setattr(request, k, v)
+            original_query = request.query  # token snapshots are already parsed
+        else:
+            original_query = await _apply_nl_parse(request)
 
         pool = await database.get_pool()
 
@@ -503,8 +528,24 @@ async def search_profiles(
             filters_applied["max_years_experience"] = request.max_years_experience
         if request.skills:
             filters_applied["skills"] = request.skills
-        if request.industry:
+        if request.industries:
+            filters_applied["industries"] = request.industries
+        elif request.industry:
             filters_applied["industry"] = request.industry
+        if request.job_title:
+            filters_applied["job_title"] = request.job_title
+        if request.company:
+            filters_applied["company"] = request.company
+        for contact_flag in (
+            "has_linkedin",
+            "has_email",
+            "has_phone",
+            "has_website",
+            "has_twitter",
+            "has_github",
+        ):
+            if getattr(request, contact_flag):
+                filters_applied[contact_flag] = True
         if request.min_quality_score is not None:
             filters_applied["min_quality_score"] = request.min_quality_score
 
@@ -536,7 +577,7 @@ async def search_profiles(
             offset=request.offset,
             limit=request.limit,
             query_time_ms=query_time_ms,
-            query=request.query,
+            query=original_query,
             filters_applied=filters_applied,
             next_page_token=next_token,
         )
@@ -760,6 +801,8 @@ async def export_ndjson(
                 status_code=422, detail="Export requires query or at least one filter"
             )
 
+        await _apply_nl_parse(req)
+
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)
@@ -872,6 +915,8 @@ async def export_csv(
             raise HTTPException(
                 status_code=422, detail="Export requires query or at least one filter"
             )
+        await _apply_nl_parse(req)
+
         pool = await database.get_pool()
         async with pool.acquire() as conn:
             results, _ = await search.hybrid_search(conn, req)

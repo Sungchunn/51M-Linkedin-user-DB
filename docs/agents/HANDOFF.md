@@ -35,6 +35,30 @@ Template (copy/paste):
 
 ---
 
+- Date/Time (UTC): 2026-07-19 01:30
+- Author: Claude (NL parse generalization pass)
+- Change: Verified the NL-parse pipeline across 11 query classes and fixed the two general defects the sweep exposed
+- Details:
+  - Sweep: metro→state mapping (Bay Area→CA, Austin→TX, Chicago→IL, Miami→FL), industry, experience ranges, contact flags, company, plain keywords, filler-only, nonsense-residual fallback (Ohio), explicit-wins merge, pagination stability
+  - Fix 1 (`nl_parser.py`): the LLM doesn't reliably subtract extracted-filter phrases from semantic_query ("banking industry", "have an email" survived into the lexical gate, over-constraining results 4 vs 39) — added `_subtract_filter_tokens()` enforcing it deterministically (drops extracted region/industry/company value tokens + marker words like "industry"/"email"/"years") plus a prompt rule with a worked example
+  - Fix 2 (`app.py`): `filters_applied` response never reported industries/company/job_title/has_* (pre-existing) — now complete, so clients and debugging see the real applied filter set
+- Impacts: invariant now holds: NL query totals == explicit-filter totals for the same intent (company 223==223, banking 39==39, texas+email 443==443). Regression risk: the LLM may still classify role nouns as filler nondeterministically; the deterministic strip/subtract lists are the guardrail
+- Next: Encode the NL==explicit invariant checks as pytest cases once the test harness event-loop issue is fixed
+
+---
+
+- Date/Time (UTC): 2026-07-18 07:15
+- Author: Claude (NL parse in /search)
+- Change: Wired `nl_parser.parse_natural_query` into `/search` + both exports, with a vector-browse fallback when the lexical gate matches nothing — fixes NL queries like "search for candidate in new york city" returning ~0 results under the new hard-filter gate
+- Details:
+  - `app.py`: new `_apply_nl_parse()` merges parsed filters into unset request fields (explicit fields win) and searches on the residual intent; response `query` shows the original text; page-token snapshots skip re-parse; called from `/search`, `/export/csv`, `/export/ndjson`
+  - `nl_parser.py`: 256-entry FIFO cache on successful parses (pagination doesn't re-pay the LLM); prompt + schema now treat generic person nouns/search verbs as filler with a deterministic `_strip_filler` backstop — residual may be EMPTY, meaning filtered browse; fail-fast on None LLM content; `cast` for SDK response_format typing
+  - `search.py`: `hybrid_search` counts first (cheap GIN probe); 0 lexical matches → `_vector_browse` ranks the FILTERED set by vector similarity (HNSW, ef_search restored there) with total_count = filtered-set size, similarity clamped to [0,1]
+- Impacts: /search, /export/* — every query now costs one gpt-4o-mini parse on first sight (~1.5-2.5s, then cached; repeat search 533ms). Verified live: NYC query → regions=[new york], 42,379 results (was 4); "nurse" → 8,823 unchanged; "senior engineers in california with 8+ years" → regions+min_years filters, 1,601 results. mypy/pyright clean on search.py+nl_parser.py (app.py's 36 mypy errors are pre-existing, verified via stash)
+- Next: Consider surfacing parsed filters as removable chips in the results UI (response filters_applied already carries them), and a latency budget/timeout on the parse call
+
+---
+
 - Date/Time (UTC): 2026-07-18 05:20
 - Author: Claude (search match semantics)
 - Change: Made the search query text a hard filter in `hybrid_search()` — `total_count` now reflects actual matches instead of always reporting the whole corpus (497K)

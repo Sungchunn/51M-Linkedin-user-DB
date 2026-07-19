@@ -24,7 +24,7 @@ import json
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from openai import AsyncOpenAI
 
@@ -35,6 +35,11 @@ logger = logging.getLogger(__name__)
 _client: Optional[AsyncOpenAI] = None
 _vocab: Optional[Dict[str, List[str]]] = None
 
+# Successful parses cached by normalized text so pagination and repeat
+# searches don't re-pay the LLM call. FIFO-evicted at the cap.
+_parse_cache: Dict[str, Dict[str, Any]] = {}
+_PARSE_CACHE_MAX = 256
+
 PARSE_SCHEMA = {
     "name": "search_filters",
     "strict": True,
@@ -44,7 +49,7 @@ PARSE_SCHEMA = {
         "properties": {
             "semantic_query": {
                 "type": "string",
-                "description": "The search intent minus extracted hard filters: role, seniority, domain, skills, technologies. Never empty.",
+                "description": "The search intent minus extracted hard filters: role, seniority, domain, skills, technologies. Empty string when the request contains only filters and filler words.",
             },
             "regions": {
                 "type": "array",
@@ -94,7 +99,9 @@ PARSE_SCHEMA = {
 SYSTEM_PROMPT = """You convert a recruiter's freeform talent-search request into structured filters for a profile database.
 
 Rules:
-- semantic_query carries everything that describes the KIND of person (role, seniority, domain, skills, technologies). It must never be empty — when in doubt, keep words there.
+- semantic_query carries everything that describes the KIND of person (role, seniority, domain, skills, technologies). When in doubt, keep words there.
+- Generic person nouns ("candidate", "people", "someone", "profiles", "talent") and search verbs ("find", "search for", "looking for", "show me") are filler, NOT intent — never put them in semantic_query. "find candidates in NYC" is only a location filter: semantic_query is "". Role phrases keep their words though: "people operations manager" and "talent acquisition lead" stay intact.
+- semantic_query must NOT repeat anything you extracted into filters: once a location, industry, experience amount, company, or contact requirement becomes a filter, its words leave semantic_query ("sales directors in the banking industry" -> industries=[banking], semantic_query="sales directors").
 - regions: only values from ALLOWED_REGIONS. Map cities/metros to their state ("NYC" -> "new york", "Bay Area" -> "california", "Austin" -> "texas"). If no location is mentioned, return [].
 - industries: only values from ALLOWED_INDUSTRIES, and only when the text clearly names a sector. Do not guess an industry from a job role.
 - min/max_years_experience: only when the text states an experience amount ("8+ years" -> min 8; "junior" alone is NOT a number).
@@ -154,6 +161,79 @@ def _fallback(text: str) -> Dict[str, Any]:
     return {"semantic_query": text, "filters": {}, "parse_failed": True}
 
 
+# Deterministic backstop to the prompt rule above: single tokens that describe
+# every profile and none. Lexically they'd match profiles merely CONTAINING the
+# word ("JD candidate"). Role words like "people"/"talent" are deliberately
+# absent — they carry meaning in phrases ("people operations", "talent
+# acquisition"), which the LLM keeps intact.
+_FILLER_TOKENS = {
+    "anyone",
+    "candidate",
+    "candidates",
+    "find",
+    "give",
+    "i",
+    "list",
+    "looking",
+    "me",
+    "need",
+    "person",
+    "please",
+    "profile",
+    "profiles",
+    "search",
+    "seeking",
+    "show",
+    "someone",
+    "want",
+}
+
+
+def _strip_filler(text: str) -> str:
+    """Drop filler tokens from a residual query; may return an empty string."""
+    kept = [t for t in text.split() if t.lower().strip(",.") not in _FILLER_TOKENS]
+    return " ".join(kept)
+
+
+_HAS_FLAG_TOKENS = {
+    "has_email": {"email", "emails"},
+    "has_phone": {"phone", "phones"},
+    "has_github": {"github"},
+    "has_linkedin": {"linkedin"},
+    "has_twitter": {"twitter"},
+    "has_website": {"website"},
+}
+
+
+def _subtract_filter_tokens(semantic_query: str, filters: Dict[str, Any]) -> str:
+    """
+    The model is instructed to subtract extracted-filter phrases from
+    semantic_query but does not always comply ("sales directors in the banking
+    industry" kept "banking industry" while industries=[banking]). Enforce it
+    deterministically: tokens belonging to extracted filter VALUES and their
+    marker words must not survive into the lexical gate, where they would
+    demand the literal word in the profile text.
+    """
+    drop: set[str] = set()
+    for value in (filters.get("regions") or []) + (filters.get("industries") or []):
+        drop.update(value.lower().split())
+    if filters.get("industries"):
+        drop.update({"industry", "industries", "sector"})
+    if filters.get("company"):
+        drop.update(str(filters["company"]).lower().split())
+        drop.add("at")
+    if (
+        filters.get("min_years_experience") is not None
+        or filters.get("max_years_experience") is not None
+    ):
+        drop.update({"year", "years", "experience"})
+    for flag, words in _HAS_FLAG_TOKENS.items():
+        if filters.get(flag):
+            drop.update(words)
+    kept = [t for t in semantic_query.split() if t.lower().strip(",.") not in drop]
+    return " ".join(kept)
+
+
 async def parse_natural_query(text: str) -> Dict[str, Any]:
     """
     Parse freeform text into {semantic_query, filters, parse_failed}.
@@ -162,6 +242,11 @@ async def parse_natural_query(text: str) -> Dict[str, Any]:
     extracted (regions, industries, min/max_years_experience, job_title,
     company, has_*). Never raises.
     """
+    cache_key = text.strip().lower()
+    cached = _parse_cache.get(cache_key)
+    if cached is not None:
+        return {**cached, "filters": dict(cached["filters"])}
+
     started = time.time()
     try:
         vocab = await get_filter_vocabulary()
@@ -171,7 +256,7 @@ async def parse_natural_query(text: str) -> Dict[str, Any]:
             model=os.getenv("NL_PARSE_MODEL", "gpt-4o-mini"),
             temperature=0,
             max_tokens=400,
-            response_format={"type": "json_schema", "json_schema": PARSE_SCHEMA},
+            response_format=cast(Any, {"type": "json_schema", "json_schema": PARSE_SCHEMA}),
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
                 {
@@ -184,7 +269,10 @@ async def parse_natural_query(text: str) -> Dict[str, Any]:
                 },
             ],
         )
-        raw = json.loads(response.choices[0].message.content)
+        content = response.choices[0].message.content
+        if content is None:
+            raise ValueError("NEGATIVE SPACE: model returned no content for parse request")
+        raw = json.loads(content)
 
         filters: Dict[str, Any] = {}
 
@@ -223,13 +311,21 @@ async def parse_natural_query(text: str) -> Dict[str, Any]:
             if raw.get(flag) is True:
                 filters[flag] = True
 
-        semantic_query = (raw.get("semantic_query") or "").strip() or text
+        # May legitimately end up empty ("find candidates in NYC" is only a
+        # filter) — an empty query downstream means filtered browse mode.
+        semantic_query = _subtract_filter_tokens(
+            _strip_filler((raw.get("semantic_query") or "").strip()), filters
+        )
 
         logger.info(
             f"NL parse ok in {(time.time() - started) * 1000:.0f}ms: "
             f"{len(filters)} filters from {text!r}"
         )
-        return {"semantic_query": semantic_query, "filters": filters, "parse_failed": False}
+        result = {"semantic_query": semantic_query, "filters": filters, "parse_failed": False}
+        if len(_parse_cache) >= _PARSE_CACHE_MAX:
+            _parse_cache.pop(next(iter(_parse_cache)))
+        _parse_cache[cache_key] = {**result, "filters": dict(filters)}
+        return result
 
     except Exception as e:
         logger.warning(f"NL parse failed for {text!r} — falling back to pure semantic: {e}")

@@ -458,7 +458,9 @@ class NaturalParseResponse(BaseModel):
     Parsed search: hard filters + the residual semantic query.
 
     NEGATIVE SPACE CONTRACT:
-    - semantic_query is never empty (falls back to the raw input)
+    - semantic_query may be EMPTY: a request that is only filters + filler
+      ("find candidates in NYC") has no residual intent — searching with the
+      empty query is a filtered browse
     - filters contains only SearchRequest fields that were actually extracted
       (regions/industries validated against the database vocabulary)
     - parse_failed=True means the LLM step failed and the raw text became the
