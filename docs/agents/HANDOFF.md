@@ -435,3 +435,18 @@ Template (copy/paste):
   - Verified parses: "Bay Area or Austin"→california/texas; "8+ years with an email"→min_years 8, has_email; "at Google with a GitHub"→company+has_github only; pure-semantic text passes through with zero filters
 - Impacts: New additive endpoint; no changes to /search contract; ~1.4-2.9s parse latency; search history tests still pass
 - Next: wire the frontend — search box gets an NL mode calling /search/parse, parsed filters prefill the existing filter panel/sessionStorage so users can see and correct what the AI understood
+
+---
+
+- Date/Time (UTC): 2026-07-19
+- Author: Claude Code
+- Change: Loading UI — skeleton results table + submit-button spinner (branch `feat/natural-language-search`)
+- Details:
+  - Results page loading state: bare "Searching profiles..." replaced with a full skeleton table — real column headers (extracted into shared `TableHead`) + 8 shimmer rows mirroring the 6-column row anatomy (avatar circle, name/role lines, company/location lines, exp chip, 2-line summary, action squares), deterministic width variation (SSR-safe, no randomness), header count shows a shimmer bar; footer line "Searching 497K+ profiles with semantic ranking" with bouncing dots
+  - Home submit button: "…" placeholder replaced with a rotating ring spinner (currentColor + --skeleton-sheen track)
+  - Theming per THEME_GUIDELINES: new token pair `--skeleton-base`/`--skeleton-sheen` in BOTH theme blocks (dark: white at 6%/13%; light: near-black at 6%/13%); all skeleton styles reference tokens only; `prefers-reduced-motion` gets static skeletons and slowed spinner
+  - Accessibility: loading region is `role="status"` with label; decorative shimmer elements aria-hidden
+  - Verified: `bun run build` clean, both pages 200 on dev server. Browser visual pass NOT done — Chrome extension disconnected (same as redesign session); user should eyeball both themes
+  - Note: working tree carries unrelated uncommitted edits to hybrid-track files (backend/search.py, embeddings/batch_embed.py, sql/04_migration_from_existing.sql — AsyncOpenAI work, likely another session/agent) — deliberately left untouched, not committed
+- Impacts: UX only; no API or data-flow changes
+- Next: browser-verify skeleton in dark+light (run a search, or stall :8000 to hold the loading state); then frontend NL wiring on this branch
