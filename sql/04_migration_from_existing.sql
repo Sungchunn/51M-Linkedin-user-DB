@@ -95,7 +95,9 @@ SELECT
     p.job_title,
     p.company_name,
     LEFT(p.headline, 500) AS headline,              -- Truncate to 500 chars
-    p.location_country,
+    -- Over-length values are scraper garbage, not real countries — NULL them
+    -- rather than truncate (a truncated blob would pollute the country filter)
+    CASE WHEN LENGTH(p.location_country) <= 100 THEN p.location_country END AS location_country,
     p.industry,
     -- Derive seniority from job title (simple heuristic)
     CASE
@@ -170,7 +172,8 @@ SELECT
     NULL::JSONB AS certifications_json,
 
     p.email,
-    p.phone,
+    -- Same garbage-guard as location_country: phone is varchar(50) in detail
+    CASE WHEN LENGTH(p.phone) <= 50 THEN p.phone END AS phone,
     p.website,
     p.twitter,
     p.github,

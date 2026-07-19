@@ -7,15 +7,38 @@ all SQL uses psycopg named placeholders (%(name)s) — NOT asyncpg $N style.
 """
 
 import logging
+import os
 import time
 from typing import Any, Dict, List, Optional
 
+from openai import AsyncOpenAI
 from psycopg.rows import dict_row
 
 from backend.db import get_db_pool
 from backend.models import ProfileResult, SearchRequest, SearchResponse
 
 logger = logging.getLogger(__name__)
+
+# Must match the corpus embeddings written by embeddings/batch_embed.py —
+# same model AND same dimensions, or cosine distance is meaningless.
+EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_DIMENSIONS = 384
+
+_openai_client: Optional[AsyncOpenAI] = None
+
+
+def _get_openai_client() -> Optional[AsyncOpenAI]:
+    """Lazily create a shared AsyncOpenAI client; None when no API key is set."""
+    global _openai_client
+
+    if _openai_client is None:
+        api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key:
+            logger.warning("OPENAI_API_KEY not set — semantic search disabled")
+            return None
+        _openai_client = AsyncOpenAI(api_key=api_key)
+
+    return _openai_client
 
 
 async def hybrid_search(request: SearchRequest) -> SearchResponse:
@@ -72,22 +95,25 @@ async def hybrid_search(request: SearchRequest) -> SearchResponse:
 
 async def _generate_query_embedding(query: str) -> Optional[List[float]]:
     """
-    Generate embedding for search query.
+    Generate a 384-d embedding for the search query via OpenAI.
 
-    TODO: Implement with OpenAI API (384-d text-embedding-3-small)
-    For now, returns None to trigger keyword search fallback.
+    Returns None (triggering the keyword-search fallback in hybrid_search)
+    when no API key is configured or the API call fails.
     """
-    # Placeholder - implement with OpenAI
-    # from openai import AsyncOpenAI
-    # client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    # response = await client.embeddings.create(
-    #     input=query,
-    #     model="text-embedding-3-small",
-    #     dimensions=384
-    # )
-    # return response.data[0].embedding
+    client = _get_openai_client()
+    if client is None:
+        return None
 
-    return None  # Fallback to keyword search
+    try:
+        response = await client.embeddings.create(
+            input=query,
+            model=EMBEDDING_MODEL,
+            dimensions=EMBEDDING_DIMENSIONS,
+        )
+        return response.data[0].embedding
+    except Exception as e:
+        logger.error(f"Query embedding failed (model={EMBEDDING_MODEL}): {e}")
+        return None
 
 
 def _apply_filters(request: SearchRequest, filters: List[str], params: Dict[str, Any]) -> None:

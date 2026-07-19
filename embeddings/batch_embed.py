@@ -14,19 +14,16 @@ import os
 import sys
 import asyncio
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import List, Optional
 import psycopg
 from psycopg.rows import dict_row
 from dotenv import load_dotenv
 import logging
 from tqdm.asyncio import tqdm as async_tqdm
 from openai import AsyncOpenAI
-import torch
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from backend.data_pipeline.ingestion import transformers as tf
 
 # Configure logging
 logging.basicConfig(
@@ -58,7 +55,10 @@ class OpenAIBackend(EmbeddingBackend):
 
     def __init__(self, api_key: str, max_concurrent: int = 10):
         super().__init__("text-embedding-3-small", dimensions=384)
-        self.client = AsyncOpenAI(api_key=api_key)
+        # Tight timeout: the default 600s turns one hung connection into a
+        # ~20-min stall of the whole sequential pipeline; failed sub-batches
+        # are skipped and can be re-run under a fresh batch name.
+        self.client = AsyncOpenAI(api_key=api_key, timeout=30.0, max_retries=5)
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
     async def embed_batch(self, texts: List[str]) -> Optional[List[List[float]]]:
@@ -87,6 +87,9 @@ class LocalMPSBackend(EmbeddingBackend):
         super().__init__(model_name, dimensions=384)
 
         try:
+            # torch/sentence-transformers are only needed for this backend —
+            # keep them out of module scope so the OpenAI path works without them
+            import torch
             from sentence_transformers import SentenceTransformer
 
             # Check for MPS availability
@@ -201,7 +204,9 @@ async def generate_embeddings_resumable(
     dsn: str,
     backend: EmbeddingBackend,
     batch_name: str,
-    batch_size: int = 50000,
+    # 5K (not 50K): commits gate durability, so smaller batches cap how much
+    # work a mid-batch crash or watchdog kill can roll back
+    batch_size: int = 5000,
     embed_batch_size: int = 100,
     limit: Optional[int] = None
 ):
@@ -429,6 +434,12 @@ def main():
     if not dsn:
         logger.error("PG_DSN not set")
         sys.exit(1)
+
+    # TCP keepalives so a silently dead connection (e.g. Docker port-forward
+    # dropping an idle socket) surfaces as an error within ~a minute instead
+    # of blocking a socket read indefinitely
+    sep = "&" if "?" in dsn else "?"
+    dsn = f"{dsn}{sep}keepalives=1&keepalives_idle=30&keepalives_interval=10&keepalives_count=3"
 
     try:
         # Initialize backend

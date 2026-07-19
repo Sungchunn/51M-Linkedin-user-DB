@@ -14,18 +14,11 @@ from backend.db import get_db_pool, close_db_pool
 from backend.cache import cache
 from backend.search import hybrid_search, get_profile_by_id, record_profile_view
 from backend.duck import get_industry_stats, get_country_stats
-from backend.models import (
-    SearchRequest,
-    SearchResponse,
-    ProfileDetail,
-    IndustryStats,
-    CountryStats
-)
+from backend.models import SearchRequest, SearchResponse, ProfileDetail, IndustryStats, CountryStats
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -50,7 +43,7 @@ app = FastAPI(
     title="INSIGHT - LinkedIn Profile Search API",
     description="Hybrid architecture: Postgres (hot) + Redis (cache) + DuckDB (analytics)",
     version="2.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -69,7 +62,7 @@ async def root():
     return {
         "status": "ok",
         "service": "INSIGHT API v2",
-        "architecture": "Postgres (hot) + Redis (cache) + DuckDB (analytics)"
+        "architecture": "Postgres (hot) + Redis (cache) + DuckDB (analytics)",
     }
 
 
@@ -124,21 +117,23 @@ async def get_profile(profile_id: str):
             logger.info(f"Cache HIT for profile: {profile_id}")
             return ProfileDetail(**cached)
 
-        # Fetch from database
+        # Fetch from database (returns a plain dict, not a model)
         profile = await get_profile_by_id(profile_id)
 
         if not profile:
             raise HTTPException(status_code=404, detail="Profile not found")
 
+        detail = ProfileDetail(**profile)
+
         # Record view (increments click_count_7d)
         await record_profile_view(profile_id)
 
         # Cache for 10 minutes
-        await cache.set_profile(profile_id, profile.model_dump(), ttl=600)
+        await cache.set_profile(profile_id, detail.model_dump(), ttl=600)
 
         logger.info(f"Profile fetched: {profile_id}")
 
-        return profile
+        return detail
 
     except HTTPException:
         raise
@@ -148,9 +143,7 @@ async def get_profile(profile_id: str):
 
 
 @app.get("/stats/industry", response_model=List[IndustryStats])
-async def get_industry_statistics(
-    limit: int = Query(default=20, ge=1, le=100)
-):
+async def get_industry_statistics(limit: int = Query(default=20, ge=1, le=100)):
     """
     Get industry statistics using DuckDB analytics on S3 Parquet.
 
@@ -166,9 +159,7 @@ async def get_industry_statistics(
 
 
 @app.get("/stats/country", response_model=List[CountryStats])
-async def get_country_statistics(
-    limit: int = Query(default=20, ge=1, le=100)
-):
+async def get_country_statistics(limit: int = Query(default=20, ge=1, le=100)):
     """
     Get country statistics using DuckDB analytics on S3 Parquet.
     """
@@ -186,12 +177,7 @@ async def health_check():
     """
     Detailed health check for all components.
     """
-    health = {
-        "status": "ok",
-        "database": "unknown",
-        "cache": "unknown",
-        "duckdb": "unknown"
-    }
+    health = {"status": "ok", "database": "unknown", "cache": "unknown", "duckdb": "unknown"}
 
     # Check database
     try:
@@ -215,6 +201,7 @@ async def health_check():
     # Check DuckDB (basic connectivity)
     try:
         from backend.duck import test_connection
+
         await test_connection()
         health["duckdb"] = "ok"
     except Exception as e:
@@ -229,10 +216,4 @@ if __name__ == "__main__":
 
     port = int(os.getenv("API_PORT", "8000"))
 
-    uvicorn.run(
-        "backend.app:app",
-        host="0.0.0.0",
-        port=port,
-        reload=True,
-        log_level="info"
-    )
+    uvicorn.run("backend.app:app", host="0.0.0.0", port=port, reload=True, log_level="info")
