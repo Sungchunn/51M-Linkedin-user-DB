@@ -465,3 +465,30 @@ Template (copy/paste):
   - Verified: `bun run build` clean; both pages 200; API restarted, health 200 (12.5s — DB still busy with batch job). Browser visual pass still pending (Chrome extension disconnected)
 - Impacts: UX + resilience; /search contract unchanged; embedding cache is transparent
 - Next: browser-verify beam/status bar in dark+light; decide whether to pause the hybrid-track batch embed while using the app interactively
+
+---
+
+- Date/Time (UTC): 2026-07-19
+- Author: Claude Code
+- Change: Hybrid track (backend/app.py + profiles_hot) turned on end-to-end — query embeddings, hot-tier data, 384-d corpus embeddings (branch `feat/natural-language-search`, uncommitted)
+- Details:
+  - `backend/search.py`: implemented `_generate_query_embedding()` — OpenAI `text-embedding-3-small` at 384 dims via lazily-created shared AsyncOpenAI client; returns None on missing key/API failure to preserve the keyword-search fallback
+  - `sql/04_migration_from_existing.sql`: ran it — all 497,552 profiles now in `profiles_hot` (701MB) + `profiles_detail` (408MB). Fixed two dirty-data overflows first: `location_country` (56 rows >100 chars) and `phone` (>50 chars) are NULLed when over schema limits (scraper garbage, truncation would pollute filters)
+  - `embeddings/batch_embed.py`: full corpus embedded — 497,552/497,552, 0 skipped, ~$1 OpenAI spend. Hardening added along the way: `torch` import made lazy (only MPS backend needs it; openai path no longer requires torch installed), AsyncOpenAI `timeout=30, max_retries=5` (default 600s turned one hung socket into 20-min stalls), DB batch size 50K→5K (commit granularity = crash blast radius), libpq TCP keepalives appended to DSN in `main()` (Docker port-forward silently drops idle connections; two multi-hour stalls traced to indefinite socket reads). Job is checkpoint-resumable; ran under an external watchdog that killed+resumed on 5-min stalls
+  - `backend/app.py`: fixed `/profile/{id}` 500 — handler called `.model_dump()` on the plain dict from `get_profile_by_id()`; now builds `ProfileDetail` once and reuses for cache+response
+  - `poetry install --extras all` needed (redis was missing from the venv; extras already declared in pyproject)
+  - E2E verified via TestClient: semantic /search (0.59-0.67 cosine for "senior ML engineer in fintech" → actual senior ML people, ~900ms incl. embed round-trip), Redis cache hit on repeat, seniority+quality filters on vector path, /profile detail join
+- Impacts: `make api/start` track is now fully functional; main API (`backend/api/app.py`) untouched. Both default to port 8000 — don't run both simultaneously without API_PORT override
+- Next: routing decision — frontend (:5500) still points at the main API; pointing it at this track (or mounting these endpoints) is a product decision left open. Hot-tier is currently ALL 497K profiles; `jobs/promote_hot.py promote --target N` prunes to top-N by hotness when the corpus outgrows serving capacity
+
+---
+
+- Date/Time (UTC): 2026-07-19
+- Author: Claude Code
+- Change: Shared Export dropdown with Excel support; Save button removed (branch `feat/natural-language-search`)
+- Details:
+  - New endpoint `GET /export/xlsx` (openpyxl 3.1.5, new dependency): identical params, auth gates, rate-limit bucket (`export:`), filter requirement, and NL parse as /export/csv; builds the workbook in-memory (write-only mode, "Profiles" sheet) since xlsx is a zip and can't stream; checks run up front rather than inside a generator; column order hoisted to module-level `EXPORT_FIELDNAMES` shared by both formats
+  - Results header: Save (window.print) button removed; "Export CSV" replaced by a single primary "Export" button opening a dropdown (CSV / Excel) — click-outside + Escape close, aria-haspopup/expanded, disabled with "Exporting…" while a download runs; menu styled on the home contactPopover pattern (surface/border/shadow-lg tokens)
+  - Verified: xlsx downloads as valid Excel 2007+ (50 rows + header, 27 cols, openpyxl round-trip); CSV regression-checked after the fieldnames refactor; `bun run build` clean; ruff/black clean on new code (12 pre-existing ruff E402/B904 errors in app.py untouched)
+- Impacts: additive endpoint; /export/csv contract unchanged; PII-redaction TEMPORARY-disabled block mirrored in xlsx so re-enabling touches both
+- Next: consider a shared helper for the duplicated export gate sequence if a third format ever lands
