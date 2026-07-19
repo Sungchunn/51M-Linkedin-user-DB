@@ -450,3 +450,18 @@ Template (copy/paste):
   - Note: working tree carries unrelated uncommitted edits to hybrid-track files (backend/search.py, embeddings/batch_embed.py, sql/04_migration_from_existing.sql — AsyncOpenAI work, likely another session/agent) — deliberately left untouched, not committed
 - Impacts: UX only; no API or data-flow changes
 - Next: browser-verify skeleton in dark+light (run a search, or stall :8000 to hold the loading state); then frontend NL wiring on this branch
+
+---
+
+- Date/Time (UTC): 2026-07-19
+- Author: Claude Code
+- Change: Scan-beam loading animation (user-supplied design), search timeout/retry, query-embedding cache (branch `feat/natural-language-search`)
+- Details:
+  - Loading redesign implemented from user's mockup (`~/Downloads/Loading animation improvements/ProspectIQ Loading.dc.html`), adapted to the token system: accent scan beam (88px gradient band) sweeps down the skeleton rows on a 2.6s loop; skeleton rows fade in staggered (90ms/row); status bar replaces the plain footer — orbit spinner (ring + pulsing core), cycling messages ("Embedding your query" → … → "Assembling results"), eased count-up "Scanned N of 497K profiles · semantic ranking" (6.2s, rAF, contained in `SearchLoadingStatus` so per-frame state stays out of the page tree), bouncing accent dots
+  - New tokens in BOTH theme blocks: `--scan-tint`/`--scan-tint-strong`/`--spinner-ring` (cyan #60d5ff family dark, teal #0e7490 family light); counter is a pacing device, not real progress — after 20s message switches to honest "Still working — the server is under heavy load"; `prefers-reduced-motion`: beam hidden, rows/fades static, counter jumps to target, spinner slowed
+  - Robustness (root cause of user-reported "Request timed out": parallel session's `embeddings/batch_embed.py` job driving Postgres to 110-155% CPU, host load ~20/8 cores; searches 333ms quiet → 9-40s under load): /search fetch now has 75s AbortController ceiling (above API's 30s DB timeout) + "Try again" button in error state; home `fetchWithTimeout` gets one automatic retry for /regions + /industries
+  - `perf(api)`: query embeddings now FIFO-cached (256, keyed by normalized text) in backend/api/search.py, mirroring the nl_parser parse cache — pagination/repeat searches skip both OpenAI calls (verified: same query 4.5s → 16ms)
+  - ChunkLoadErrors in dev were stale Turbopack chunks from the overloaded dev server — cleared `.next/dev` + restarted
+  - Verified: `bun run build` clean; both pages 200; API restarted, health 200 (12.5s — DB still busy with batch job). Browser visual pass still pending (Chrome extension disconnected)
+- Impacts: UX + resilience; /search contract unchanged; embedding cache is transparent
+- Next: browser-verify beam/status bar in dark+light; decide whether to pause the hybrid-track batch embed while using the app interactively
