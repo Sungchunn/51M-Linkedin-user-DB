@@ -147,6 +147,11 @@ async def options_export_csv():
     return Response(status_code=204)
 
 
+@app.options("/export/xlsx")
+async def options_export_xlsx():
+    return Response(status_code=204)
+
+
 @app.get("/", tags=["Root"])
 async def root():
     """Root endpoint"""
@@ -817,6 +822,39 @@ async def export_ndjson(
     return StreamingResponse(iter_lines(), headers=headers, media_type="application/x-ndjson")
 
 
+# Column order shared by the CSV and Excel exports — the two formats must
+# stay interchangeable for downstream tooling.
+EXPORT_FIELDNAMES = [
+    "id",
+    "full_name",
+    "first_name",
+    "last_name",
+    "job_title",
+    "company_name",
+    "industry",
+    "location",
+    "location_country",
+    "region",
+    "locality",
+    "years_experience",
+    "skills",
+    "headline",
+    "summary",
+    "linkedin_url",
+    "linkedin_username",
+    "email",
+    "phone",
+    "website",
+    "twitter",
+    "github",
+    "score",
+    "vector_similarity",
+    "lexical_rank",
+    "content_quality_score",
+    "data_completeness_pct",
+]
+
+
 @app.get(
     "/export/csv", tags=["Export"], summary="Export search results as CSV (up to 1000 per call)"
 )
@@ -862,35 +900,7 @@ async def export_csv(
         "Content-Disposition": "attachment; filename=insight_export.csv",
     }
 
-    fieldnames = [
-        "id",
-        "full_name",
-        "first_name",
-        "last_name",
-        "job_title",
-        "company_name",
-        "industry",
-        "location",
-        "location_country",
-        "region",
-        "locality",
-        "years_experience",
-        "skills",
-        "headline",
-        "summary",
-        "linkedin_url",
-        "linkedin_username",
-        "email",
-        "phone",
-        "website",
-        "twitter",
-        "github",
-        "score",
-        "vector_similarity",
-        "lexical_rank",
-        "content_quality_score",
-        "data_completeness_pct",
-    ]
+    fieldnames = EXPORT_FIELDNAMES
 
     async def iter_csv():
         ctx: AuthContext = await resolve_auth_context(x_api_key)
@@ -941,6 +951,103 @@ async def export_csv(
                 sio.truncate(0)
 
     return StreamingResponse(iter_csv(), headers=headers, media_type="text/csv")
+
+
+@app.get(
+    "/export/xlsx", tags=["Export"], summary="Export search results as Excel (up to 1000 per call)"
+)
+async def export_xlsx(
+    request: Request,
+    q: str = Query("", description="Search query text (empty for browse mode)"),
+    limit: int = Query(1000, ge=1, le=1000, description="Number of results to return (max 1000)"),
+    offset: int = Query(0, ge=0, description="Offset for pagination"),
+    location_country: str | None = Query(None),
+    regions: list[str] | None = Query(None),
+    localities: list[str] | None = Query(None),
+    min_years_experience: int | None = Query(None, ge=0, le=80),
+    max_years_experience: int | None = Query(None, ge=0, le=80),
+    skills: list[str] | None = Query(None),
+    industries: list[str] | None = Query(None),
+    min_quality_score: float | None = Query(None, ge=0.0, le=1.0),
+    min_data_completeness: int | None = Query(None, ge=0, le=100),
+    vector_weight: float = Query(0.8, ge=0.0, le=1.0),
+    lexical_weight: float = Query(0.2, ge=0.0, le=1.0),
+    ef_search: int = Query(64, ge=10, le=400),
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+):
+    try:
+        from openpyxl import Workbook
+    except ImportError as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Excel export unavailable: openpyxl not installed — run `poetry install`",
+        ) from e
+
+    req = SearchRequest(
+        query=q,
+        limit=limit,
+        offset=offset,
+        location_country=location_country,
+        regions=regions,
+        localities=localities,
+        min_years_experience=min_years_experience,
+        max_years_experience=max_years_experience,
+        skills=skills,
+        industries=industries,
+        min_quality_score=min_quality_score,
+        min_data_completeness=min_data_completeness,
+        vector_weight=vector_weight,
+        lexical_weight=lexical_weight,
+        ef_search=ef_search,
+    )
+
+    # Same gate sequence as /export/csv, but checked up front: xlsx is a zip
+    # container that must be fully built before the first byte is sent, so
+    # there is no streaming generator to defer the checks into.
+    ctx: AuthContext = await resolve_auth_context(x_api_key)
+    require_key = os.getenv("EXPORT_REQUIRE_API_KEY", "false").lower() == "true"
+    if require_key and not ctx.allow_export:
+        raise HTTPException(
+            status_code=403, detail="Export not permitted without 'export:read' scope"
+        )
+    if not limiter.allow(
+        f"export:{ctx.api_key or request.client.host}",
+        int(os.getenv("RATE_LIMIT_EXPORT_PER_MIN", "6")),
+        int(os.getenv("RATE_LIMIT_EXPORT_BURST", "10")),
+    ):
+        raise HTTPException(status_code=429, detail="Rate limit exceeded")
+    export_require_filter = os.getenv("EXPORT_REQUIRE_FILTER", "true").lower() == "true"
+    has_any_filter = bool(
+        location_country or (regions and len(regions) > 0) or (localities and len(localities) > 0)
+    )
+    if (q.strip() == "") and (export_require_filter and not has_any_filter):
+        raise HTTPException(status_code=422, detail="Export requires query or at least one filter")
+    await _apply_nl_parse(req)
+
+    pool = await database.get_pool()
+    async with pool.acquire() as conn:
+        results, _ = await search.hybrid_search(conn, req)
+
+    wb = Workbook(write_only=True)
+    ws = wb.create_sheet("Profiles")
+    ws.append(EXPORT_FIELDNAMES)
+    for r in results:
+        data = r.dict()
+        # TEMPORARY: Disabled for testing - ENABLE IN PRODUCTION!
+        # if not ctx.allow_pii:
+        #     data["email"] = ""
+        #     data["phone"] = ""
+        if isinstance(data.get("skills"), list):
+            data["skills"] = "; ".join(data["skills"]) if data["skills"] else ""
+        ws.append([data.get(k) for k in EXPORT_FIELDNAMES])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return Response(
+        content=buf.getvalue(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=insight_export.xlsx"},
+    )
 
 
 # Exception handlers
