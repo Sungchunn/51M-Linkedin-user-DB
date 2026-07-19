@@ -157,10 +157,9 @@ const ICONS = {
             <path d="M4 6h16M7 12h10M10 18h4" />
         </svg>
     ),
-    save: (
+    caretDown: (
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <path d="M17 21v-8H7v8M7 3v5h8" />
+            <path d="m6 9 6 6 6-6" />
         </svg>
     ),
     download: (
@@ -554,7 +553,30 @@ export default function ResultsPage() {
     const [copiedRow, setCopiedRow] = useState(null);
     const copyTimer = useRef(null);
 
+    // Shared export button (CSV / Excel dropdown)
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
+    const [exporting, setExporting] = useState(false);
+    const exportWrapRef = useRef(null);
+
     useEffect(() => () => clearTimeout(copyTimer.current), []);
+
+    useEffect(() => {
+        if (!exportMenuOpen) return undefined;
+        const onPointerDown = (e) => {
+            if (exportWrapRef.current && !exportWrapRef.current.contains(e.target)) {
+                setExportMenuOpen(false);
+            }
+        };
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') setExportMenuOpen(false);
+        };
+        document.addEventListener('mousedown', onPointerDown);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', onPointerDown);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [exportMenuOpen]);
 
     useEffect(() => {
         const paramsStr = sessionStorage.getItem('searchParams');
@@ -753,7 +775,10 @@ export default function ResultsPage() {
         }
     }
 
-    const exportToCSV = async () => {
+    // format: 'csv' | 'xlsx' — both endpoints share params and column order
+    const exportResults = async (format) => {
+        setExportMenuOpen(false);
+        setExporting(true);
         try {
             const params = new URLSearchParams();
             params.set('q', searchParams?.keyword || '');
@@ -768,21 +793,23 @@ export default function ResultsPage() {
                 searchParams.skills.split(',').map((s) => s.trim()).filter(Boolean).forEach((skill) => params.append('skills', skill));
             }
 
-            const resp = await fetch(`${getApiBaseUrl()}/export/csv?${params.toString()}`);
-            if (!resp.ok) throw new Error('Failed to export CSV');
+            const resp = await fetch(`${getApiBaseUrl()}/export/${format}?${params.toString()}`);
+            if (!resp.ok) throw new Error(`Failed to export ${format.toUpperCase()}`);
 
             const blob = await resp.blob();
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
             link.href = url;
-            link.download = `prospectiq_results_${new Date().toISOString().slice(0, 10)}.csv`;
+            link.download = `prospectiq_results_${new Date().toISOString().slice(0, 10)}.${format}`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Export error:', error);
-            alert('Failed to export CSV: ' + error.message);
+            alert('Failed to export: ' + error.message);
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -818,14 +845,31 @@ export default function ResultsPage() {
                             {ICONS.sliders}
                             Edit search
                         </button>
-                        <button onClick={() => window.print()} className={styles.actionBtn}>
-                            {ICONS.save}
-                            Save
-                        </button>
-                        <button onClick={exportToCSV} className={styles.actionBtnPrimary}>
-                            {ICONS.download}
-                            Export CSV
-                        </button>
+                        <div className={styles.exportWrap} ref={exportWrapRef}>
+                            <button
+                                onClick={() => setExportMenuOpen((open) => !open)}
+                                className={styles.actionBtnPrimary}
+                                disabled={exporting}
+                                aria-haspopup="menu"
+                                aria-expanded={exportMenuOpen}
+                            >
+                                {ICONS.download}
+                                {exporting ? 'Exporting…' : 'Export'}
+                                {ICONS.caretDown}
+                            </button>
+                            {exportMenuOpen && (
+                                <div className={styles.exportMenu} role="menu">
+                                    <button role="menuitem" className={styles.exportMenuItem} onClick={() => exportResults('csv')}>
+                                        CSV
+                                        <span className={styles.exportMenuHint}>.csv</span>
+                                    </button>
+                                    <button role="menuitem" className={styles.exportMenuItem} onClick={() => exportResults('xlsx')}>
+                                        Excel
+                                        <span className={styles.exportMenuHint}>.xlsx</span>
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 

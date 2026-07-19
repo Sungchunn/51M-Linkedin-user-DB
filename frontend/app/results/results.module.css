@@ -110,6 +110,60 @@
     height: 14px;
 }
 
+.actionBtnPrimary:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+}
+
+/* === Shared export dropdown (CSV / Excel) === */
+.exportWrap {
+    position: relative;
+}
+
+.exportMenu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    min-width: 150px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+}
+
+.exportMenuItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.exportMenuItem:hover {
+    background: var(--surface-hover);
+}
+
+.exportMenuHint {
+    color: var(--text-subtle);
+    font-size: 0.72rem;
+    font-weight: 500;
+}
+
 /* === Active filter chips === */
 .filterChipsRow {
     display: flex;
