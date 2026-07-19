@@ -499,6 +499,17 @@
     margin-top: 16px;
 }
 
+.stateActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.stateActions .stateAction {
+    margin-top: 0;
+}
+
 /* === Detail slide-over === */
 .scrim {
     position: fixed;
@@ -876,6 +887,43 @@
     border-bottom: 1px solid var(--border);
     padding-top: 15px;
     padding-bottom: 15px;
+    animation: skelRowFade 0.5s ease both;
+    animation-delay: var(--row-delay, 0ms);
+}
+
+@keyframes skelRowFade {
+    from { opacity: 0.35; }
+    to { opacity: 1; }
+}
+
+/* Accent-tinted scan beam sweeping down the skeleton rows. The wrapper
+   provides the positioning context and clips the beam at both ends. */
+.scanArea {
+    position: relative;
+    overflow: hidden;
+}
+
+.scanBeam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 88px;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(90deg,
+        transparent,
+        var(--scan-tint) 30%,
+        var(--scan-tint-strong) 50%,
+        var(--scan-tint) 70%,
+        transparent);
+    animation: scanSweep 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes scanSweep {
+    0% { top: -88px; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
 }
 
 .skelName {
@@ -930,23 +978,95 @@
     vertical-align: middle;
 }
 
+/* Status bar: orbit spinner + cycling message + scanned counter + dots. */
 .loadingFooter {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 14px 20px;
+    gap: 14px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--accent-soft);
+}
+
+.spinnerWrap {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    flex: none;
+}
+
+.spinnerOrbit {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--spinner-ring);
+    border-top-color: transparent;
+    border-right-color: transparent;
+    animation: spinnerOrbit 0.9s linear infinite;
+}
+
+@keyframes spinnerOrbit {
+    to { transform: rotate(360deg); }
+}
+
+.spinnerCore {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    margin: -3.5px 0 0 -3.5px;
+    border-radius: 50%;
+    background: var(--link-accent);
+    animation: spinnerPulse 1.6s ease-out infinite;
+}
+
+@keyframes spinnerPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.9); opacity: 0; }
+}
+
+.loadingText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+}
+
+.loadingMain {
+    color: var(--text-primary);
+    font-size: 0.87rem;
+    font-weight: 600;
+    animation: loadingMsgIn 0.35s ease;
+}
+
+@keyframes loadingMsgIn {
+    from { opacity: 0; transform: translateY(3px); }
+    to { opacity: 1; transform: none; }
+}
+
+.loadingSub {
     color: var(--text-muted);
-    font-size: 0.82rem;
+    font-size: 0.78rem;
+}
+
+.loadingCount {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-weight: 600;
+    color: var(--link-accent);
+    font-variant-numeric: tabular-nums;
 }
 
 .loadingDots {
     display: inline-flex;
-    gap: 4px;
+    gap: 5px;
+    margin-left: auto;
+    color: var(--link-accent);
 }
 
 .loadingDots i {
-    width: 4px;
-    height: 4px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: currentColor;
     animation: loadingDotPulse 1.2s ease-in-out infinite;
@@ -969,5 +1089,23 @@
     .loadingDots i {
         animation: none;
         opacity: 0.6;
+    }
+
+    .skeletonRow {
+        animation: none;
+    }
+
+    .scanBeam {
+        animation: none;
+        opacity: 0;
+    }
+
+    .spinnerOrbit {
+        animation-duration: 2.4s;
+    }
+
+    .spinnerCore,
+    .loadingMain {
+        animation: none;
     }
 }

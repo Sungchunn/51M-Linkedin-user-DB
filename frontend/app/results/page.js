@@ -42,6 +42,78 @@ const SKELETON_ROWS = Array.from({ length: 8 }, (_, i) => [
     ['66%', '38%', '84%', '68%', '72%'],
 ][i % 4]);
 
+// Client-side ceiling above the API's own 30s DB timeout, so a server error
+// always beats an opaque abort.
+const SEARCH_TIMEOUT_MS = 75000;
+
+// Status-bar pacing: messages advance while the scanned counter eases toward
+// the corpus size. Purely a pacing device — real progress isn't reported by
+// the API — so after LONG_WAIT_MS the message switches to an honest one.
+const LOADING_MESSAGES = [
+    'Embedding your query',
+    'Searching 497K+ profiles',
+    'Scoring semantic relevance',
+    'Ranking best matches',
+    'Assembling results',
+];
+const SCAN_TARGET = 497552;
+const SCAN_DURATION_MS = 6200;
+const LONG_WAIT_MS = 20000;
+
+/** Loading status bar: orbit spinner, cycling message, scanned count-up.
+    Self-contained so its per-frame state stays out of the page tree. */
+function SearchLoadingStatus() {
+    const [scanned, setScanned] = useState(0);
+    const [msgIndex, setMsgIndex] = useState(0);
+    const [longWait, setLongWait] = useState(false);
+
+    useEffect(() => {
+        const longTimer = setTimeout(() => setLongWait(true), LONG_WAIT_MS);
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            setScanned(SCAN_TARGET);
+            setMsgIndex(1); // static "Searching 497K+ profiles"
+            return () => clearTimeout(longTimer);
+        }
+
+        const start = performance.now();
+        let raf;
+        const tick = (now) => {
+            const t = Math.min(1, (now - start) / SCAN_DURATION_MS);
+            const eased = 1 - Math.pow(1 - t, 2.2);
+            setScanned(Math.floor(eased * SCAN_TARGET));
+            setMsgIndex(Math.min(LOADING_MESSAGES.length - 1, Math.floor(t * LOADING_MESSAGES.length)));
+            if (t < 1) raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => {
+            cancelAnimationFrame(raf);
+            clearTimeout(longTimer);
+        };
+    }, []);
+
+    const scannedLabel = scanned >= 1000 ? `${(scanned / 1000).toFixed(1)}K` : String(scanned);
+    const message = longWait
+        ? 'Still working — the server is under heavy load'
+        : LOADING_MESSAGES[msgIndex];
+
+    return (
+        <div className={styles.loadingFooter}>
+            <div className={styles.spinnerWrap} aria-hidden="true">
+                <span className={styles.spinnerOrbit} />
+                <span className={styles.spinnerCore} />
+            </div>
+            <div className={styles.loadingText}>
+                <span className={styles.loadingMain} key={message}>{message}</span>
+                <span className={styles.loadingSub}>
+                    <span className={styles.loadingCount}>Scanned {scannedLabel}</span>
+                    {' of 497K profiles · semantic ranking'}
+                </span>
+            </div>
+            <span className={styles.loadingDots} aria-hidden="true"><i /><i /><i /></span>
+        </div>
+    );
+}
+
 function buildSearchQuery(searchParams, offset, limit) {
     // Build GET query params to avoid CORS preflight
     const params = new URLSearchParams();
@@ -502,9 +574,14 @@ export default function ResultsPage() {
         const seq = ++requestSeq.current;
         setStatus('loading');
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
+
         try {
             const query = buildSearchQuery(params, searchOffset, searchLimit);
-            const response = await fetch(`${getApiBaseUrl()}/search?${query.toString()}`);
+            const response = await fetch(`${getApiBaseUrl()}/search?${query.toString()}`, {
+                signal: controller.signal,
+            });
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -520,10 +597,18 @@ export default function ResultsPage() {
         } catch (error) {
             console.error('Search error:', error);
             if (seq !== requestSeq.current) return;
-            setErrorMessage(error.message);
+            setErrorMessage(error.name === 'AbortError'
+                ? `Search timed out after ${SEARCH_TIMEOUT_MS / 1000}s — the server may be under heavy load. Try again in a moment.`
+                : error.message);
             setStatus('error');
+        } finally {
+            clearTimeout(timeoutId);
         }
     }, []);
+
+    const retrySearch = useCallback(() => {
+        if (searchParams) executeSearch(searchParams, offset, limit);
+    }, [searchParams, offset, limit, executeSearch]);
 
     useEffect(() => {
         if (!searchParams) return;
@@ -822,34 +907,39 @@ export default function ResultsPage() {
                             <div className={styles.tableScroll} role="status" aria-label="Searching profiles">
                                 <div className={styles.tableInner}>
                                     <TableHead />
-                                    {SKELETON_ROWS.map((w, i) => (
-                                        <div className={styles.skeletonRow} key={i} aria-hidden="true">
-                                            <div className={styles.skelName}>
-                                                <span className={`${styles.skel} ${styles.skelAvatar}`} />
+                                    <div className={styles.scanArea}>
+                                        <span className={styles.scanBeam} aria-hidden="true" />
+                                        {SKELETON_ROWS.map((w, i) => (
+                                            <div
+                                                className={styles.skeletonRow}
+                                                key={i}
+                                                aria-hidden="true"
+                                                style={{ '--row-delay': `${i * 90}ms` }}
+                                            >
+                                                <div className={styles.skelName}>
+                                                    <span className={`${styles.skel} ${styles.skelAvatar}`} />
+                                                    <span className={styles.skelLines}>
+                                                        <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[0] }} />
+                                                        <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[1] }} />
+                                                    </span>
+                                                </div>
+                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[2] }} />
+                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[3] }} />
+                                                <span className={`${styles.skel} ${styles.skelChip}`} />
                                                 <span className={styles.skelLines}>
-                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[0] }} />
-                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[1] }} />
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} />
+                                                    <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[4] }} />
+                                                </span>
+                                                <span className={styles.skelActions}>
+                                                    <span className={`${styles.skel} ${styles.skelBtn}`} />
+                                                    <span className={`${styles.skel} ${styles.skelBtn}`} />
                                                 </span>
                                             </div>
-                                            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[2] }} />
-                                            <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[3] }} />
-                                            <span className={`${styles.skel} ${styles.skelChip}`} />
-                                            <span className={styles.skelLines}>
-                                                <span className={`${styles.skel} ${styles.skelLine}`} />
-                                                <span className={`${styles.skel} ${styles.skelLine}`} style={{ width: w[4] }} />
-                                            </span>
-                                            <span className={styles.skelActions}>
-                                                <span className={`${styles.skel} ${styles.skelBtn}`} />
-                                                <span className={`${styles.skel} ${styles.skelBtn}`} />
-                                            </span>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
-                            <div className={styles.loadingFooter}>
-                                <span>Searching 497K+ profiles with semantic ranking</span>
-                                <span className={styles.loadingDots} aria-hidden="true"><i /><i /><i /></span>
-                            </div>
+                            <SearchLoadingStatus />
                         </>
                     ) : status === 'empty' ? (
                         <div className={styles.stateBox}>
@@ -865,9 +955,14 @@ export default function ResultsPage() {
                             <p className={styles.stateEmoji}>⚠️</p>
                             <p className={styles.stateTitle}>Search failed</p>
                             <p className={styles.stateText}>{errorMessage}</p>
-                            <button onClick={goBack} className={`btn-primary ${styles.stateAction}`}>
-                                <span>Back to Search</span>
-                            </button>
+                            <div className={styles.stateActions}>
+                                <button onClick={retrySearch} className={`btn-primary ${styles.stateAction}`}>
+                                    <span>Try again</span>
+                                </button>
+                                <button onClick={goBack} className={`btn-secondary ${styles.stateAction}`}>
+                                    Back to Search
+                                </button>
+                            </div>
                         </div>
                     )}
                 </div>

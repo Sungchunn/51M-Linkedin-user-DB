@@ -53,20 +53,26 @@ const CONTACT_FILTERS = [
 
 const HIDE_SUGGESTIONS_KEY = 'hideHomeSuggestions';
 
-async function fetchWithTimeout(url, timeout = 30000) {
-    const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+async function fetchWithTimeout(url, timeout = 30000, retries = 1) {
+    for (;;) {
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
 
-    try {
-        const response = await fetch(url, { signal: controller.signal });
-        clearTimeout(id);
-        return response;
-    } catch (error) {
-        clearTimeout(id);
-        if (error.name === 'AbortError') {
-            throw new Error('Request timed out - API may be processing large dataset');
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            if (retries > 0) {
+                retries -= 1;
+                continue;
+            }
+            if (error.name === 'AbortError') {
+                throw new Error('Request timed out - API may be processing large dataset');
+            }
+            throw error;
         }
-        throw error;
     }
 }
 
